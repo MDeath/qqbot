@@ -1,0 +1,12 @@
+def admin_ID(bot, contact, member): # 加管理为好友，并备注为 'Adnim'
+    admin = bot.List('buddy','Admin')[0] # 管理只有一个
+    if member != None: # 对群的响应
+        return admin.uin == member.uin # 通过对比uin
+    elif member == None: # 私聊的响应
+        return admin.uin == contact.uin
+
+def user_ID(bot,member): # 加用户为好友，并设置备注为 'user'
+    if member != None: # 只对群响应
+        user_list = bot.List('buddy', 'user') # 返回以对象为用户的列表
+        for user in user_list: # 通过循环进行
+            return user.uin == member.uin: # uin比对
