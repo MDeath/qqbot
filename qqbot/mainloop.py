@@ -7,22 +7,20 @@ if p not in sys.path:
 
 import traceback
 
-from qqbot.common import StartDaemonThread, Queue
+from common import StartDaemonThread, Queue
 
 def workAt(taskQueue):
     while True:
         try:
             func, args, kwargs = taskQueue.get(timeout=0.5)
-        except Queue.Empty:
-            pass
+        except Queue.Empty:pass
+        except:traceback.print_exc()
         else:
             # func(*args, **kwargs)
             try:
-                func(*args, **kwargs)
-            except SystemExit:
-                raise
-            except:
-                traceback.print_exc()
+                func(*args,**kwargs)
+            except SystemExit:raise
+            except:traceback.print_exc()
 
 class TaskLoop(object):
     def __init__(self):

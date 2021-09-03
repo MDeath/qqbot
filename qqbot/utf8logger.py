@@ -7,7 +7,7 @@ if p not in sys.path:
 
 import sys, logging
 
-from qqbot.common import PY3
+from common import PY3
 
 def equalUtf8(coding):
     return coding is None or coding.lower() in ('utf8', 'utf-8', 'utf_8')

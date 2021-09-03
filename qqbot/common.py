@@ -7,6 +7,18 @@ PY3 = sys.version_info[0] == 3
 JsonLoads = PY3 and json.loads or (lambda s: encJson(json.loads(s)))
 JsonDumps = json.dumps
 
+class JsonDict(dict):
+    def __getattr__(self, attr):
+        try:
+            return self[attr]
+        except KeyError:
+            raise AttributeError(r"'JsonDict' object has no attribute '%s'" % attr)
+    def __setattr__(self, attr, value):
+        self[attr] = value
+
+def parse_json(json_str):
+    return json.loads(json_str, object_hook=JsonDict)
+
 _PASS = lambda s: s
 
 if PY3:

@@ -5,11 +5,10 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v2.3.10'
+version = 'v0.1.1'
 
 sampleConfStr = '''
 {
-
     # QQBot 的配置文件
     # 使用 qqbot -u somebody 启动程序时，依次加载：
     #     根配置 -> 默认配置 -> 用户 somebody 的配置 -> 命令行参数配置
@@ -17,30 +16,24 @@ sampleConfStr = '''
     #     根配置 -> 默认配置 -> 命令行参数配置
     
     # 用户 somebody 的配置
-    "somebody" : {
+    "默认配置" : {
         
         # QQBot-term （HTTP-API） 服务器端口号（该服务器监听 IP 为 127.0.0.1 ）
         # 设置为 0 则不会开启本服务器（此时 qq 命令和 HTTP-API 接口都无法使用）。
         "termServerPort" : 8188,
         
-        # 二维码 http 服务器 ip，请设置为公网 ip 或空字符串
-        "httpServerIP" : "",
+        # Mirai http api 的端口
+        "port" : 8080,
         
-        # 二维码 http 服务器端口号
-        "httpServerPort" : 8189,
+        # Mirai http 服务器地址，请设置为公网地址或localhost
+        "host" : "localhost",
         
-        # 自动登录的 QQ 号
-        "qq" : "3497303033",
+        # 登录的 QQ 号
+        "qq" : 0,
         
-        # 接收二维码图片的邮箱账号
-        "mailAccount" : "3497303033@qq.com",
-        
-        # 该邮箱的 IMAP/SMTP 服务授权码
-        "mailAuthCode" : "feregfgftrasdsew",
-        
-        # 是否以文本模式显示二维码
-        "cmdQrcode" : False,
-    
+        # Mirai http api 验证密钥
+        "verifyKey" : "VerifyKey",
+
         # 显示/关闭调试信息
         "debug" : False,
 
@@ -65,27 +58,31 @@ sampleConfStr = '''
     },
     
     # 可以在 默认配置 中配置所有用户都通用的设置
-    "默认配置" : {
-        "qq" : "",
-        "pluginPath" : "",
+    "somebody" : {
+        "termServerPort" : 8188,
+        "port" : 8080,
+        "host" : "localhost",
+        "qq" : 0,
+        "verifyKey" : "VerifyKey",
+        "debug" : False,
+        "restartOnOffline" : False,
+        "startAfterFetch" : False,
+        "pluginPath" : ".",
         "plugins" : [
-            'qqbot.plugins.sampleslots',
-            'qqbot.plugins.schedrestart',
+            'plugins.sampleslots',
+            'plugins.schedrestart',
         ],
 	    "pluginsConf" : {
-	        'qqbot.plugins.schedrestart': '8:00',
+	        'plugins.schedrestart': '8:00',
 	    }
     },
     
     # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
     # "根配置" : {
     #     "termServerPort" : 8188,
-    #     "httpServerIP" : "",
-    #     "httpServerPort" : 8189,
-    #     "qq" : "",
-    #     "mailAccount" : "",
-    #     "mailAuthCode" : "",
-    #     "cmdQrcode" : False,
+    #     "port" : 8080,
+    #     "host" : "localhost",
+    #     "qq" : 0,
     #     "debug" : False,
     #     "restartOnOffline" : False,
     #     "daemon" : False,
@@ -100,12 +97,10 @@ sampleConfStr = '''
 
 rootConf = {
     "termServerPort" : 8188,
-    "httpServerIP" : "",
-    "httpServerPort" : 8189,
-    "qq" : "",
-    "mailAccount" : "",
-    "mailAuthCode" : "",
-    "cmdQrcode" : False,
+    "port" : 8080,
+    "host" : "localhost",
+    "qq" : 0,
+    "verifyKey" : "VerifyKey",
     "debug" : False,
     "restartOnOffline" : False,
     "daemon" : False,
@@ -124,8 +119,7 @@ usage = '''\
 QQBot 机器人
 
 用法: {PROGNAME} [-h] [-d] [-nd] [-u USER] [-q QQ]
-          [-p TERMSERVERPORT] [-ip HTTPSERVERIP][-hp HTTPSERVERPORT]
-          [-m MAILACCOUNT] [-mc MAILAUTHCODE] [-r] [-nr]
+          [-tp TERMSERVERPORT] [-p PORT] [-ip HOST] [-r] [-nr]
           [-fi FETCHINTERVAL]
 
 选项:
@@ -153,34 +147,24 @@ QQBot 机器人
                               登陆信息进行快速登陆。
 
   QTerm本地控制台服务:
-    -p TERMSERVERPORT, --termServerPort TERMSERVERPORT
+    -tp TERMSERVERPORT, --termServerPort TERMSERVERPORT
                             更改QTerm控制台的监听端口到 TERMSERVERPORT 。
                               默认的监听端口是 8188 (TCP)。
 
-  HTTP二维码查看服务器设置:
-  (请阅读说明文件以了解此HTTP服务器的详细信息。)
-    -ip HTTPSERVERIP, --httpServerIP HTTPSERVERIP
-                            指定HTTP服务要监听在哪个IP地址上。
-    -hp HTTPSERVERPORT, --httpServerPort HTTPSERVERPORT
-                            指定HTTP服务要监听在哪个端口上。
-                              默认的监听端口是 8189 (TCP)
+  Mirai http api 服务器端口:
+    -p PORT, --port PORT
+                            更改Mirai控制台的监听端口到 PORT 。
+                              默认的监听端口是 8080 (TCP)。
 
-  邮件(IMAP)发送二维码设置:
-  (请阅读说明文件以了解如何通过邮件发送二维码，)
-    -m MAILACCOUNT, --mailAccount MAILACCOUNT
-                            指定用于接收二维码的收件邮箱地址。
-    -mc MAILAUTHCODE, --mailAuthCode MAILAUTHCODE
-                            设置接收账户的授权码(如果需要的话)。
-                            如果命令行和配置文件中都没有指定授权码，而收件
-                              邮箱地址已被指定，QQbot将会在启动时要求输入
-                              授权码。
+  Mirai http api 服务器设置:
+    -ip HOST, --host HOST
+                            指定HTTP服务在哪个IP地址上。
 
   掉线重新启动:
     -r, --restartOnOffline  在掉线时自动重新启动。
     -nr, --norestart        在掉线时不要重新启动。
 
   其他：
-    -cq, --cmdQrcode        以文本模式显示二维码
     -saf, --startAfterFetch 全部联系人资料获取完成后再启动 QQBot
     -pp PLUGINPATH, --pluginPath PLUGINPATH
                             设置插件目录
@@ -191,13 +175,11 @@ QQBot 机器人
   {VERSION}\
 '''.format(PROGNAME=progname,  VERSION=version)
 
-deprecatedConfKeys = ['fetchInterval', 'monitorTables']
-
 import os, sys, ast, argparse, platform, time, pkgutil
 
-from qqbot.utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT, ERROR
-from qqbot.common import STR2BYTES, BYTES2STR, SYSTEMSTR2STR, STR2SYSTEMSTR
-from qqbot.common import daemonize, daemonable
+from utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT, ERROR
+from common import STR2BYTES, BYTES2STR, SYSTEMSTR2STR, STR2SYSTEMSTR
+from common import daemonize, daemonable
 
 class ConfError(Exception):
     pass
@@ -217,42 +199,33 @@ class QConf(object):
 
         parser.add_argument('-h', '--help', action='store_true')
 
-        parser.add_argument('-u', '--user')
+        parser.add_argument('-u', '--user', default=None)
 
-        parser.add_argument('-q', '--qq')
+        parser.add_argument('-q', '--qq', type=int)
+
+        parser.add_argument('-v', '--verifyKey', type=str)
 
         parser.add_argument('-b', '--bench')
 
-        parser.add_argument('-p', '--termServerPort', type=int)
+        parser.add_argument('-tp', '--termServerPort', type=int)
 
-        parser.add_argument('-ip', '--httpServerIP')                            
+        parser.add_argument('-p', '--port', type=int)
 
-        parser.add_argument('-hp', '--httpServerPort', type=int)        
+        parser.add_argument('-ip', '--host')      
 
-        parser.add_argument('-m', '--mailAccount')
-
-        parser.add_argument('-mc', '--mailAuthCode') 
-
-        parser.add_argument('-cq', '--cmdQrcode',
-                            action='store_true', default=None)
-
-        parser.add_argument('-d', '--debug',
-                            action='store_true', default=None)        
+        parser.add_argument('-d', '--debug', action='store_true', default=None)        
 
         parser.add_argument('-nd', '--nodebug', action='store_true')        
 
-        parser.add_argument('-r', '--restartOnOffline',
-                            action='store_true', default=None)
+        parser.add_argument('-r', '--restartOnOffline', action='store_true', default=None)
 
         parser.add_argument('-nr', '--norestart', action='store_true') 
 
-        parser.add_argument('-dm', '--daemon',
-                            action='store_true', default=None)
+        parser.add_argument('-dm', '--daemon', action='store_true', default=None)
 
         parser.add_argument('-ndm', '--nodaemon', action='store_true')
 
-        parser.add_argument('-saf', '--startAfterFetch',
-                            action='store_true', default=None)
+        parser.add_argument('-saf', '--startAfterFetch', action='store_true', default=None)
 
         parser.add_argument('-pp', '--pluginPath')
 
@@ -262,7 +235,7 @@ class QConf(object):
             opts = parser.parse_args(argv)
         except:
             PRINT(usage)
-            sys.exit(1)            
+            sys.exit(1)
         
         if opts.help:
             PRINT(usage)
@@ -282,9 +255,10 @@ class QConf(object):
         delattr(opts, 'nodaemon')
         
         if not opts.bench:
-            opts.bench = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
+            opts.bench = os.getcwd()
         
-        opts.bench = os.path.abspath(opts.bench)        
+        opts.bench = os.path.abspath(opts.bench)
+        sys.path.insert(0, opts.bench)
         opts.benchstr = SYSTEMSTR2STR(opts.bench)
 
         if not os.path.exists(opts.bench):
@@ -316,7 +290,7 @@ class QConf(object):
             try:
                 with open(confPath, 'rb') as f:
                     cusConf = ast.literal_eval(BYTES2STR(f.read()))
-    
+
                 if type(cusConf) is not dict:
                     raise ConfError('文件内容必须是一个 dict')
 
@@ -332,12 +306,10 @@ class QConf(object):
                         names = ['默认配置', self.user]
                 else:
                     names = ['默认配置']
-                    
+                
                 for name in names:
                     for k, v in list(cusConf.get(name, {}).items()):
-                        if k in deprecatedConfKeys:
-                            PRINT('被废弃的配置选项 %s ，将忽略此选项' % k)
-                        elif k not in conf:
+                        if k not in conf:
                             raise ConfError('不存在的配置选项 %s.%s ' % (name, k))                               
                         elif type(v) is not type(conf[k]):
                             t = type(conf[k]).__name__
@@ -372,19 +344,6 @@ class QConf(object):
                   (strConfPath, self.pluginPath), end='')
             sys.exit(1)
         
-        if self.mailAccount and not self.mailAuthCode:
-            msg = '请输入 %s 的 IMAP/SMTP 服务授权码： ' % self.mailAccount
-            self.mailAuthCode = RAWINPUT(msg)
-        
-        
-        if self.cmdQrcode:
-            try:
-                import PIL
-                import wcwidth
-            except ImportError:
-                PRINT('您已选择以文本模式显示二维码，请先安装 pillow, wcwidth 库')
-                sys.exit(1)
-                
     def configure(self):
         p = self.absPath('plugins')
         if not os.path.exists(p):
@@ -396,23 +355,9 @@ class QConf(object):
         if os.path.isdir(p):
             if p not in sys.path:
                 sys.path.insert(0, p)
-            self.pluginPath1 = SYSTEMSTR2STR(p)
-        else:
-            self.pluginPath1 = None
-
-        if self.pluginPath:
-            p = os.path.abspath(STR2SYSTEMSTR(self.pluginPath))
-            if p not in sys.path:
-                sys.path.insert(0, p)
             self.pluginPath = SYSTEMSTR2STR(p)
-
-        try:
-            import qqbotdefault as q
-        except ImportError:
-            pass
-        else:        
-            for x,name,y in pkgutil.iter_modules(q.__path__, q.__name__+'.'):
-                self.plugins.append(name)
+        else:
+            self.pluginPath = None
 
         SetLogLevel(self.debug and 'DEBUG' or 'INFO')
 
@@ -422,22 +367,17 @@ class QConf(object):
         INFO('工作目录：%s', self.benchstr)
         INFO('配置文件：%s', SYSTEMSTR2STR(self.ConfPath()))
         INFO('用户名：%s', self.user or '无')
-        INFO('登录方式：%s', self.qq and ('自动（qq=%s）' % self.qq) or '手动')        
-        INFO('命令行服务器端口号：%s', self.termServerPort or '无')
-        INFO('二维码服务器 ip ：%s', self.httpServerIP or '无')
-        INFO('二维码服务器端口号：%s',
-             self.httpServerIP and self.httpServerPort or '无')
-        INFO('用于接收二维码的邮箱账号：%s', self.mailAccount or '无')
-        INFO('邮箱服务授权码：%s', self.mailAccount and '******' or '无')
-        INFO('以文本模式显示二维码：%s', self.cmdQrcode and '是' or '否')
+        INFO('登录方式：%s', self.qq and ('自动（qq=%d）' % self.qq) or '手动')    
+        INFO('命令行服务器端口号：%s', self.termServerPort or '无')    
+        INFO('服务器端口号：%s', self.port or '8080')
+        INFO('服务器 ip ：%s', self.host or 'localhost')
         INFO('调试模式：%s', self.debug and '开启' or '关闭')
         INFO('掉线后自动重启：%s', self.restartOnOffline and '是' or '否')
         INFO('后台模式（daemon 模式）：%s', self.daemon and '是' or '否')
         INFO('启动方式：%s',
              self.startAfterFetch and '慢启动（联系人列表获取完成后再启动）'
                                    or '快速启动（登录成功后立即启动）')
-        self.pluginPath and INFO('插件目录0：%s', self.pluginPath)
-        self.pluginPath1 and INFO('插件目录1：%s', self.pluginPath1)
+        self.pluginPath and INFO('插件目录：%s', self.pluginPath)
         INFO('启动时需要加载的插件：%s', self.plugins)
 
     def absPath(self, rela):
@@ -448,7 +388,7 @@ class QConf(object):
 
     def PicklePath(self):
         return self.absPath(
-            '%s-py%s-%s.pickle' %
+            '%s-py%s-%d.pickle' %
             (self.version[:4], sys.version_info.major, self.qq)
         )
 
@@ -457,18 +397,7 @@ class QConf(object):
     
     def SetQQ(self, qq):
         self.qq = qq
-    
-    def StoreQQ(self):
-        if not self.qq:
-            return
 
-        try:
-            fn = self.absPath('qq(pid%s)' % os.getppid())
-            with open(fn, 'w') as f:
-                f.write(self.qq)
-        except Exception as e:
-            ERROR('无法保存当前 QQ 号码, %s', e)
-    
     def LoadQQ(self):
         time.sleep(0.5)
         fn = self.absPath('qq(pid%s)' % os.getpid())
@@ -494,7 +423,7 @@ class QConf(object):
     
     def Daemonize(self):
         if daemonable:
-            logfile = self.absPath('daemon-%s.log' % self.qq)
+            logfile = self.absPath('daemon-%d.log' % self.qq)
             PRINT('将以 daemon 模式运行， log 文件： %s' % logfile)
             daemonize(logfile)
         else:

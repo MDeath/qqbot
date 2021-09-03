@@ -5,10 +5,10 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-from qqbot.utf8logger import INFO, ERROR, PRINT
-from qqbot.common import BYTES2STR, SYSTEMSTR2BYTES
-from qqbot.mysocketserver import MySocketServer, Query
-from qqbot.mainloop import Put
+from utf8logger import INFO, ERROR, PRINT
+from common import BYTES2STR, SYSTEMSTR2BYTES
+from mysocketserver import MySocketServer, Query
+from mainloop import Put
 
 HOST, DEFPORT = '127.0.0.1', 8188
 

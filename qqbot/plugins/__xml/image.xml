@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<root>
+    <msg serviceID="1" templateID="0" action="web" brief="" sourceMsgId="0" url="" flag="8" adverSign="0" multiMsgFlag="0">
+        <item layout="2" advertiser_id="0" aid="0">
+            <picture cover="" />
+            <title color="#777777"></title>
+            <summary></summary>
+        </item>
+        <source name="pixiv" icon="" action="" appid="-1" />
+    </msg>
+    <msg templateID="123" url="url" serviceID="1" action="web" actionData="" a_actionData="" i_actionData="" brief="[QQ小程序]哔哩哔哩" flag="0">
+        <item layout="2">
+            <picture cover="http://pubminishare-30161.picsz.qpic.cn/806b7448-a4bc-4910-b88d-c84862e0ec21" />
+            <title>哔哩哔哩</title>
+            <summary>《崩坏3》全新S级角色「无限·噬界之蛇」预告</summary>
+        </item>
+        <source url="https://b23.tv/Q9l3dF?share_medium=android&amp;share_source=qq&amp;bbid=XY214B026FF9E9418139D88615745C3E74F31&amp;ts=1630582868682" icon="https://open.gtimg.cn/open/app_icon/00/95/17/76/100951776_100_m.png?t=1630481944" name="哔哩哔哩" appid="0" action="web" actionData="" a_actionData="tencent0://" i_actionData="" />
+    </msg>
+</root>

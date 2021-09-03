@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from qqbot.utf8logger import ERROR
-from qqbot.mainloop import Put
-from qqbot.common import Unquote, STR2BYTES, JsonDumps, BYTES2STR
+from utf8logger import ERROR
+from mainloop import Put
+from common import Unquote, STR2BYTES, JsonDumps, BYTES2STR
 
 cmdFuncs, usage = {}, {}
 
@@ -66,14 +66,6 @@ def cmd_restart(bot, args, http=False):
     if len(args) == 0:
         Put(bot.Restart)
         return 'QQBot已重启（自动登录）', None
-    else:
-        return None, 'QQBot 命令格式错误'
-
-def cmd_fresh_restart(bot, args, http=False):
-    '''1 fresh-restart'''
-    if len(args) == 0:
-        Put(bot.FreshRestart)
-        return 'QQBot已重启（手工登录）', None
     else:
         return None, 'QQBot 命令格式错误'
 

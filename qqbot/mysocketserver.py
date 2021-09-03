@@ -5,8 +5,8 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-from qqbot.utf8logger import INFO, ERROR
-from qqbot.common import STR2BYTES
+from utf8logger import INFO, ERROR
+from common import STR2BYTES
 
 import socket
 
@@ -114,7 +114,7 @@ def Query(host, port, req):
 
 if __name__ == '__main__':
     import sys    
-    from qqbot.common import SYSTEMSTR2BYTES
+    from common import SYSTEMSTR2BYTES
     data = ' '.join(sys.argv[1:]).strip()
     if data:
         host, port = '127.0.0.1', 8191

@@ -1,0 +1,25 @@
+{
+    "app": "com.tencent.mobileqq.reading",
+    "desc": "",
+    "view": "singleImg",
+    "ver": " 1.0.0.70",
+    "prompt": "[QQ红包]恭喜发财",
+    "appID": "",
+    "sourceName": "",
+    "actionData": "",
+    "actionData_A": "",
+    "sourceUrl": "",
+    "meta": {
+        "singleImg": {
+            "mainImage": "https://icon.qiantucdn.com/20200604/46b6c6a44ecdd4798a55d4de781900862",
+            "mainUrl": "mqqapi%3A%2F%2Fforward%2Furl%3Fs%3D'%2Btimestamp%2B'%26url_prefix%3DaHR0cHM6Ly9qcS5xcS5jb20vP193dj0xMDI3Jms9Skw4SUMwV2Y%3D%26version%3D1%26plg_auth%3D1%26src_type%3Dweb%26_wv%3D"
+        }
+    },
+    "config": {
+        "forward": 1,
+        "showSender": 1
+    },
+    "text": "",
+    "sourceAd": "",
+    "extra": ""
+}
