@@ -4,8 +4,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from collections import defaultdict
 
-from termbot import TermBot
-from qterm import QTermServer
 from mainloop import MainLoop, Put
 from qapi import MiraiApi, RequestError
 from common import Import, StartDaemonThread
@@ -23,7 +21,7 @@ def _call(func, *args, **kwargs):
         ERROR('', exc_info=True)
         ERROR('执行 %s.%s 时出错，%s', func.__module__, func.__name__, e)
   
-class QQBot(TermBot):
+class QQBot():
     def __init__(self) -> None:
         self.scheduler = BackgroundScheduler(daemon=True)
         self.schedTable = defaultdict(list)
@@ -84,7 +82,6 @@ class QQBot(TermBot):
 
         StartDaemonThread(self.pollForever)
         StartDaemonThread(self.intervalForever)
-        StartDaemonThread(QTermServer(self.conf.termServerPort, self.onTermCommand).Run)
         self.scheduler.start()
         if not self.conf.startAfterFetch:
             self.Update()
