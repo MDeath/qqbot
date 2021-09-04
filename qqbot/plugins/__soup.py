@@ -45,9 +45,3 @@ def Xml(xml:str) -> dict:
         "type": "Xml",
         "xml": xml
     }
-
-def Json(json:str) -> dict:
-    return {
-        "type": "Json",
-        "json": json
-    }
