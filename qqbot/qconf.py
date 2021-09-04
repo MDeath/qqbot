@@ -18,10 +18,6 @@ sampleConfStr = '''
     # 用户 somebody 的配置
     "默认配置" : {
         
-        # QQBot-term （HTTP-API） 服务器端口号（该服务器监听 IP 为 127.0.0.1 ）
-        # 设置为 0 则不会开启本服务器（此时 qq 命令和 HTTP-API 接口都无法使用）。
-        "termServerPort" : 8188,
-        
         # Mirai http api 的端口
         "port" : 8080,
         
@@ -59,7 +55,6 @@ sampleConfStr = '''
     
     # 可以在 默认配置 中配置所有用户都通用的设置
     "somebody" : {
-        "termServerPort" : 8188,
         "port" : 8080,
         "host" : "localhost",
         "qq" : 0,
@@ -79,7 +74,6 @@ sampleConfStr = '''
     
     # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
     # "根配置" : {
-    #     "termServerPort" : 8188,
     #     "port" : 8080,
     #     "host" : "localhost",
     #     "qq" : 0,
@@ -96,7 +90,6 @@ sampleConfStr = '''
 '''
 
 rootConf = {
-    "termServerPort" : 8188,
     "port" : 8080,
     "host" : "localhost",
     "qq" : 0,
@@ -119,7 +112,7 @@ usage = '''\
 QQBot 机器人
 
 用法: {PROGNAME} [-h] [-d] [-nd] [-u USER] [-q QQ]
-          [-tp TERMSERVERPORT] [-p PORT] [-ip HOST] [-r] [-nr]
+          [-p PORT] [-ip HOST] [-r] [-nr]
           [-fi FETCHINTERVAL]
 
 选项:
@@ -145,11 +138,6 @@ QQBot 机器人
     -q QQ, --qq QQ          指定本次启动时使用的QQ号。
                             如果指定的QQ号的自动登陆信息存在，那么将会使用自动
                               登陆信息进行快速登陆。
-
-  QTerm本地控制台服务:
-    -tp TERMSERVERPORT, --termServerPort TERMSERVERPORT
-                            更改QTerm控制台的监听端口到 TERMSERVERPORT 。
-                              默认的监听端口是 8188 (TCP)。
 
   Mirai http api 服务器端口:
     -p PORT, --port PORT
@@ -206,8 +194,6 @@ class QConf(object):
         parser.add_argument('-v', '--verifyKey', type=str)
 
         parser.add_argument('-b', '--bench')
-
-        parser.add_argument('-tp', '--termServerPort', type=int)
 
         parser.add_argument('-p', '--port', type=int)
 
@@ -367,8 +353,7 @@ class QConf(object):
         INFO('工作目录：%s', self.benchstr)
         INFO('配置文件：%s', SYSTEMSTR2STR(self.ConfPath()))
         INFO('用户名：%s', self.user or '无')
-        INFO('登录方式：%s', self.qq and ('自动（qq=%d）' % self.qq) or '手动')    
-        INFO('命令行服务器端口号：%s', self.termServerPort or '无')    
+        INFO('登录方式：%s', self.qq and ('自动（qq=%d）' % self.qq) or '手动')  
         INFO('服务器端口号：%s', self.port or '8080')
         INFO('服务器 ip ：%s', self.host or 'localhost')
         INFO('调试模式：%s', self.debug and '开启' or '关闭')
