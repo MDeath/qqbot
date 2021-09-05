@@ -23,6 +23,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             Quote = bot.MessageFromId(quote)
             break
     else:return
+    if not Quote:return
     Image = []
     for msg in Quote.messageChain:
         if msg.type == 'Image':Image.append(msg)

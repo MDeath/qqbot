@@ -15,12 +15,14 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         target = Sender.group.id
     else:
         target = Sender.id
-    message = ''
-    quote = 0
     for msg in Message:
         if msg.type == 'Quote':
             quote = msg.id
             Quote = bot.MessageFromId(quote)
+            break
+    else:
+        return
+    if not Quote:return
     for msg in Message:
         if msg.type == 'Plain' and 'xml' in msg.text:
             message = msg.text
