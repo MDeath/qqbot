@@ -16,6 +16,12 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     else:
         target = Sender.id
     for msg in Message:
+        if msg.type == 'Plain' and 'xml' in msg.text:
+            message = msg.text
+            break
+    else:
+        return
+    for msg in Message:
         if msg.type == 'Quote':
             quote = msg.id
             Quote = bot.MessageFromId(quote)
@@ -23,12 +29,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     else:
         return
     if not Quote:return
-    for msg in Message:
-        if msg.type == 'Plain' and 'xml' in msg.text:
-            message = msg.text
-            break
-    else:
-        return
     if "?xml" in message:
         try:
             ET.fromstring(message)
