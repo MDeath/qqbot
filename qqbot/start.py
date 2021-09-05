@@ -114,7 +114,8 @@ class QQBot():
                 ERROR('qsession.Poll 方法出错', exc_info=True)
             else:
                 if not result:continue
-                Put(self.MessageAnalyst, result[0])
+                for r in result:
+                    Put(self.MessageAnalyst, r)
 
     def MessageAnalyst(self, Message):
         if 'Message' in Message.type:

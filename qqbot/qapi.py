@@ -94,7 +94,7 @@ class MiraiApi():
 
     def GetMessage(self) -> list: # 获取消息
         payload = {'sessionKey':self.session}
-        payload['count'] = 1
+        payload['count'] = 10
         return self.basicsession(Get, f'fetchMessage', params=payload)
 
     def MessageFromId(self, messageID:int) -> dict: # 通过MessageID获取消息
