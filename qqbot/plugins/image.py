@@ -44,5 +44,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                         f'\n相似度：{r.similarity}\n标题：{r.title}\n作者：{r.author}\nurl：{urls}'
                     ))
                 else:
-                    break
+                    message.append(soup.Plain(
+                        f'\n相似度：{r.similarity}\nurl：{urls}'
+                    ))
             bot.SendMessage(Type, target, message, quote)
