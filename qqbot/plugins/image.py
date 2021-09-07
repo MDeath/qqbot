@@ -37,9 +37,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if results:
             message.append(soup.Plain(f'有 {len(results)} 个结果'))
             for r in results:
+                urls = ''
+                for url in r.urls:urls+='\n'+url
                 if r.similarity > 50:
-                    urls = ''
-                    for url in r.urls:urls+='\n'+url
                     message.append(soup.Plain(
                         f'\n相似度：{r.similarity}\n标题：{r.title}\n作者：{r.author}\nurl：{urls}'
                     ))
