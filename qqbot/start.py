@@ -133,12 +133,15 @@ class QQBot():
         elif 'Event' in Message.type:
             if hasattr(self, 'onQQEvent'):
                 operate, msg = self.onQQEvent(Message)
-                if operate is not None:
-                    self.Mirai._even(Message, operate, msg)
+                self.Mirai._even(Message, operate, msg)
 
     def onQQEvent(self, Message):
-        f = self.slotsTable['onQQEvent'][-1]
-        return f(self, Message)
+        for f in self.slotsTable['onQQEvent']:
+            operate, msg = f(self, Message)
+            if not operate:
+                return operate, msg
+        else:
+            return operate, msg
 
     # child thread 2
     def intervalForever(self):
