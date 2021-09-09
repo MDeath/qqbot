@@ -130,10 +130,12 @@ class QQBot():
                 INFO(f'来自 {Sender.nickname} 的消息：')
             INFO(str(Message))
             self.onQQMessage(Type, Sender, Source, Message)
-        elif 'Event' in Message.type:
+        elif 'RequestEvent' in Message.type:
             if hasattr(self, 'onQQEvent'):
                 operate, msg = self.onQQEvent(Message)
                 self.Mirai._even(Message, operate, msg)
+        elif 'Event' in Message.type:
+            pass
 
     def onQQEvent(self, Message):
         for f in self.slotsTable['onQQEvent']:
