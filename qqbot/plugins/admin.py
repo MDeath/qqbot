@@ -18,6 +18,10 @@ def admin_ID(bot, ID, admin=0):
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
 @bot 并输入指令使用
+菜单
+说明《插件名》
+重启
+更新联系人
 插件列表
 加载插件《插件名》
 卸载插件《插件名》
@@ -55,9 +59,13 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     else:
         target = Sender.id
     Pl = [m.split('.')[0] for m in os.listdir(bot.conf.pluginPath)]
-    if '菜单' in Plain:
+    
+    if 'who is your daddy' in Plain:
+            bot.SendMessage(Type, target, message=[soup.At(Sender.id)])
+    elif '菜单' in Plain:
         bot.SendMessage(Type, target, message=[soup.Plain(__name__.__doc__)])
-    if '说明' in Plain:
+
+    elif '说明' in Plain:
         moduleName = Plain.replace('说明','').replace(' ','')
         if moduleName != '' and moduleName in bot.Plugins():
             module = bot.plugins[moduleName]
@@ -77,6 +85,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                         n = '\n'
                         Plain += f'{n}{mod.__name__}{(mod.__doc__ and n+mod.__doc__) or ""}'
         bot.SendMessage(Type, target, message=[soup.Plain(Plain)])
+
     elif '插件列表' == Plain.replace(' ',''):
         for p in Pl:
             if '__' in p:
@@ -86,20 +95,30 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             else:
                 Plain += f'\n未加载 {p}'
         message = [soup.Plain(Plain)]
-        bot.SendMessage(Type.replace('Message',''), target, message=message)
-    elif admin_ID(bot, Sender.id,0):
-        if '加载插件' in Plain:
+        bot.SendMessage(Type, target, message=message)
+
+    elif admin_ID(bot, Sender.id, 1):
+        if '重启' == Plain:
+            bot.SendMessage(Type, target, [soup.Plain('正在重启')])
+            bot.Restart()
+
+    elif admin_ID(bot, Sender.id):
+        if '更新联系人' == Plain:
+            bot.Update()
+            bot.SendMessage(Type, target, [soup.Plain('更新完毕')])
+
+        elif '加载插件' in Plain:
             moduleName = Plain.replace('加载插件','')
             Modules = moduleName.split(' ')
             for m in Modules:
                 if f'{m}.py' in Pl or m in Pl:
                     bot.Plug(m)
                     if m in bot.Plugins():
-                        bot.SendMessage(Type.replace('Message',''), target, message=[soup.Plain(f'成功加载 {m}')])
+                        bot.SendMessage(Type, target, message=[soup.Plain(f'成功加载 {m}')])
                     else:
-                        bot.SendMessage(Type.replace('Message',''), target, message=[soup.Plain(f'{m} 加载失败')])
+                        bot.SendMessage(Type, target, message=[soup.Plain(f'{m} 加载失败')])
                 elif m != '':
-                    bot.SendMessage(Type.replace('Message',''), target, message=[soup.Plain(f'库中没有 {m}')])
+                    bot.SendMessage(Type, target, message=[soup.Plain(f'库中没有 {m}')])
         if '卸载插件' in Plain:
             moduleName = Plain.replace('卸载插件','')
             Modules = moduleName.split(' ')
@@ -107,14 +126,12 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 if m in bot.Plugins():
                     bot.Unplug(m)
                     if m in bot.Plugins():
-                        bot.SendMessage(Type.replace('Message',''), target, message=[soup.Plain(f'{m} 卸载失败')])
+                        bot.SendMessage(Type, target, message=[soup.Plain(f'{m} 卸载失败')])
                     else:
-                        bot.SendMessage(Type.replace('Message',''), target, message=[soup.Plain(f'成功卸载 {m}')])
+                        bot.SendMessage(Type, target, message=[soup.Plain(f'成功卸载 {m}')])
                 elif m != '':
-                    bot.SendMessage(Type.replace('Message',''), target, message=[soup.Plain(f'{m} 没有加载')])
-    elif admin_ID(bot, Sender.id):
-        if 'who is your daddy' in Plain:
-            bot.SendMessage(Type, target, message=[soup.At(Sender.id)])
+                    bot.SendMessage(Type, target, message=[soup.Plain(f'{m} 没有加载')])
+
 
 def onQQEvent(bot, Message):
     '申请事件'
