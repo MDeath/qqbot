@@ -26,7 +26,7 @@ class QQBot():
             'onStartupComplete':[],
             'onInterval':[],
             'onQQMessage':[],
-            'onUpdate':[],
+            'onQQEvent':[],
             'onPlug':[],
             'onUnplug':[],
             'onExit':[]
@@ -36,7 +36,7 @@ class QQBot():
     def init(self, argv=None):
         for name, slots in self.slotsTable.items():
             setattr(self, name, self.wrap(slots))
-        self.slotsTable['onQQEvent'] = []
+        self.slotsTable['onQQRequestEvent'] = []
         self.conf = QConf(argv)
         self.conf.Display()
 
@@ -121,19 +121,19 @@ class QQBot():
             Message = Message.messageChain
             Source = Message.pop(0)
             if hasattr(Sender, 'group'):
-                INFO(f'{Type} 来自 {Sender.group.name} {Sender.memberName} 的消息：')
+                INFO(f'来自 {Type} {Sender.group.name} {Sender.memberName} 的消息：')
             else:
-                INFO(f'{Type} 来自 {Sender.nickname} 的消息：')
+                INFO(f'来自 {Type} {Sender.nickname} 的消息：')
             INFO(str(Message))
             self.onQQMessage(Type, Sender, Source, Message)
         elif 'RequestEvent' in Message.type:
-            if hasattr(self, 'onQQEvent'):
-                operate, msg = self.onQQEvent(Message)
+            if hasattr(self, 'onQQRequestEvent'):
+                operate, msg = self.onQQRequestEvent(Message)
                 self.Mirai._even(Message, operate, msg)
         elif 'Event' in Message.type:
-            pass
+            self.onQQEvent(Message)
 
-    def onQQEvent(self, Message):
+    def onQQRequestEvent(self, Message):
         for f in self.slotsTable['onQQEvent']:
             operate, msg = f(self, Message)
             if not operate:
