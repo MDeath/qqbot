@@ -1,4 +1,3 @@
-
 import os, sys, time, subprocess
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -11,8 +10,6 @@ from qconf import QConf
 from utf8logger import INFO, CRITICAL, ERROR, PRINT, WARN
 
 RESTART = 201
-FRESH_RESTART = 202
-LOGIN_EXPIRE = 203
 
 def _call(func, *args, **kwargs):
     try:
@@ -20,7 +17,7 @@ def _call(func, *args, **kwargs):
     except Exception as e:
         ERROR('', exc_info=True)
         ERROR('执行 %s.%s 时出错，%s', func.__module__, func.__name__, e)
-  
+
 class QQBot():
     def __init__(self) -> None:
         self.scheduler = BackgroundScheduler(daemon=True)
@@ -35,17 +32,17 @@ class QQBot():
             'onExit':[]
         }
         self.plugins = {}
-    
+
     def init(self, argv=None):
         for name, slots in self.slotsTable.items():
             setattr(self, name, self.wrap(slots))
         self.slotsTable['onQQEvent'] = []
         self.conf = QConf(argv)
         self.conf.Display()
-        
+
         self.Mirai = MiraiApi(self.conf.qq, self.conf.verifyKey, self.conf.host, self.conf.port)
         while not self.Mirai.started:pass
-        
+
         self.ErrorCode = self.Mirai.ErrorCode
         self.MessageFromId = self.Mirai.MessageFromId
         self.List = self.Mirai.List
@@ -119,13 +116,12 @@ class QQBot():
 
     def MessageAnalyst(self, Message):
         if 'Message' in Message.type:
-            INFO(Message.type)
             Type = Message.type.replace('Message','')
             Sender = Message.sender
             Message = Message.messageChain
             Source = Message.pop(0)
             if hasattr(Sender, 'group'):
-                INFO(f'来自 {Sender.group.name} {Sender.memberName} 的消息：')
+                INFO(f'{Message.type} 来自 {Sender.group.name} {Sender.memberName} 的消息：')
             else:
                 INFO(f'来自 {Sender.nickname} 的消息：')
             INFO(str(Message))
@@ -150,7 +146,7 @@ class QQBot():
         while True:
             time.sleep(300)
             Put(self.onInterval)
-            
+
     def Command(self):
         while True:pass
 
@@ -172,14 +168,14 @@ class QQBot():
             self.schedTable[func.__module__].append(j)
             return func
         return wrapper
-    
+
     def Update(self):
         self.Friend = self.List('friend')
         self.Group = self.List('group')
         self.Member = {}
         for g in self.Group:
             self.Member[g.id] = self.List('member',g.id)
-    
+
     def unplug(self, moduleName, removeJob=True):
         for slots in self.slotsTable.values():
             i = 0
@@ -255,7 +251,7 @@ def runBot(argv=None):
         Qbot.Run()
     else:
         conf = QConf()
-        
+
         if conf.daemon:
             conf.Daemonize()
 

@@ -33,14 +33,14 @@ if PY3:
 
     SYSTEMSTR2BYTES = STR2BYTES
     BYTES2SYSTEMSTR = BYTES2STR
-    
+
 else:
     STR2UNICODE = lambda s: s.decode('utf8')
     UNICODE2STR = lambda s: s.encode('utf8')
 
     STR2BYTES = _PASS
     BYTES2STR = _PASS
-    
+
     _SYSENCODING = sys.getfilesystemencoding() or 'utf8'
     if _SYSENCODING.lower() in ('utf8', 'utf_8', 'utf-8'):
         STR2SYSTEMSTR = _PASS
@@ -48,7 +48,7 @@ else:
     else:
         STR2SYSTEMSTR = lambda s: s.decode('utf8').encode(_SYSENCODING)
         SYSTEMSTR2STR = lambda s: s.decode(_SYSENCODING).encode('utf8')
-    
+
     BYTES2SYSTEMSTR = STR2SYSTEMSTR
     SYSTEMSTR2BYTES = SYSTEMSTR2STR
 
@@ -90,7 +90,7 @@ def Partition(msg):
                     break
             else:
                 f, b = msg[:n], msg[n:]
-    
+
     if PY3:
         return f.decode('utf8'), b.decode('utf8')
     else:
@@ -111,11 +111,11 @@ class LockedValue(object):
     def __init__(self, initialVal=None):
         self.val = initialVal
         self.lock = threading.Lock()
-    
+
     def setVal(self, val):
         with self.lock:
             self.val = val
-    
+
     def getVal(self):
         with self.lock:
             val = self.val
@@ -124,7 +124,7 @@ class LockedValue(object):
 # usage: CallInNewConsole(['python', 'qterm.py'])
 def CallInNewConsole(args=None):
     args = sys.argv[1:] if args is None else args
-    
+
     if not args:
         return 1
 
@@ -132,7 +132,7 @@ def CallInNewConsole(args=None):
 
     if osName == 'Windows':
         return subprocess.call(['start'] + list(args), shell=True)
-        
+
     elif osName == 'Linux':
         cmd = subprocess.list2cmdline(args)
         if HasCommand('mate-terminal'):
@@ -145,10 +145,10 @@ def CallInNewConsole(args=None):
             return 1
             # args = ['sh', '-c', 'nohup %s >/dev/null 2>&1 &' % cmd]
         return subprocess.call(args, preexec_fn=os.setpgrp)
-        
+
     elif osName == 'Darwin':
         return subprocess.call(['open','-W','-a','Terminal.app'] + list(args))
-        
+
     else:
         return 1
         # return subprocess.Popen(list(args) + ['&'])
@@ -222,7 +222,7 @@ else:
 
 def mydump(fn, d):
     with open(fn, 'wb') as f:
-        json.dump(d, f, ensure_ascii=False, indent=4)
+        JsonDumps(d, f, ensure_ascii=False, indent=4)
 
 if PY3:
     def UniIter(s):
@@ -232,7 +232,7 @@ else:
     def UniIter(s):
         if not s:
             return
-        
+
         x, uchar = ord(s[0]), s[0]
         for ch in s[1:]:
             c = ord(ch)
@@ -331,7 +331,7 @@ def daemonize(stdoutfile=None, stderrfile=None):
         sys.exit(1)
 
     os.setsid()
-    
+
     try:
         pid = os.fork()
         if pid > 0:
@@ -340,10 +340,10 @@ def daemonize(stdoutfile=None, stderrfile=None):
     except OSError:
         print("fork error!!!")
         sys.exit(1)
-    
+
     # os.chdir("/")
     os.umask(0)    
-    
+
 #    dev_null = open("/dev/null", "r+")
 #    os.dup2(dev_null.fileno(), sys.stdout.fileno())
 #    os.dup2(dev_null.fileno(), sys.stderr.fileno())
@@ -355,12 +355,12 @@ def daemonize(stdoutfile=None, stderrfile=None):
         stdout = open(stdoutfile, "w")
     else:
         stdout = dev_null
-    
+
     if stderrfile:
         stderr = open(stderrfile, "w")
     else:
         stderr = stdout
-    
+
     stdin = dev_null
 
     os.dup2(stdin.fileno(), sys.stdin.fileno())

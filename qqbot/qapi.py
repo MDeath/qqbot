@@ -10,7 +10,7 @@ def Get(*args, **kwargs):
                 ERROR('无法连接倒Mirai，请检查服务、地址、端口。')
             except:
                 raise RequestError
-    
+
 def Post(*args, **kwargs):
         while True:
             try:
@@ -125,7 +125,7 @@ class MiraiApi():
         r'''form = Friend, Group, Temp
         Group and Friend: target = target
         Temp: qq = qqID, or group = groupID
-        
+
         quote is messageID
         message is messagelist
         '''
@@ -141,7 +141,7 @@ class MiraiApi():
             payload['quote'] = quote
         payload['messageChain'] = (type(message) is list and message) or [message]
         return self.basicsession(Post, f'send{form}Message', data=json.dumps(payload))
-    
+
     def Nudge(self, kind:str, target:int, ID:int) -> None: # 戳一戳
         r'''kind = Friend, Group, Stranger
         subject = qqID, groupID
@@ -211,7 +211,7 @@ class MiraiApi():
         payload['target'] = target
         payload['moveTo'] = name
         return self._file('rename', payload)
-    
+
     def FileUpload(self, path:str, filepath:str): # 上传群文件
         r'target is the groupID'
         payload = {'sessionKey':self.session}

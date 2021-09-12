@@ -11,16 +11,22 @@ root = [
 
 def onPlug(bot):
     if not hasattr(bot, 'facemap'):
-        if exists('facemap.json'):
-            with open('facemap.json', 'r') as f:Map = JsonLoads(f.read())
-        else:
+        try:
+            if exists('facemap.json'):
+                with open('facemap.json', 'r') as f:Map = JsonLoads(f.read())
+            else:
+                raise
+        except:
             mydump('facemap.json', root)
             Map = root.copy()
-        setattr(bot, 'facemap', Map)
+        if hasattr(bot, 'facemap'):
+            bot.facemap.update(Map)
+        else:
+            setattr(bot, 'facemap', Map)
         for f in bot.Friend:
             if f.remark == 'Admin':
                 target = f.id
-        bot.SendMessage('Friend', target, [json.dumps(bot.facemap, ensure_ascii=False, indent=4)])
+        bot.SendMessage('Friend', target, [mydump('facemap.json', bot.facemap)])
 
 def onUnplug(bot):
     if hasattr(bot, 'facemap'):

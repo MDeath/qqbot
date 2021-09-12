@@ -14,19 +14,19 @@ sampleConfStr = '''
     #     根配置 -> 默认配置 -> 用户 somebody 的配置 -> 命令行参数配置
     # 使用 qqbot 启动程序时，依次加载：
     #     根配置 -> 默认配置 -> 命令行参数配置
-    
+
     # 用户 somebody 的配置
     "默认配置" : {
-        
+
         # Mirai http api 的端口
         "port" : 8080,
-        
+
         # Mirai http 服务器地址，请设置为公网地址或localhost
         "host" : "localhost",
-        
+
         # 登录的 QQ 号
         "qq" : 0,
-        
+
         # Mirai http api 验证密钥
         "verifyKey" : "VerifyKey",
 
@@ -35,24 +35,24 @@ sampleConfStr = '''
 
         # QQBot 掉线后自动重启
         "restartOnOffline" : False,
-        
+
         # 在后台运行 qqbot ( daemon 模式)
         "daemon": False,
         
         # 完成全部联系人列表获取之后才启动 QQBot 
         "startAfterFetch" : False,
-        
+
         # 插件目录
         "pluginPath" : ".",
-        
+
         # 启动时需加载的插件
         "plugins" : [],
-        
+
         # 插件的配置（由用户自定义）
         "pluginsConf" : {},
-    
+
     },
-    
+
     # 可以在 默认配置 中配置所有用户都通用的设置
     "somebody" : {
         "port" : 8080,
@@ -71,7 +71,7 @@ sampleConfStr = '''
 	        'plugins.schedrestart': '8:00',
 	    }
     },
-    
+
     # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
     # "根配置" : {
     #     "port" : 8080,
@@ -178,7 +178,7 @@ class QConf(object):
         self.readCmdLine(argv)
         self.readConfFile()
         self.configure()
-    
+
     def readCmdLine(self, argv):
         if argv is None:
             argv = sys.argv[1:]
@@ -222,27 +222,27 @@ class QConf(object):
         except:
             PRINT(usage)
             sys.exit(1)
-        
+
         if opts.help:
             PRINT(usage)
             sys.exit(0)
-        
+
         if opts.nodebug:
             opts.debug = False
-        
+
         if opts.norestart:
             opts.restartOnOffline = False
 
         if opts.nodaemon:
             opts.daemon = False
-        
+
         delattr(opts, 'nodebug')
         delattr(opts, 'norestart')
         delattr(opts, 'nodaemon')
-        
+
         if not opts.bench:
             opts.bench = os.getcwd()
-        
+
         opts.bench = os.path.abspath(opts.bench)
         sys.path.insert(0, opts.bench)
         opts.benchstr = SYSTEMSTR2STR(opts.bench)
@@ -256,13 +256,13 @@ class QConf(object):
         elif not os.path.isdir(opts.bench):
             PRINT('无法创建工作目录 %s ' % opts.benchstr)
             sys.exit(1)
-        
+
         if opts.plugins:
             opts.plugins = SYSTEMSTR2STR(opts.plugins).split(',')
-        
+
         if opts.pluginPath:
             opts.pluginPath = SYSTEMSTR2STR(opts.pluginPath)
-        
+
         for k, v in list(opts.__dict__.items()):
             if getattr(self, k, None) is None:
                 setattr(self, k, v)
@@ -282,7 +282,7 @@ class QConf(object):
 
                 if type(cusConf.get('默认配置', {})) is not dict:
                     raise ConfError('默认配置必须是一个 dict')
-                
+
                 if self.user is not None:
                     if self.user not in cusConf:
                         raise ConfError('用户 %s 不存在' % self.user)                        
@@ -292,7 +292,7 @@ class QConf(object):
                         names = ['默认配置', self.user]
                 else:
                     names = ['默认配置']
-                
+
                 for name in names:
                     for k, v in list(cusConf.get(name, {}).items()):
                         if k not in conf:
@@ -302,11 +302,11 @@ class QConf(object):
                             raise ConfError('%s.%s 必须是一个 %s' % (name, k, t))
                         else:
                             conf[k] = v
-                            
+
             except (IOError, SyntaxError, ValueError, ConfError) as e:
                 PRINT('配置文件 %s 错误: %s\n' % (strConfPath, e), end='')
                 sys.exit(1)
-        
+
         else:
             PRINT('未找到配置文件“%s”，将使用默认配置' % strConfPath)
             try:
@@ -320,7 +320,7 @@ class QConf(object):
             if self.user is not None:
                 PRINT('用户 %s 不存在\n' % self.user, end='')
                 sys.exit(1)
-        
+
         for k, v in list(conf.items()):
             if getattr(self, k, None) is None:
                 setattr(self, k, v)
@@ -329,7 +329,7 @@ class QConf(object):
             PRINT('配置文件 %s 错误: 插件目录 “%s” 不存在\n' % \
                   (strConfPath, self.pluginPath), end='')
             sys.exit(1)
-        
+
     def configure(self):
         p = self.absPath('plugins')
         if not os.path.exists(p):
@@ -386,7 +386,7 @@ class QConf(object):
     def LoadQQ(self):
         time.sleep(0.5)
         fn = self.absPath('qq(pid%s)' % os.getpid())
-        
+
         if not os.path.exists(fn):
             return self.qq
 
@@ -398,14 +398,14 @@ class QConf(object):
             qq = self.qq
         else:
             self.qq = qq
-            
+
         try:
             os.remove(fn)
         except OSError:
             pass
 
         return qq
-    
+
     def Daemonize(self):
         if daemonable:
             logfile = self.absPath('daemon-%d.log' % self.qq)
