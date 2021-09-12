@@ -8,7 +8,7 @@ def onUnplug(bot):
     '此插件不可卸载'
     bot.Plug(str(__name__))
 
-def admin_ID(bot, ID, admin=0):
+def admin_ID(bot, ID, admin=False):
     for f in bot.Friend:
         if f.id == ID and f.remark == 'Admin':return True
         elif f.id == ID and f.remark == 'User' and admin == 0:return True
@@ -97,7 +97,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         message = [soup.Plain(Plain)]
         bot.SendMessage(Type, target, message=message)
 
-    elif admin_ID(bot, Sender.id, 1):
+    elif admin_ID(bot, Sender.id, True):
         if '重启' == Plain:
             bot.SendMessage(Type, target, [soup.Plain('正在重启')])
             bot.Restart()
