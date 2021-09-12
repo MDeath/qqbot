@@ -97,12 +97,13 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         message = [soup.Plain(Plain)]
         bot.SendMessage(Type, target, message=message)
 
-    elif admin_ID(bot, Sender.id, True):
-        if '重启' == Plain:
-            bot.SendMessage(Type, target, [soup.Plain('正在重启')])
-            bot.Restart()
 
     elif admin_ID(bot, Sender.id):
+        if admin_ID(bot, Sender.id, True):
+            if '重启' == Plain:
+                bot.SendMessage(Type, target, [soup.Plain('正在重启')])
+                bot.Restart()
+
         if '更新联系人' == Plain:
             bot.Update()
             bot.SendMessage(Type, target, [soup.Plain('更新完毕')])
