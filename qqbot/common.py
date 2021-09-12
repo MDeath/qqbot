@@ -222,7 +222,7 @@ else:
 
 def mydump(fn, d):
     with open(fn, 'wb') as f:
-        JsonDumps(d, f, ensure_ascii=False, indent=4)
+        json.dump(d, f, ensure_ascii=False, indent=4)
 
 if PY3:
     def UniIter(s):
