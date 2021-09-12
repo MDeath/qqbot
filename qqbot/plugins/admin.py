@@ -19,7 +19,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
 @bot 并输入指令使用
 菜单
-说明《插件名》
 重启
 更新联系人
 插件列表
@@ -58,12 +57,15 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             return
     else:
         target = Sender.id
-    Pl = [m.split('.')[0] for m in os.listdir(bot.conf.pluginPath)]
+
+    n = '\n'
+    plug = [m.split('.')[0] for m in os.listdir(bot.conf.pluginPath)]
     
-    if 'who is your daddy' in Plain:
+    if 'who is your daddy' == Plain:
             bot.SendMessage(Type, target, message=[soup.At(Sender.id)])
+
     elif '菜单' in Plain:
-        bot.SendMessage(Type, target, message=[soup.Plain(__name__.__doc__)])
+        bot.SendMessage(Type, target, message=[soup.Plain(onQQMessage.__doc__)])
 
     elif '说明' in Plain:
         moduleName = Plain.replace('说明','').replace(' ','')
@@ -72,7 +74,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             for slotName in bot.slotsTable.keys():
                 if hasattr(module, slotName):
                     mod = getattr(module,slotName)
-                    n = '\n'
                     Plain += f'{n}{mod.__name__}{(mod.__doc__ and n+mod.__doc__) or ""}'
         elif moduleName == '':
             Plain = '已加载模块说明'
@@ -82,12 +83,11 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 for slotName in bot.slotsTable.keys():
                     if hasattr(module, slotName):
                         mod = getattr(module,slotName)
-                        n = '\n'
                         Plain += f'{n}{mod.__name__}{(mod.__doc__ and n+mod.__doc__) or ""}'
         bot.SendMessage(Type, target, message=[soup.Plain(Plain)])
 
     elif '插件列表' == Plain.replace(' ',''):
-        for p in Pl:
+        for p in plug:
             if '__' in p:
                 continue
             elif p in bot.Plugins():
@@ -111,7 +111,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             moduleName = Plain.replace('加载插件','')
             Modules = moduleName.split(' ')
             for m in Modules:
-                if f'{m}.py' in Pl or m in Pl:
+                if f'{m}.py' in plug or m in plug:
                     bot.Plug(m)
                     if m in bot.Plugins():
                         bot.SendMessage(Type, target, message=[soup.Plain(f'成功加载 {m}')])
