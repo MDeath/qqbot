@@ -1,1 +1,1 @@
-from . import facemap
+from .facemap import onPlug, onUnplug
