@@ -121,9 +121,9 @@ class QQBot():
             Message = Message.messageChain
             Source = Message.pop(0)
             if hasattr(Sender, 'group'):
-                INFO(f'{Message.type} 来自 {Sender.group.name} {Sender.memberName} 的消息：')
+                INFO(f'{Type} 来自 {Sender.group.name} {Sender.memberName} 的消息：')
             else:
-                INFO(f'{Message.type} 来自 {Sender.nickname} 的消息：')
+                INFO(f'{Type} 来自 {Sender.nickname} 的消息：')
             INFO(str(Message))
             self.onQQMessage(Type, Sender, Source, Message)
         elif 'RequestEvent' in Message.type:
