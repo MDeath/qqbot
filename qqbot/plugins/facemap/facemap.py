@@ -1,6 +1,6 @@
 import json
 from __soup import Plain
-from common import JsonLoads, mydump
+from common import JsonDumps, JsonLoads, mydump
 from os.path import exists
 root = [
     {
@@ -12,12 +12,11 @@ root = [
 def onPlug(bot):
     if not hasattr(bot, 'facemap'):
         try:
-            if exists('facemap.json'):
-                with open('facemap.json', 'r') as f:Map = JsonLoads(f.read())
-            else:
-                raise
+            if exists(bot.conf.Config('facemap.json')):
+                with open(bot.conf.Config('facemap.json'), 'r') as f:Map = json.load(f)
+            else:raise
         except:
-            mydump('facemap.json', root)
+            mydump(bot.conf.Config('facemap.json'), root)
             Map = root.copy()
         if hasattr(bot, 'facemap'):
             bot.facemap.update(Map)
@@ -26,11 +25,11 @@ def onPlug(bot):
         for f in bot.Friend:
             if f.remark == 'Admin':
                 target = f.id
-        bot.SendMessage('Friend', target, [mydump('facemap.json', bot.facemap)])
+        bot.SendMessage('Friend', target, [Plain(JsonDumps(bot.facemap, ensure_ascii=False, indent=4))])
 
 def onUnplug(bot):
     if hasattr(bot, 'facemap'):
-        mydump('facemap.json', bot.facemap)
+        mydump(bot.conf.Config('facemap.json'), bot.facemap)
         delattr(bot, 'facemap')
 '''
 def onQQMessage(bot, Type, Sender, Source, Message):
