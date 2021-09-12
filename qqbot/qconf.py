@@ -330,13 +330,21 @@ class QConf(object):
                   (strConfPath, self.pluginPath), end='')
             sys.exit(1)
 
+    def Config(self, fn):
+        return os.path.join(self.config, fn)
+
     def configure(self):
+        c = self.absPath('config')
+        if not os.path.exists(c):
+            os.mkdir(c)
+        if os.path.isdir(c):
+            self.config = SYSTEMSTR2STR(c)
+        else:
+            self.config = None
+
         p = self.absPath('plugins')
         if not os.path.exists(p):
-            try:
-                os.mkdir(p)
-            except:
-                pass
+            os.mkdir(p)
 
         if os.path.isdir(p):
             if p not in sys.path:
@@ -377,9 +385,6 @@ class QConf(object):
             (self.version[:4], sys.version_info.major, self.qq)
         )
 
-    def QrcodePath(self, qrcodeId):
-        return self.absPath(qrcodeId+'.png')
-    
     def SetQQ(self, qq):
         self.qq = qq
 
