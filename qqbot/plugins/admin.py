@@ -69,22 +69,23 @@ def onQQMessage(bot, Type, Sender, Source, Message):
 
     elif '说明' in Plain:
         moduleName = Plain.replace('说明','').replace(' ','')
+        message = Plain
         if moduleName != '' and moduleName in bot.Plugins():
             module = bot.plugins[moduleName]
             for slotName in bot.slotsTable.keys():
                 if hasattr(module, slotName):
                     mod = getattr(module,slotName)
-                    Plain += f'{n}{mod.__name__}{(mod.__doc__ and n+mod.__doc__) or ""}'
+                    message += f'{n}{mod.__name__}{(mod.__doc__ and n+mod.__doc__) or ""}'
         elif moduleName == '':
-            Plain = '已加载模块说明'
+            message = '已加载模块说明'
             for moduleName in bot.plugins.keys():
                 module = bot.plugins[moduleName]
-                Plain += '\n' + moduleName + '模块'
+                message += '\n' + moduleName + '模块'
                 for slotName in bot.slotsTable.keys():
                     if hasattr(module, slotName):
                         mod = getattr(module,slotName)
-                        Plain += f'{n}{mod.__name__}{(mod.__doc__ and n+mod.__doc__) or ""}'
-        bot.SendMessage(Type, target, message=[soup.Plain(Plain)])
+                        message += f'{n}{mod.__name__}{(mod.__doc__ and n+mod.__doc__) or ""}'
+        bot.SendMessage(Type, target, message=[soup.Plain(message)])
 
     elif '插件列表' == Plain.replace(' ',''):
         for p in plug:
