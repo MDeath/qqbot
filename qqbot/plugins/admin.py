@@ -71,10 +71,12 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     plug = [m.split('.')[0] for m in os.listdir(bot.conf.pluginPath)]
     
     if 'who is your daddy' == Plain:
-            bot.SendMessage(Type, target, message=[soup.At(Sender.id)])
+        bot.SendMessage(Type, target, message=[soup.At(Sender.id)])
+        return
 
     elif '菜单' == Plain:
         bot.SendMessage(Type, target, message=[soup.Plain(onQQMessage.__doc__)])
+        return
 
     elif Plain.startswith('说明'):
         moduleName = Plain.replace('说明','').replace(' ','')
@@ -94,7 +96,10 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                     if hasattr(module, slotName):
                         mod = getattr(module,slotName)
                         message += f'{n}{mod.__name__}{(mod.__doc__ and n+mod.__doc__) or ""}'
+        else:
+            return
         bot.SendMessage(Type, target, message=[soup.Plain(message)])
+        return
 
     elif '插件列表' == Plain.replace(' ',''):
         for p in plug:
@@ -106,11 +111,13 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 Plain += f'\n未加载 {p}'
         message = [soup.Plain(Plain)]
         bot.SendMessage(Type, target, message)
+        return
 
     if admin_ID(bot, Sender.id):
         if '更新联系人' == Plain:
             bot.Update()
             bot.SendMessage(Type, target, [soup.Plain('更新完毕')])
+            return
 
         elif Plain.startswith('加载插件'):
             moduleName = Plain.replace('加载插件','')
@@ -124,6 +131,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                         bot.SendMessage(Type, target, message=[soup.Plain(f'{m} 加载失败')])
                 elif m != '':
                     bot.SendMessage(Type, target, message=[soup.Plain(f'库中没有 {m}')])
+            return
+
         if Plain.startswith('卸载插件'):
             moduleName = Plain.replace('卸载插件','')
             Modules = moduleName.split(' ')
@@ -136,11 +145,18 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                         bot.SendMessage(Type, target, message=[soup.Plain(f'成功卸载 {m}')])
                 elif m != '':
                     bot.SendMessage(Type, target, message=[soup.Plain(f'{m} 没有加载')])
+            return
 
     if admin_ID(bot, Sender.id, True):
         if '重启' == Plain:
             bot.SendMessage(Type, target, [soup.Plain('正在重启')])
             bot.Restart()
+            return
+
+        elif '关机' == Plain:
+            for p in bot.Plugins():
+                bot.Unplug(p)
+            return
 
 
 def onQQEvent(bot, Message):
