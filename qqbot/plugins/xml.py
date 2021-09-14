@@ -39,6 +39,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 xml = msg.xml
                 break
         else:
+            bot.SendMessage(Type,target,Plain('对象不是xml类型'))
             return
         xml = xml.replace('\\\\', '\\')
         xml = xml.replace('\\\'','\'')
