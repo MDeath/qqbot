@@ -16,19 +16,16 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     else:
         target = Sender.id
     for msg in Message:
+        if msg.type == 'Quote':
+            quote = msg.id
+            Quote = bot.MessageFromId(quote)
+            break
+    for msg in Message:
         if msg.type == 'Plain' and 'xml' in msg.text:
             message = msg.text
             break
     else:
         return
-    for msg in Message:
-        if msg.type == 'Quote':
-            quote = msg.id
-            Quote = bot.MessageFromId(quote)
-            break
-    else:
-        return
-    if not Quote:return
     if "?xml" in message:
         try:
             ET.fromstring(message)
@@ -36,7 +33,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             bot.SendMessage(Type, target, [Plain('xml 格式有误')])
         else:
             bot.SendMessage(Type, target, [Xml(message)])
-    elif 'xml' == message and quote:
+    elif 'xml' == message and Quote:
         for msg in Quote.messageChain:
             if msg.type == 'Xml':
                 xml = msg.xml
