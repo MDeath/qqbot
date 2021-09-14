@@ -17,16 +17,15 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if msg.type == 'Plain' and msg.text in ['搜图','识图']:
             break
     else:return
+    Image = []
     for msg in Message:
-        if msg.type == 'Quote':
+        if msg.type == 'Image':
+            Image.append(msg)
+        elif msg.type == 'Quote':
             quote = msg.id
             Quote = bot.MessageFromId(quote)
-            break
-    else:return
-    if not Quote:return
-    Image = []
-    for msg in Quote.messageChain:
-        if msg.type == 'Image':Image.append(msg)
+            if Quote:
+                Message += Quote.messageChain
     if not Image:return
     
     for img in Image:
