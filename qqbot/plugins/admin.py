@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+from mainloop import Put
 import __soup as soup
 
 
@@ -79,7 +80,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         return
 
     elif Plain.startswith('说明'):
-        moduleName = Plain.replace('说明','').replace(' ','')
+        moduleName = Plain.replace('说明','',1).replace(' ','')
         message = Plain
         if moduleName != '' and moduleName in bot.Plugins():
             module = bot.plugins[moduleName]
@@ -149,16 +150,26 @@ def onQQMessage(bot, Type, Sender, Source, Message):
 
     if admin_ID(bot, Sender.id, True):
         if '重启' == Plain:
-            bot.SendMessage(Type, target, [soup.Plain('正在重启')])
-            bot.Restart()
+            bot.SendMessage(Type, target, [soup.Plain('bot正在重启')])
+            Put(bot.Restart)
             return
 
         elif '关机' == Plain:
+            bot.SendMessage(Type, target, [soup.Plain('bot以关闭')])
+            Put(bot.Stop)
+
+        elif '休眠' == Plain:
             for p in bot.Plugins():
                 bot.Unplug(p)
+            bot.SendMessage(Type, target, [soup.Plain('bot以休眠')])
             return
 
-
+        elif '喂' == Plain:
+            for p in bot.conf.plugins:
+                bot.Plug(p)
+            bot.SendMessage(Type, target, [soup.Plain('bot已唤醒')])
+            return
+        
 def onQQEvent(bot, Message):
     '申请事件'
     if Message.type == 'MemberJoinRequestEvent':
