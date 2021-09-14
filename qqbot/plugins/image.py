@@ -17,6 +17,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if msg.type == 'Plain' and msg.text in ['搜图','识图']:
             break
     else:return
+    quote = Source.id
     Image = []
     for msg in Message:
         if msg.type == 'Image':
