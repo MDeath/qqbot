@@ -2,7 +2,7 @@
 
 from common import parse_json
 from utf8logger import INFO, ERROR, WARN
-import json, requests, time
+import json, requests
 
 def Get(*args, **kwargs):
         while True:
