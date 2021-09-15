@@ -28,7 +28,7 @@ def onUnplug(bot):
                 json.dump(bot.facemap, f, ensure_ascii=False, indent=4)
         delattr(bot, 'facemap')
 
-def onInterval():
+def onInterval(bot):
     if hasattr(bot, 'facemap'):
         with open(bot.conf.Config('facemap.json'),'w', encoding='utf-8') as f:
                 json.dump(bot.facemap, f, ensure_ascii=False, indent=4)
