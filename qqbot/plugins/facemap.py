@@ -95,9 +95,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                         else:
                             d['image'].append(image)
                             bot.SendMessage(Type,target,[Plain(f'关键字 {message} 已添加此图'),image])
-                            break
+                    break
             else:
-                bot.facemap.append({'text':[message],'image':[image]})
+                bot.facemap.append({'text':[message],'image':[image for image in Image]})
                 bot.SendMessage(Type,target,[Plain(f'已创建关键字 {message}')])
         elif '=' in message:
             text = message.split('=',1)
@@ -105,6 +105,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 if text[0] in d['text'] or text[1] in d['text']:
                     d['text'] = list(set(d['text'] + text))
                     bot.SendMessage(Type,target,[Plain(f'已关联关键字 {message}')])
+                    break
             else:
                 bot.SendMessage(Type,target,[Plain(f'没有相关关键字 {message}')])
     elif randint(0,1):
