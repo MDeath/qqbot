@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os, sys, time, subprocess
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from common import parse_json
 from utf8logger import INFO, ERROR, WARN
 import json, requests, time

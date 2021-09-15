@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __saucenao_api import SauceNao
 import __soup as soup
 from mainloop import Put

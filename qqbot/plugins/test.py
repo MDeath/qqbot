@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import json
 
 from admin import admin_ID

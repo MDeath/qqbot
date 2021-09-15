@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 def At(ID:int) -> list:
     return {"type": "At","target": ID}
 
