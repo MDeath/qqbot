@@ -28,6 +28,11 @@ def onUnplug(bot):
                 json.dump(bot.facemap, f, ensure_ascii=False, indent=4)
         delattr(bot, 'facemap')
 
+def onInterval():
+    if hasattr(bot, 'facemap'):
+        with open(bot.conf.Config('facemap.json'),'w', encoding='utf-8') as f:
+                json.dump(bot.facemap, f, ensure_ascii=False, indent=4)
+
 def onQQMessage(bot, Type, Sender, Source, Message):
     r'自动触发表情包'
     if not hasattr(bot,'facemap'):return
