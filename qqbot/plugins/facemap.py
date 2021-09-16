@@ -17,10 +17,7 @@ def onPlug(bot):
             with open(bot.conf.Config('facemap.json'),'w', encoding='utf-8') as f:
                 json.dump(root, f, ensure_ascii=False, indent=4)
             Map = root.copy()
-        if hasattr(bot, 'facemap'):
-            bot.facemap.update(Map)
-        else:
-            setattr(bot, 'facemap', Map)
+        setattr(bot, 'facemap', Map)
 
 def onUnplug(bot):
     if hasattr(bot, 'facemap'):
@@ -88,6 +85,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                         del d['image'][In]
                         bot.SendMessage(Type,target,[Plain(f'已从关键字 {message} 中移除此图'),image])
                         break
+                    In += 1
                 if image['imageId'] == i['imageId']:
                     break
             else:
