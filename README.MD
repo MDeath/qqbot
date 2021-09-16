@@ -15,139 +15,7 @@ qqbot 是一个用 python 实现的、基于 Mirai-Http 协议的 QQ 机器人
 
 ##### 1. 启动 QQBot
 
-在目录下启动命令行输入： **python start.py** ，即可启动一个 QQBot 。
-
-启动过程中会自动弹出二维码图片，需要用手机 QQ 客户端扫码并授权登录。启动成功后，会将本次登录信息保存到本地文件中，下次启动时，可以输入： **qqbot -q qq号码** ，先尝试从本地文件中恢复登录信息（不需要手动扫码），只有恢复不成功或登录信息已过期时才会需要手动扫码登录。一般来说，保存的登录信息将在 2 天之后过期。
-
-注意： Linux 下，需要系统中有 gvfs-open 或者 shotwell 命令才能自动弹出二维码图片（一般安装有 GNOME 虚拟文件系统 gvfs 的系统中都会含这两个命令之一）。 Windows10 下，需要系统中已设置了 png 图片文件的默认打开程序才能自动弹出二维码图片。
-
-若系统无法自动弹出二维码图片，可以手动打开图片文件进行扫码，也可以将二维码显示模式设置为 邮箱模式 、 服务器模式 或 文本模式 进行扫码，详见本文档的第七节。
-
-##### 2. 操作 QQBot
-
-QQBot 启动后，在另一个控制台窗口使用 qq 命令操作 QQBot ，目前提供以下命令：
-
-    1） 帮助、停机和重启命令
-
-        qq help|stop|restart|fresh-restart
-
-
-    2） 联系人查询、搜索命令
-
-        qq list buddy|group|discuss [$cinfo|$clike]
-        ( $cinfo --> $qq|$name|$key=$val )
-        ( $clike --> :like:$qq|:like:$name|$key:like:$name )
-
-        qq list group-member|discuss-member $oinfo|$olike [$cinfo|$clike]
-        ( $oinfo --> $oqq|$oname|$okey=$oval )
-        ( $cinfo --> $qq|$name|$key=$val )
-        ( $olike --> :like:$oqq|:like:$oname|$okey:like:$oname )
-        ( $clike --> :like:$qq|:like:$name|$key:like:$name )
-
-
-    3） 联系人更新命令
-
-        qq update buddy|group|discuss
-
-        qq update group-member|discuss-member $ginfo
-
-
-    4） 消息发送命令
-
-        qq send buddy|group|discuss $rinfo $message
-
-
-    5） 加载/卸载/显示插件
-
-        qq plug/unplug myplugin
-
-        qq plugins
-
-
-list 命令提供强大的联系人查询和搜索功能，用法示例如下：
-
-    # 列出所有好友
-    qq list buddy
-
-    # 列出 名称 为 xxx 的群
-    qq list group xxx
-
-    # 列出备注名为 jack 的好友
-    qq list buddy mark=jack
-
-    # 列出 群“456班” 的所有成员
-    qq list group-member 456班
-
-    # 列出 群“456班” 中名片为 “mike” 的成员
-    qq list group-member 456班 card=mike
-
-    # 列出 讨论组“XX小组” 中名为 jack 的好友
-    qq list discuss-member XX小组 jack
-
-其中第三、四个参数如果是 key=val 的格式，则应为 name=xx|nick=xx|mark=xx|card=xx|qq=xx 的格式，如果不是 key=val 的格式，则按以下原则进行处理：若是一串数字，则按 QQ 号进行查询，否则，按名称进行查询。
-
-如果存在重名现象，会列出所有重名的联系人。如：
-
-    qq list group 机器人测试
-
-将列出所有名为 “机器人测试” 的群。
-
-如果在 list 命令的第三、四个参数中加入 “:like:” ，则会按部分匹配的模式进行搜索，用法示例如下：
-
-    # 列出名称中含有 “李” 的好友
-    qq list buddy :like:李
-
-    # 列出 QQ 中含有 “234” 的群
-    qq list group :like:234
-
-    # 列出备注名中含有 jack 的好友
-    qq list buddy mark:like:jack
-
-    # 列出 群“456班” 的中名称中含有 “李” 的成员
-    qq list group-member 456班 :like:李
-
-    # 列出 群“456班” 中名片中含有 “mike” 的成员
-    qq list group-member 456班 card:like:mike
-
-    # 列出的 讨论组“xx小组” 中名为 jack 的好友
-    qq list discuss-member :like:小组 jack
-
-从 v2.2.5 版开始， list 命令采用表格的形式输出联系人列表，其输出样式示例如下：
-
-![prettytable.png](https://raw.githubusercontent.com/pandolia/qqbot/master/prettytable.png)
-
-为保证表格在终端中的显示效果，建议将终端的输出字体设置为 consolas 、且每行可打印的最大字符数大于 120 。另外需要注意：为保证表格的显示效果，当联系人的名称、名片等属性的长度太长或含有特殊字符时，将对这些属性进行截断或过滤后再输出至终端。
-
-update 命令更新指定的联系人列表，其参数含义和 list 命令相同，如：
-
-    # 更新好友列表
-    qq update buddy
-
-    # 更新群列表
-    qq update group
-
-    # 更新 群“456班” 的成员列表
-    qq update group-member 456班
-
-send 命令中第三个参数和 list 命令中的第三个参数格式一致。要注意，如果有重名现象，会给所有重名的联系人发信息。 另外要注意，第二个参数只能是 buddy/group/discuss ，不能是 group-member/discuss-member 。示例：
-
-    # 给 好友“jack” 发消息 “你好”
-    qq send buddy jack 你好
-
-    # 给 群“198班” 发消息 “大家好”
-    qq send group 198班 大家好
-
-    # 给 QQ 为 12345 的好友发消息
-    qq send buddy 12345 xxx
-
-    # 给讨论组发消息
-    qq send discuss MyDiscuss hello
-
-可以在消息内容中嵌入“/可爱”等表情关键词来向对方发送表情，详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)。还可以在消息内容中使用 **\n,\t** 这两个转义字符（如： send buddy jack 第一行\n第二行）。
-
-以上所有命令都提供对应的 HTTP API 接口，供 web 前端开发者调用，接口的 url 地址为 http://127.0.0.1:8188/{command} ，只需要将 qq 后面的命令各参数用 "/" 分隔开替换 url 中的 command 就可以了，如: http://127.0.0.1:8188/send/buddy/jack/hello ，其他示例详见 [urltestbot.md](https://github.com/pandolia/qqbot/blob/master/urltestbot.html) 。注意：如果命令中含有中文或特殊字符，需要先进行 url 编码（ utf8 ），例如，调用  http://127.0.0.1:8188/send/buddy/jack/nihao%20%E4%BD%A0%E5%A5%BD%20wohao 将发送消息 ”nihao 你好 wohao“ 。（提示：在 JavaScript 中，可以使用 encodeURIComponent 函数进行编码）。
-
-另外， QQBot 启动后，用本 QQ 号在其他客户端（如：手机 QQ ）上向某个 群/讨论组 发消息 “--version” ，则 QQBot 会自动在该 群/讨论组 回复： “QQBot-v2.x.x” 。
+启动前先登录好带有HTTPapi插件的Mirai，在目录下启动命令行输入： **python start.py** ，即可启动一个 QQBot 。启动成功后，会将本次登录信息保存到本地文件中，下次启动时，可以输入： **qqbot -q qq号码** ，先尝试从本地文件中恢复登录信息
 
 三、实现你自己的 QQ 机器人
 ---------------------------
@@ -156,12 +24,40 @@ send 命令中第三个参数和 list 命令中的第三个参数格式一致。
 ```python
 # -*- coding: utf-8 -*-
 
-def onQQMessage(bot, contact, member, content):
-    if content == '-hello':
-        bot.SendTo(contact, '你好，我是QQ机器人')
-    elif content == '-stop':
-        bot.SendTo(contact, 'QQ机器人已关闭')
-        bot.Stop()
+def onQQMessage(bot, Type, Sender, Source, Message):
+    '回复消息回复 解析 返回消息 类型和结构'
+    if Type not in ['Friend', 'Group']: # 消息来源 
+        return
+    At = []
+    AtAll = False
+    Plain = ''
+    Image = []
+    Xml = []
+    Json = []
+    for msg in Message:
+        if msg.type == 'Quote':Quote = msg
+        if msg.type == 'At':At.append(msg.target)
+        if msg.type == 'AtAll':AtAll = True
+        if msg.type == 'Face':pass
+        if msg.type == 'Plain':Plain += msg.text
+        if msg.type == 'Image':Image.append(msg)
+        if msg.type == 'FlashImage':FlashImage = msg
+        if msg.type == 'Voice':Voice = msg
+        if msg.type == 'Xml':Xml.append(msg.xml)
+        if msg.type == 'Json':Json.append(msg.json)
+        if msg.type == 'App':App = msg.content
+        if msg.type == 'Poke':pass 
+        if msg.type == 'Dice':pass
+        if msg.type == 'MusicShare':MusicShare = msg
+        if msg.type == 'ForwardMessage':pass 
+        if msg.type == 'File':pass
+    if hasattr(Sender, 'group'):
+        target = Sender.group.id
+        if not admin_ID(bot, Sender.id,1):
+            return
+    else:
+        target = Sender.id
+
 ```
 
 注意，上面注册的响应函数的函数名必须为 “onQQMessage” ，函数参数也必须和上面的一致。
