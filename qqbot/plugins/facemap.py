@@ -63,43 +63,55 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                     bot.SendMessage(Type,target,[d['image'][randint(1,len(d['image']))-1]])
         return
     message = message.replace('表情包','',1)
+
+    # Del
     if message.startswith('移出'):
         message = message.replace('移出','',1)
         Dn = 0
         for d in bot.facemap:
-            if message in d['text']:
-                Tn = 0
-                for t in d['text']:
-                    if message == t:
-                        break
-                    Tn += 1
-                In = 0
-                if Image:
-                    for image in Image:
-                        for i in d['image']:
-                            if image['imageId'] == i['imageId']:
-                                del d['image'][In]
-                                bot.SendMessage(Type,target,[Plain(f'已从关键字 {message} 中移除此图'),image])
-                                break
-                            In += 1
-                        else:
-                            bot.SendMessage(Type,target,[Plain(f'关键字 {message} 中不存在此图'),image])
-                else:
-                    del d['text'][Tn]
-                    bot.SendMessage(Type,target,[Plain(f'已移除关键字 {message}')])
-                if not d['text'] or not d['image']:del bot.facemap[Dn]
+            Tn = 0
+            for t in d['text']:
+                if message == t:
+                    break
+                Tn += 1
+            if message == t:
                 break
             Dn += 1
         else:
             bot.SendMessage(Type,target,[Plain(f'没有相关关键字 {message}')])
+            return
+        if Image:
+            In = 0
+            for image in Image:
+                for i in d['image']:
+                    if image['imageId'] == i['imageId']:
+                        del d['image'][In]
+                        bot.SendMessage(Type,target,[Plain(f'已从关键字 {message} 中移除此图'),image])
+                        break
+                if image['imageId'] == i['imageId']:
+                    break
+            else:
+                bot.SendMessage(Type,target,[Plain(f'关键字 {message} 中不存在此图'),image])
+        else:
+            del d['text'][Tn]
+            bot.SendMessage(Type,target,[Plain(f'已移除关键字 {message}')])
+        if not d['text'] or not d['image']:del bot.facemap[Dn]
+
+    # Check
     elif message.startswith('查看'):
         message = message.replace('查看','',1)
+        if not message:
+            bot.SendMessage(Type,target,[Plain(str([d['text'] for d in bot.facemap]))])
+            return
         for d in bot.facemap:
             if message in d['text']:
-                bot.SendMessage(Type,target,[Plain(json.dumps(d,ensure_ascii=False,indent=4))])
+                message = [Plain(s+' ')for s in d['text']]+[i for i in d['image']]
+                bot.SendMessage(Type,target,message)
                 break
         else:
             bot.SendMessage(Type,target,[Plain(f'没有相关关键字 {message}')])
+
+    # Add
     elif message.startswith('='):
         message = message.replace('=','',1)
         if not Image:
@@ -119,6 +131,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         else:
             bot.facemap.append({'text':[message],'image':[image for image in Image]})
             bot.SendMessage(Type,target,[Plain(f'已创建关键字 {message}')])
+
+    # Bind
     elif '=' in message:
         text = message.split('=',1)
         for d in bot.facemap:
