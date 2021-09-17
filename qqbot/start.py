@@ -147,7 +147,7 @@ class QQBot():
     def intervalForever(self):
         while True:
             time.sleep(300)
-            Put(self.onInterval, self)
+            Put(self.onInterval)
 
     def Command(self):
         while True:pass
