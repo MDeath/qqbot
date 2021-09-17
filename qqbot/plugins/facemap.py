@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import json
+from plugins.admin import admin_ID
 from random import randint
 from __soup import Plain
 from os.path import exists
@@ -59,6 +60,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 if t in message and randint(0,1):
                     bot.SendMessage(Type,target,[d['image'][randint(1,len(d['image']))-1]])
         return
+
+    if not admin_ID(bot, Sender.id):return
     message = message.replace('表情包','',1)
 
     # Del
