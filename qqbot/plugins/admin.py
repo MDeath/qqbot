@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import traceback
 from mainloop import Put
 import __soup as soup
 
@@ -58,13 +59,13 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     else:
         target = Sender.id
 
-    shell = ['$', '>>>', '//']
+    shell = ['$', '￥','//']
     for s in shell:
-        if Plain.startswith(s):
+        if Plain.startswith(s)and admin_ID(bot ,Sender.id, True):
             try:
                 rt = str(eval(Plain.replace(s, '', 1)))
             except:
-                rt = '语法错误或者无法输出成字符串'
+                rt = traceback.format_exc()
             bot.SendMessage(Type, target, message=[soup.Plain(rt)])
             return
     
@@ -124,28 +125,16 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             moduleName = Plain.replace('加载插件','')
             Modules = moduleName.split(' ')
             for m in Modules:
-                if f'{m}.py' in plug or m in plug:
-                    bot.Plug(m)
-                    if m in bot.Plugins():
-                        bot.SendMessage(Type, target, message=[soup.Plain(f'成功加载 {m}')])
-                    else:
-                        bot.SendMessage(Type, target, message=[soup.Plain(f'{m} 加载失败')])
-                elif m != '':
-                    bot.SendMessage(Type, target, message=[soup.Plain(f'库中没有 {m}')])
+                result = bot.Plug(m)
+                bot.SendMessage(Type, target, message=[soup.Plain(result)])
             return
 
         if Plain.startswith('卸载插件'):
             moduleName = Plain.replace('卸载插件','')
             Modules = moduleName.split(' ')
             for m in Modules:
-                if m in bot.Plugins():
-                    bot.Unplug(m)
-                    if m in bot.Plugins():
-                        bot.SendMessage(Type, target, message=[soup.Plain(f'{m} 卸载失败')])
-                    else:
-                        bot.SendMessage(Type, target, message=[soup.Plain(f'成功卸载 {m}')])
-                elif m != '':
-                    bot.SendMessage(Type, target, message=[soup.Plain(f'{m} 没有加载')])
+                result = bot.Unplug(m)
+                bot.SendMessage(Type, target, message=[soup.Plain(result)])
             return
 
     if admin_ID(bot, Sender.id, True):
@@ -161,7 +150,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         elif '休眠' == Plain:
             for p in bot.Plugins():
                 bot.Unplug(p)
-            bot.SendMessage(Type, target, [soup.Plain('bot以休眠')])
+            bot.SendMessage(Type, target, [soup.Plain('bot已休眠')])
             return
 
         elif '喂' == Plain:
