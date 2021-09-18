@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from common import parse_json
-from utf8logger import INFO, ERROR, WARN
+from utf8logger import INFO, ERROR, WARNING
 import json, requests
 
 def Get(*args, **kwargs):
@@ -42,25 +42,25 @@ class MiraiApi():
             ERROR('指定的Bot不存在')
             raise RequestError
         elif code == 3:
-            WARN('Session失效或不存在')
+            WARNING('Session失效或不存在')
             self.Verify()
             return 1
         elif code == 4:
-            WARN('Session未认证(未激活)')
+            WARNING('Session未认证(未激活)')
             self.Bind()
             return 1
         elif code == 5:
-            WARN('发送消息目标不存在(指定对象不存在)')
+            WARNING('发送消息目标不存在(指定对象不存在)')
         elif code == 6:
-            WARN('指定文件不存在，出现于发送本地图片')
+            WARNING('指定文件不存在，出现于发送本地图片')
         elif code == 10:
-            WARN('无操作权限，指Bot没有对应操作的限权')
+            WARNING('无操作权限，指Bot没有对应操作的限权')
         elif code == 20:
-            WARN('Bot被禁言，指Bot当前无法向指定群发送消息')
+            WARNING('Bot被禁言，指Bot当前无法向指定群发送消息')
         elif code == 30:
-            WARN('消息过长')
+            WARNING('消息过长')
         elif code == 400:
-            WARN('错误的访问，如参数错误等')
+            WARNING('错误的访问，如参数错误等')
         return 0
 
     def basicsession(self,mode,url,**kwargs):
