@@ -1,9 +1,0 @@
-*.pyc
-bak/*
-build/*
-dist/*
-MANIFEST
-files.txt
-*egg-info/*
-tmp*
-*.log
