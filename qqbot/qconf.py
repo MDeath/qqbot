@@ -46,7 +46,7 @@ sampleConfStr = '''
         "pluginPath" : ".",
 
         # 启动时需加载的插件
-        "plugins" : [],
+        "plugins" : ['admin'],
 
         # 插件的配置（由用户自定义）
         "pluginsConf" : {},
@@ -82,7 +82,7 @@ sampleConfStr = '''
     #     "daemon" : False,
     #     "startAfterFetch" : False,
     #     "pluginPath" : "",
-    #     "plugins" : [],
+    #     "plugins" : ['admin'],
     #     "pluginsConf" : {}
     # },
 
@@ -99,7 +99,7 @@ rootConf = {
     "daemon" : False,
     "startAfterFetch" : False,
     "pluginPath" : "",
-    "plugins" : [],
+    "plugins" : ['admin'],
     "pluginsConf" : {},
 }
 
