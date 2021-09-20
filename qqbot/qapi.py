@@ -37,10 +37,10 @@ class MiraiApi():
     def ErrorCode(self, code):
         if code == 1:
             ERROR('错误的verify key')
-            raise RequestError
+            self.verifyKey = input('verifyKey:')
         elif code == 2:
             ERROR('指定的Bot不存在')
-            raise RequestError
+            self.qq = int(input('qq:'))
         elif code == 3:
             WARNING('Session失效或不存在')
             self.Verify()
@@ -79,9 +79,12 @@ class MiraiApi():
         self.started = False
         payload = {"verifyKey": self.verifyKey}
         r = self.basicsession(Post, 'verify', data=json.dumps(payload))
-        self.session = r.session
-        INFO('认证成功')
-        self.Bind()
+        if r:
+            self.session = r.session
+            INFO('认证成功')
+            self.Bind()
+        else:
+            self.Verify()
 
     def Bind(self): # 绑定
         payload = {
@@ -89,8 +92,11 @@ class MiraiApi():
             "qq": self.qq
         }
         r = self.basicsession(Post, 'bind', data=json.dumps(payload))
-        INFO('绑定成功')
-        self.started = True
+        if r:
+            INFO('绑定成功')
+            self.started = True
+        else:
+            self.Bind()
 
 ### 消息与事件 ###
 
