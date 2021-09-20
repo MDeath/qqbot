@@ -12,14 +12,44 @@ USERNAME = None
 PASSWORD = None
 REFRESH_TOKEN = None
 
-@QQBotSched(year=None, month=None, day=None, week=None, day_of_week=None, hour=4, minute=None, second=None, start_date=None, end_date=None, timezone=None)
+def onPlug(bot):
+    if not hasattr(bot, 'pixiv'):
+        api = ByPassSniApi()
+        api.require_appapi_hosts(hostname="public-api.secure.pixiv.net")
+        api.set_accept_language('zh-cn')
+        setattr(bot,'pixiv',api)
+        if REFRESH_TOKEN or (USERNAME and PASSWORD):
+            bot.pixiv.auth(USERNAME, PASSWORD, REFRESH_TOKEN)
+            setattr(bot.pixiv, 'req_auth', True)
+        else:
+            setattr(bot.pixiv, 'req_auth', False)
+
+def onUnplug(bot):
+    if hasattr(bot, 'pixiv'):
+        delattr(bot, 'pixiv')
+
+def onInterval(bot):
+    if hasattr(bot, 'pixiv'):
+        onPlug(bot)
+
+@QQBotSched(year=None, 
+            month=None, 
+            day=None, 
+            week=None, 
+            day_of_week=None, 
+            hour=4, 
+            minute=None, 
+            second=None, 
+            start_date=None, 
+            end_date=None, 
+            timezone=None)
 def day_ranking(bot):
     if not hasattr(bot, 'pixiv'):
         onPlug(bot)
     api = bot.pixiv
     _n = '\n'
     n = 10
-    result = api.illust_ranking()
+    result = api.illust_ranking(req_auth=bot.pixiv.req_auth)
     while n > 0:
         for i in result.illusts:
             if n < 1:break
@@ -37,23 +67,4 @@ def day_ranking(bot):
             time.sleep(1)
             n -= 1
         if n > 0:
-            result = api.illust_ranking(**api.parse_qs(result.next_url))
-
-def onPlug(bot):
-    if not hasattr(bot, 'pixiv'):
-        api = ByPassSniApi()
-        api.require_appapi_hosts(hostname="public-api.secure.pixiv.net")
-        api.set_accept_language('zh-cn')
-        if REFRESH_TOKEN or (USERNAME and PASSWORD):
-            api.auth(USERNAME, PASSWORD, REFRESH_TOKEN)
-            setattr(bot,'pixiv',api)
-        else:
-            bot.Unplug(__file__)
-
-def onUnplug(bot):
-    if hasattr(bot, 'pixiv'):
-        delattr(bot, 'pixiv')
-
-def onInterval(bot):
-    if hasattr(bot, 'pixiv'):
-        onPlug(bot)
+            result = api.illust_ranking(**api.parse_qs(result.next_url),req_auth=bot.pixiv.req_auth)
