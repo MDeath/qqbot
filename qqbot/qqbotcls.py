@@ -274,14 +274,13 @@ def runBot(argv=None):
                 INFO('QQBot 正常停止')
                 sys.exit(code)
             elif code == RESTART:
-                args[-2] = str(conf.LoadQQ())
                 INFO('1 秒后重新启动 QQBot （自动登陆，qq=%s）', args[-2])
                 time.sleep(1)
             else:
                 CRITICAL('QQBOT 异常停止（code=%s）', code)
                 if conf.restartOnOffline:
-                    args[-2] = str(conf.LoadQQ())
-                    INFO('5秒后重新启动 QQBot （自动登陆，qq=%s）', args[-2])
+                    args[-2] = '0'
+                    INFO('5秒后重新启动 QQBot （手动登录）')
                     time.sleep(5)
                 else:
                     sys.exit(code)
