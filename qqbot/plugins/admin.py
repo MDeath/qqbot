@@ -7,7 +7,8 @@ import __soup as soup
 
 
 def onUnplug(bot):
-    '此插件不可卸载'
+    '''
+    此插件不可卸载'''
     bot.Plug(str(__name__))
 
 def admin_ID(bot, ID, admin=False):
@@ -18,16 +19,15 @@ def admin_ID(bot, ID, admin=False):
 
 
 def onQQMessage(bot, Type, Sender, Source, Message):
-    '''\
-@bot 并输入指令使用
-菜单
-重启
-更新联系人
-插件列表
-加载插件《插件名》
-卸载插件《插件名》
-说明(可附带插件名)\
     '''
+    @bot 并输入指令使用
+    菜单
+    重启
+    更新联系人
+    插件列表
+    加载插件《插件名》
+    卸载插件《插件名》
+    说明(可附带插件名)'''
     if Type not in ['Friend', 'Group']:
         return
     At = []
@@ -82,26 +82,22 @@ def onQQMessage(bot, Type, Sender, Source, Message):
 
     elif Plain.startswith('说明'):
         moduleName = Plain.replace('说明','',1).replace(' ','')
-        message = Plain
         if moduleName != '' and moduleName in bot.Plugins():
-            module = bot.plugins[moduleName]
+            message = Plain
+            modules = [bot.plugins[moduleName]]
+        elif moduleName == '':
+            message = '已加载模块说明'
+            modules = [bot.plugins[moduleName] for moduleName in bot.plugins.keys()]
+        else:
+            return
+        for module in modules:
+            message += '\n' + module.__name__ + '模块'
             for slotName in bot.slotsTable.keys():
                 if hasattr(module, slotName):
                     mod = getattr(module,slotName)
-                    message += f'{n}{mod.__name__}{(mod.__doc__ and n+mod.__doc__) or ""}'
-        elif moduleName == '':
-            message = '已加载模块说明'
-            for moduleName in bot.plugins.keys():
-                module = bot.plugins[moduleName]
-                message += '\n' + moduleName + '模块'
-                for slotName in bot.slotsTable.keys():
-                    if hasattr(module, slotName):
-                        mod = getattr(module,slotName)
-                        message += f'{n}{mod.__name__}{(mod.__doc__ and n+mod.__doc__) or ""}'
-        else:
-            return
-        bot.SendMessage(Type, target, message=[soup.Plain(message)])
-        return
+                    if mod.__doc__:
+                        message += n+mod.__name__+n+mod.__doc__+n
+        return bot.SendMessage(Type, target, message=[soup.Plain(message)])
 
     elif '插件列表' == Plain.replace(' ',''):
         for p in plug:
@@ -160,7 +156,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             return
         
 def onQQEvent(bot, Message):
-    '申请事件'
+    '''
+    申请事件'''
     if Message.type == 'MemberJoinRequestEvent':
         return 0, '欢迎'
     elif Message.type == 'NewFriendRequestEvent':

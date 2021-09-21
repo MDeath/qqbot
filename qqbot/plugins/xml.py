@@ -8,8 +8,8 @@ except ImportError:
 from __soup import Plain, Xml
 
 def onQQMessage(bot, Type, Sender, Source, Message):
-    '''\
-    回复 xml卡片 发送 xml 返回 xml源码
+    '''
+    回复 xml卡片 xml 返回 xml源码
     发送 xml源码 返回 xml卡片'''
     if Type not in ['Friend', 'Group']:
         return

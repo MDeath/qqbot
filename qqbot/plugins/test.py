@@ -6,7 +6,8 @@ from admin import admin_ID
 import __soup as soup
 
 def onQQMessage(bot, Type, Sender, Source, Message): # 获取消息后调用此插件的函数执行
-    '回复消息回复 解析 返回消息 类型和结构'
+    '''
+    回复消息 解析 返回消息 类型和结构'''
     if Type not in ['Friend', 'Group']: # 消息来源 
         return
     Quote = {}

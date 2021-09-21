@@ -10,7 +10,7 @@ from qqbotcls import QQBotSched
 
 USERNAME = None
 PASSWORD = None
-REFRESH_TOKEN = None
+REFRESH_TOKEN = 'HE7649-uwJxUXSjqYv82-gxvr5l9hlAdT1ol3lC-Ul0'
 
 def onPlug(bot):
     if not hasattr(bot, 'pixiv'):

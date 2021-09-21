@@ -25,7 +25,8 @@ def setu(r=0, num=1, uid=[], tag=[], size=[]):
 
 
 def onQQMessage(bot, Type, Sender, Source, Message):
-    '发送 setu 发一张图片，可添加 r-18 关键字'
+    '''
+    发送 setu 发一张图片，可添加 r-18 关键字'''
     if Type not in ['Friend', 'Group']:
         return
     if hasattr(Sender, 'group'):
