@@ -19,13 +19,13 @@ def onPlug(bot):
         api.set_accept_language('zh-cn')
         try:
             if REFRESH_TOKEN:
-                api.auth(REFRESH_TOKEN)
+                api.auth(refresh_token=REFRESH_TOKEN)
             elif USERNAME and PASSWORD:
                 api.login(USERNAME,PASSWORD)
             else:
                 raise
             setattr(bot,'pixiv',api)
-        except:return
+        except:raise
 
 def onUnplug(bot):
     if hasattr(bot, 'pixiv'):
