@@ -6,7 +6,7 @@ from apscheduler.triggers.cron import CronTrigger
 from collections import defaultdict
 
 from mainloop import MainLoop, Put
-from qapi import MiraiApi, RequestError
+from miraiapi import MiraiApi, RequestError
 from common import Import, StartDaemonThread
 from qconf import QConf
 from utf8logger import INFO, CRITICAL, ERROR, PRINT, WARNING
@@ -83,7 +83,7 @@ class QQBot():
         StartDaemonThread(self.intervalForever)
         self.scheduler.start()
         if not self.conf.startAfterFetch:
-            self.Update()
+            Put(self.Update)
 
         try:
             MainLoop()

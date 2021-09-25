@@ -27,14 +27,14 @@ def onUnplug(bot):
         delattr(bot, 'facemap')
 
 def onInterval(bot):
-    '''
+    '''\
     5分钟自动保存'''
     if hasattr(bot, 'facemap'):
         with open(bot.conf.Config('facemap.json'),'w', encoding='utf-8') as f:
                 json.dump(bot.facemap, f, ensure_ascii=False, indent=4)
 
 def onQQMessage(bot, Type, Sender, Source, Message):
-    '''
+    '''\
     自动触发表情包'''
     if not hasattr(bot,'facemap'):return
     if Type not in ['Friend', 'Group']:

@@ -7,7 +7,7 @@ from mainloop import Put
 api_key = 'bb8c58baab8a50ab362c752b9f4252147c376da9'
 
 def onQQMessage(bot, Type, Sender, Source, Message):
-    '''
+    '''\
     回复 图片 发送 搜图或识图 返回 图片溯源'''
     if Type not in ['Friend', 'Group']:
         return

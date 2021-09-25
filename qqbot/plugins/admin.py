@@ -7,7 +7,7 @@ import __soup as soup
 
 
 def onUnplug(bot):
-    '''
+    '''\
     此插件不可卸载'''
     bot.Plug(str(__name__))
 
@@ -19,7 +19,7 @@ def admin_ID(bot, ID, admin=False):
 
 
 def onQQMessage(bot, Type, Sender, Source, Message):
-    '''
+    '''\
     @bot 并输入指令使用
     菜单
     重启
@@ -156,7 +156,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             return
         
 def onQQEvent(bot, Message):
-    '''
+    '''\
     申请事件'''
     if Message.type == 'MemberJoinRequestEvent':
         return 0, '欢迎'

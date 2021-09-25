@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v0.1.1'
+version = 'v0.2.0'
 
 sampleConfStr = '''
 {

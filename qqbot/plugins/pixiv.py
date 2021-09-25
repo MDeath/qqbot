@@ -13,45 +13,47 @@ PASSWORD = None
 REFRESH_TOKEN = 'HE7649-uwJxUXSjqYv82-gxvr5l9hlAdT1ol3lC-Ul0'
 
 def onPlug(bot):
-    if not hasattr(bot, 'pixiv'):
-        api = ByPassSniApi()
-        api.require_appapi_hosts(hostname="public-api.secure.pixiv.net")
-        api.set_accept_language('zh-cn')
-        try:
-            if REFRESH_TOKEN:
-                api.auth(refresh_token=REFRESH_TOKEN)
-            elif USERNAME and PASSWORD:
-                api.login(USERNAME,PASSWORD)
-            else:
-                raise
-            setattr(bot,'pixiv',api)
-        except:raise
+    api = ByPassSniApi()
+    api.require_appapi_hosts(hostname="public-api.secure.pixiv.net")
+    api.set_accept_language('zh-cn')
+    try:
+        if REFRESH_TOKEN:
+            api.auth(refresh_token=REFRESH_TOKEN)
+        elif USERNAME and PASSWORD:
+            api.login(USERNAME,PASSWORD)
+        else:
+            raise
+        setattr(bot,'pixiv',api)
+    except:raise
 
 def onUnplug(bot):
     if hasattr(bot, 'pixiv'):
-        delattr(bot, 'pixiv')
+        del bot.pixiv
 
 def onInterval(bot):
-    if hasattr(bot, 'pixiv'):
+    if not hasattr(bot, 'pixiv'):
         onPlug(bot)
+    bot.pixiv.auth(refresh_token=REFRESH_TOKEN)
 
 @QQBotSched(year=None, 
             month=None, 
             day=None, 
             week=None, 
             day_of_week=None, 
-            hour=4, 
+            hour=6, 
             minute=None, 
             second=None, 
             start_date=None, 
             end_date=None, 
             timezone=None)
 def day_ranking(bot):
+    '''\
+    每日凌晨6点发送pixiv日榜'''
     if not hasattr(bot, 'pixiv'):return
     api = bot.pixiv
     _n = '\n'
     n = 10
-    result = api.illust_ranking(req_auth=bot.pixiv.req_auth)
+    result = api.illust_ranking()
     while n > 0:
         for i in result.illusts:
             if n < 1:break
@@ -72,6 +74,9 @@ def day_ranking(bot):
             result = api.illust_ranking(**api.parse_qs(result.next_url),req_auth=bot.pixiv.req_auth)
 
 def onQQMessage(bot, Type, Sender, Source, Message):
+    '''\
+    发送 推荐插画 或 插画推荐
+    返回pixiv插画推荐（最多发30幅图）'''
     if not hasattr(bot, 'pixiv'):return
     api = bot.pixiv
     if Type not in ['Friend', 'Group']:
@@ -83,14 +88,24 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     Plain,_n = '','\n'
     for msg in Message:
         if msg.type == 'Plain':Plain += msg.text
-    if Plain in ['插画推荐','推荐插画']:
-        illust = api.illust_recommended().illusts[0]
-        Plain = f'标题:{illust.title} Pid:{illust.id}{_n}作者:{illust.user.name} Uid:{illust.user.id}{_n}标签:'
-        for tag in illust.tags:Plain += f'{_n}{tag.name}:{tag.translated_name}'
-        message = [soup.Plain(Plain)]
-        if illust.page_count > 1:
-            for page in illust.meta_pages:
-                message.append(soup.Image(url=page.image_urls.original.replace('pximg.net','pixiv.cat')))
-        else:
-            message.append(soup.Image(url=illust.meta_single_page.original_image_url.replace('pximg.net','pixiv.cat')))
-        return bot.SendMessage(Type, target, message)
+    for msg in ['插画推荐','推荐插画']:
+        if msg in Plain:
+            try:
+                number = int(Plain.replace(msg,''))
+                if number > 30:number = 30
+            except:
+                number = 1
+            illusts = api.illust_recommended().illusts
+            while number > 0:
+                number -= 1
+                illust = illusts[number]
+                Plain = f'标题:{illust.title} Pid:{illust.id}{_n}作者:{illust.user.name} Uid:{illust.user.id}{_n}收藏:{illust.total_bookmarks} 标签:'
+                for tag in illust.tags:Plain += f'{_n}{tag.name}:{tag.translated_name}'
+                message = [soup.Plain(Plain)]
+                if illust.page_count > 1:
+                    for page in illust.meta_pages:
+                        message.append(soup.Image(url=page.image_urls.original.replace('pximg.net','pixiv.cat')))
+                else:
+                    message.append(soup.Image(url=illust.meta_single_page.original_image_url.replace('pximg.net','pixiv.cat')))
+                bot.SendMessage(Type, target, message)
+            return

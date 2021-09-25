@@ -147,7 +147,8 @@ class MiraiApi():
             payload['group'] = target
         if quote:
             payload['quote'] = quote
-        payload['messageChain'] = (type(message) is list and message) or [message]
+        payload['messageChain'] = message
+        INFO(f'发到 {form} {target}:{(quote and "回复 "+quote+" ") or " "}{message}')
         return self.basicsession(Post, f'send{form}Message', data=json.dumps(payload))
 
     def Nudge(self, kind:str, target:int, ID:int) -> None: # 戳一戳
