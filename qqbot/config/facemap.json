@@ -367,13 +367,14 @@
     },
     {
         "text": [
-            "什么g8",
-            "什么JB",
-            "什么鸡巴",
+            "smjb",
             "什么jb",
-            "什么G8",
+            "什么g8",
+            "什么鸡巴",
+            "什么JB",
+            "什么勾八",
             "什么寄吧",
-            "什么勾八"
+            "什么G8"
         ],
         "image": [
             {
@@ -743,6 +744,7 @@
     {
         "text": [
             " 好臭",
+            "好臭",
             "恶臭"
         ],
         "image": [
@@ -757,20 +759,6 @@
                 "type": "Image",
                 "imageId": "{32DF95EF-C266-D4E6-3F96-C572CA1A7EB7}.jpg",
                 "url": "http://c2cpicdw.qpic.cn/offpic_new/1064393873//1064393873-3230644590-32DF95EFC266D4E63F96C572CA1A7EB7/0?term=2",
-                "path": null,
-                "base64": null
-            }
-        ]
-    },
-    {
-        "text": [
-            "好臭"
-        ],
-        "image": [
-            {
-                "type": "Image",
-                "imageId": "{4CAA3BC9-45DF-D33F-6CCE-318EFED2BE1A}.png",
-                "url": "http://c2cpicdw.qpic.cn/offpic_new/1064393873//1064393873-2813539055-4CAA3BC945DFD33F6CCE318EFED2BE1A/0?term=2",
                 "path": null,
                 "base64": null
             }
@@ -1121,6 +1109,36 @@
                 "type": "Image",
                 "imageId": "{4BDBF857-7B43-5670-0DDB-E15676201EE1}.jpg",
                 "url": "http://c2cpicdw.qpic.cn/offpic_new/1064393873//1064393873-23612680-4BDBF8577B4356700DDBE15676201EE1/0?term=2",
+                "path": null,
+                "base64": null
+            }
+        ]
+    },
+    {
+        "text": [
+            "考虑"
+        ],
+        "image": [
+            {
+                "type": "Image",
+                "imageId": "{0FF96113-95B8-F585-7251-F92CE6CF4AE5}.jpg",
+                "url": "http://c2cpicdw.qpic.cn/offpic_new/1064393873//1064393873-1961439315-0FF9611395B8F5857251F92CE6CF4AE5/0?term=2",
+                "path": null,
+                "base64": null
+            }
+        ]
+    },
+    {
+        "text": [
+            "酸了",
+            "好酸",
+            "羡慕"
+        ],
+        "image": [
+            {
+                "type": "Image",
+                "imageId": "{B0D334E4-1B03-6D15-90D5-8D883DCD45AC}.jpg",
+                "url": "http://c2cpicdw.qpic.cn/offpic_new/1064393873//1064393873-3457270702-B0D334E41B036D1590D58D883DCD45AC/0?term=2",
                 "path": null,
                 "base64": null
             }
