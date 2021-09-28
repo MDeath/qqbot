@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-import time
+import time, traceback
 
 from plugins.admin import admin_ID
 from pixivpy3 import *
@@ -12,10 +12,36 @@ USERNAME = None
 PASSWORD = None
 REFRESH_TOKEN = 'HE7649-uwJxUXSjqYv82-gxvr5l9hlAdT1ol3lC-Ul0'
 
+class Pixiv(ByPassSniApi):
+    def __init__(self,**requests_kwargs): #初始化api
+        super().__init__(**requests_kwargs)
+        self.cat = False
+        self.set_accept_language('zh-cn')
+        self.require_appapi_hosts(hostname="public-api.secure.pixiv.net")
+
+    def download(self, url, *args, **kwargs): #下载文件返回文件名
+        if self.cat:
+            url = url.replace('pximg.net', 'pixiv.cat')
+        super().download(url,*args, **kwargs)
+
+    def no_auth_requests_call(self, *args, **kwargs):
+        while True:
+            try:
+                r = super().no_auth_requests_call(*args, **kwargs)
+            except:
+                traceback.print_exc()
+                continue
+            jsondict = self.parse_json(r.text)
+            if 'error' not in jsondict:return r
+            if 'Error occurred at the OAuth process.' in jsondict.error.message:
+                print(jsondict.error.message)
+                self.auth(refresh_token=self.refresh_token)
+            else:
+                print(jsondict.error.message)
+                raise
+
 def onPlug(bot):
-    api = ByPassSniApi()
-    api.require_appapi_hosts(hostname="public-api.secure.pixiv.net")
-    api.set_accept_language('zh-cn')
+    api = Pixiv()
     try:
         if REFRESH_TOKEN:
             api.auth(refresh_token=REFRESH_TOKEN)
