@@ -18,11 +18,7 @@ class Pixiv(ByPassSniApi):
         self.cat = False
         self.set_accept_language('zh-cn')
         self.require_appapi_hosts(hostname="public-api.secure.pixiv.net")
-
-    def download(self, url, *args, **kwargs): #下载文件返回文件名
-        if self.cat:
-            url = url.replace('pximg.net', 'pixiv.cat')
-        super().download(url,*args, **kwargs)
+        self.auth(refresh_token=REFRESH_TOKEN)
 
     def no_auth_requests_call(self, *args, **kwargs):
         while True:
@@ -31,14 +27,19 @@ class Pixiv(ByPassSniApi):
             except:
                 traceback.print_exc()
                 continue
+            if r.ok:return r
             jsondict = self.parse_json(r.text)
-            if 'error' not in jsondict:return r
-            if 'Error occurred at the OAuth process.' in jsondict.error.message:
-                print(jsondict.error.message)
-                self.auth(refresh_token=self.refresh_token)
-            else:
-                print(jsondict.error.message)
-                raise
+            if hasattr(jsondict.error,'user_message') and jsondict.error.user_message:
+                if '该作品已被删除，或作品ID不存在。' in jsondict.error.user_message:
+                    return r
+            elif hasattr(jsondict.error,'message') and jsondict.error.message:
+                if 'Rate Limit' in jsondict.error.message:
+                    time.sleep(60)
+                    continue
+                elif 'Error occurred at the OAuth process.' in jsondict.error.message:
+                    self.auth(refresh_token=self.refresh_token)
+                    continue
+            raise
 
 def onPlug(bot):
     api = Pixiv()
