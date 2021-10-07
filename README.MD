@@ -62,9 +62,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
 
 注意，上面注册的响应函数的函数名必须为 “onQQMessage” ，函数参数也必须和上面的一致。
 
-将以上代码另存为 sample.py （注意保存为 utf8 编码的文件）。放到 \~/.qqbot-tmp/plugins/ 目录下（ **\~** 代表用户主目录， win7 下为 C:\\Users\\xxx ），或系统中可以 import 到的目录下（如 python 的安装目录下的 Lib/site-packages 目录）。
+将以上代码另存为 sample.py （注意保存为 utf8 编码的文件）。放到 plugins/ 目录下，或系统中可以 import 到的目录下（如 python 的安装目录下的 Lib/site-packages 目录）。
 
-之后，保持前面的 qqbot 进程运行，在另一个控制台输入 qq plug sample ，则可将此文件中的 onQQMessage 函数注册到 QQBot 的相应事件上去。此时，用另外一个 QQ 向本 QQ 发送消息 **“-hello”**，则会自动回复 **“你好，我是 QQ 机器人”**，发送消息 **“-stop”** 则会关闭 QQ 机器人。
+之后，保持前面的 qqbot 进程运行，之后发消息给bot或者在bot所在的群里发送 加载插件 [插件名]，则可将此文件中的 onQQMessage 函数注册到 QQBot 的相应事件上去。此时，用另外一个 QQ 向本 QQ 发送消息 **“-hello”**，则会自动回复 **“你好，我是 QQ 机器人”**，发送消息 **“-stop”** 则会关闭 QQ 机器人。
 
 在控制台输入 qq unplug sample 可以卸载此插件及相应的回调函数。可以同时加载多个插件，此时各插件中的相应函数会依次被调用（但调用顺序和加载次序无关）。
 
