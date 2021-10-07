@@ -28,13 +28,17 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     '回复消息回复 解析 返回消息 类型和结构'
     if Type not in ['Friend', 'Group']: # 消息来源 
         return
+    if hasattr(Sender, 'group'): # 消息来源id
+        target = Sender.group.id
+    else:
+        target = Sender.id
     At = []
     AtAll = False
     Plain = ''
     Image = []
     Xml = []
     Json = []
-    for msg in Message:
+    for msg in Message: # 消息链解析
         if msg.type == 'Quote':Quote = msg
         if msg.type == 'At':At.append(msg.target)
         if msg.type == 'AtAll':AtAll = True
@@ -51,29 +55,25 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if msg.type == 'MusicShare':MusicShare = msg
         if msg.type == 'ForwardMessage':pass 
         if msg.type == 'File':pass
-    if hasattr(Sender, 'group'):
-        target = Sender.group.id
-        if not admin_ID(bot, Sender.id,1):
-            return
-    else:
-        target = Sender.id
-
+    if bot.conf.qq in At: # 如果有@机器人
+        bot.SendMessage(Type,target,Message,quote=Source.id)
 ```
 
 注意，上面注册的响应函数的函数名必须为 “onQQMessage” ，函数参数也必须和上面的一致。
 
 将以上代码另存为 sample.py （注意保存为 utf8 编码的文件）。放到 plugins/ 目录下，或系统中可以 import 到的目录下（如 python 的安装目录下的 Lib/site-packages 目录）。
 
-之后，保持前面的 qqbot 进程运行，之后发消息给bot或者在bot所在的群里发送 加载插件 [插件名]，则可将此文件中的 onQQMessage 函数注册到 QQBot 的相应事件上去。此时，用另外一个 QQ 向本 QQ 发送消息 **“-hello”**，则会自动回复 **“你好，我是 QQ 机器人”**，发送消息 **“-stop”** 则会关闭 QQ 机器人。
+之后，保持前面的 qqbot 进程运行，之后发消息给bot或者在bot所在的群里发送 加载插件 [插件名]，则可将此文件中的 onQQMessage 函数注册到 QQBot 的相应事件上去。此时，用另外一个 QQ 向本 QQ 发送带有@机器人的消息 ，则会自动复读你的消息
 
-在控制台输入 qq unplug sample 可以卸载此插件及相应的回调函数。可以同时加载多个插件，此时各插件中的相应函数会依次被调用（但调用顺序和加载次序无关）。
+发消息给bot或者在bot所在的群里发送 卸载插件 [插件名] 可以卸载此插件及相应的回调函数。可以同时加载多个插件，此时各插件中的相应函数会依次被调用（但调用顺序和加载次序无关）。
 
 QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息内容以及一个 QQBot 对象传递给已注册的消息响应函数。其中：
 
-    bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 等接口，详见本文档第五节
-    contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/nick/mark/card/name 等属性
-    member  : QContact 对象，仅当本消息为 群消息或讨论组消息 时有效，代表实际发消息的成员
-    content : str 对象，消息内容
+    bot     : QQBot 对象，提供 消息与事件/联系人操作/群操作/群文件操作/多媒体上传 等接口，详见本文档第五节
+    Type    : str 对象，消息来源的类型，有 Friend, Group, Temp 三种
+    Sender  : QQ 对象，主要通用属性有 id/group 具体看消息来源类型有所不同
+    Source  : 消息 对象，属性有 id/time
+    Message : Message 对象，消息链，具体详解查看[消息类型说明](https://github.com/project-mirai/mirai-api-http/blob/master/docs/api/MessageType.md)
 
 contact 代表消息发送者，其 ctype 属性可以为 `buddy`/`group`/`discuss` ，代表 好友/群/讨论组 对象，表示本消息是 好友消息/群消息/讨论组消息 。
 
