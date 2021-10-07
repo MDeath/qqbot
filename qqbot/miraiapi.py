@@ -109,26 +109,6 @@ class MiraiApi():
         payload = {'sessionKey':self.session,'id':messageID}
         return self.basicsession(Get, 'messageFromId', params=payload)
 
-    def List(self, type, groupID:int=None) -> list: # 获取好友、群、成员列表
-        r'type = friend , group , member'
-        if type not in ['friend', 'group', 'member']:raise RequestError
-        payload = {'sessionKey':self.session}
-        if type == 'member':payload['target'] = groupID
-        return self.basicsession(Get, f'{type}List', params=payload)
-
-    def Profile(self, form:str, target:int=None, memberID:int=None) -> dict: # 获取bot、好友、成员资料
-        r'''form = bot, friend, member
-        friend: targer = friendID
-        member: targer = groupID, memberID = memberID
-        '''
-        if form not in ['bot', 'friend', 'member']:raise RequestError
-        payload = {'sessionKey':self.session}
-        if form != 'bot':
-            payload['target'] = target
-        if form == 'member':
-            payload['memberId'] = memberID
-        return self.basicsession(Get, f'{form}Profile', params=payload)
-
     def SendMessage(self, form:str, target:int, message:list, quote:int=None) -> int: # 发给好友、群、临时消息，返回消息ID
         r'''form = Friend, Group, Temp
         Group and Friend: target = target
@@ -151,12 +131,12 @@ class MiraiApi():
         INFO(f'发到 {form} {target}:{(quote and "回复消息 "+str(quote)+" ") or " "}{message}')
         return self.basicsession(Post, f'send{form}Message', data=json.dumps(payload))
 
-    def Nudge(self, kind:str, target:int, ID:int) -> None: # 戳一戳
+    def Nudge(self, Type:str, target:int, ID:int) -> None: # 戳一戳
         r'''kind = Friend, Group, Stranger
         subject = qqID, groupID
         target = qqID, memberID
         '''
-        if kind not in ['Friend', 'Group', 'Stranger']:raise RequestError
+        if Type not in ['Friend', 'Group', 'Stranger']:raise RequestError
         payload = {'sessionKey':self.session}
         payload['target'] = ID
         payload['subject'] = target
@@ -167,6 +147,109 @@ class MiraiApi():
         payload = {'sessionKey':self.session}
         payload['target'] = messageID
         return self.basicsession(Post, '/recall', data=json.dumps(payload))
+
+    def Event_response(self, even, operate:int=0, msg:str=''):
+        payload = {'sessionKey':self.session}
+        payload['eventId'] = even.eventId
+        payload['fromId'] = even.fromId
+        payload['groupId'] = even.groupId
+        payload['operate'] = operate
+        payload['message'] = msg
+        type = even.type[0].lower() + even.type[1:]
+        self.basicsession(Post, f'resp/{type}', data=json.dumps(payload))
+
+### 联系人操作 ###
+
+    def List(self, type, groupID:int=None) -> list: # 获取好友、群、成员列表
+        r'type = friend , group , member'
+        if type not in ['friend', 'group', 'member']:raise RequestError
+        payload = {'sessionKey':self.session}
+        if type == 'member':payload['target'] = groupID
+        return self.basicsession(Get, f'{type}List', params=payload)
+
+    def Profile(self, form:str, target:int=None, memberID:int=None) -> dict: # 获取bot、好友、成员资料
+        r'''form = bot, friend, member
+        friend: targer = friendID
+        member: targer = groupID, memberID = memberID
+        '''
+        if form not in ['bot', 'friend', 'member']:raise RequestError
+        payload = {'sessionKey':self.session}
+        if form != 'bot':
+            payload['target'] = target
+        if form == 'member':
+            payload['memberId'] = memberID
+        return self.basicsession(Get, f'{form}Profile', params=payload)
+
+    def DeleteFriend(self, target:int): # 删除好友
+        payload = {'sessionKey':self.session}
+        payload['target'] = target
+        return self.basicsession(Post, 'deleteFriend', data=json.dumps(payload))
+
+### 群管理 ###
+
+    def Mute(self, target:int, memberID:int, time:int=0, un:bool=False): # 禁言
+        payload = {'sessionKey':self.session}
+        payload['target'] = target
+        payload['memberId'] = memberID
+        payload['time'] = time
+        un = (un and 'un') or ''
+        return self.basicsession(Post, f'{un}mute', data=json.dumps(payload))
+
+    def kick(self, target:int, memberID:int, msg:str=''): # 移除成员
+        payload = {'sessionKey':self.session}
+        payload['target'] = target
+        payload['memberId'] = memberID
+        payload['msg'] = msg
+        return self.basicsession(Post, 'kick', data=json.dumps(payload))
+
+    def quit(self, target:int): # 退群
+        payload = {'sessionKey':self.session}
+        payload['target'] = target
+        return self.basicsession(Post, 'quit', data=json.dumps(payload))
+
+    def MuteAll(self, target:int, un:bool=False): # 全体禁言
+        payload = {'sessionKey':self.session}
+        payload['target'] = target
+        un = (un and 'un') or ''
+        return self.basicsession(Post, f'{un}muteAll', data=json.dumps(payload))
+
+    def SetEssence(self, messageID:int): # 设置精华消息
+        payload = {'sessionKey':self.session}
+        payload['messageId'] = messageID
+        return self.basicsession(Post, 'setEssence', data=json.dumps(payload))
+
+    def GroupConfig(self, mode, target:int, name:str=None, announcement:str=None, confessTalk:bool=False,
+    allowMemberInvite:bool=False, autoApprove:bool=False, anonymousChat:bool=False): # 获取修改群设置
+        r'mode = get or set'
+        payload = {'sessionKey':self.session}
+        payload['target'] = target
+        if mode == 'get':
+            return self.basicsession(Get, 'groupConfig', params=payload)
+        elif mode == 'set':
+            config = dict(self.groupConfig('get', target))
+            config['name'] = name or config['name'] # 群名
+            config["announcement"] = announcement or config['announcement'] # 群公告
+            config["confessTalk"] = confessTalk or config['confessTalk'] # 坦白说
+            config["allowMemberInvite"] = allowMemberInvite or config['allowMemberInvite'] # 群员邀请
+            config["autoApprove"] = autoApprove or config['autoApprove'] # 自动审批
+            config["anonymousChat"] = anonymousChat # 匿名
+            payload['config'] = config
+            return self.basicsession(Post, 'groupConfig', data=json.dumps(payload))
+        else:
+            raise RequestError
+    
+    def MemberInfo(self, mode, target:int, memberID:int, name:str=None, special:str=None): # 获取修改群员设置
+        payload = {'sessionKey':self.session}
+        payload['target'] = target
+        payload['memberId'] = memberID
+        if mode == 'get':
+            return self.basicsession(Get, 'memverInfo', params=payload)
+        elif mode == 'set':
+            info = dict(self.memberInfo('get', target, memberID))
+            info['name'] = name or info['name'] # 群名称
+            info['specialTitle'] = special or info['specialTitle'] # 群头衔
+            payload['info'] = info
+            return self.basicsession(Post, 'memverInfo', data=json.dumps(payload))
 
 ### 文件操作 目前支持群操作 ###
 
@@ -242,100 +325,6 @@ class MiraiApi():
         payload['type'] = form
         files = {'file': open(filepath, 'rb')}
         return self.basicsession(Post, 'upload{mode}', data=json.dumps(payload), files=files)
-
-### 账号管理 ### 
-
-    def DeleteFriend(self, target:int): # 删除好友
-        payload = {'sessionKey':self.session}
-        payload['target'] = target
-        return self.basicsession(Post, 'deleteFriend', data=json.dumps(payload))
-
-### 群管理 ###
-
-    def Mute(self, target:int, memberID:int, time:int=0, un:bool=False): # 禁言
-        payload = {'sessionKey':self.session}
-        payload['target'] = target
-        payload['memberId'] = memberID
-        payload['time'] = time
-        un = (un and 'un') or ''
-        return self.basicsession(Post, f'{un}mute', data=json.dumps(payload))
-
-    def kick(self, target:int, memberID:int, msg:str=''): # 移除成员
-        payload = {'sessionKey':self.session}
-        payload['target'] = target
-        payload['memberId'] = memberID
-        payload['msg'] = msg
-        return self.basicsession(Post, 'kick', data=json.dumps(payload))
-
-    def quit(self, target:int): # 退群
-        payload = {'sessionKey':self.session}
-        payload['target'] = target
-        return self.basicsession(Post, 'quit', data=json.dumps(payload))
-
-    def MuteAll(self, target:int, un:bool=False): # 全体禁言
-        payload = {'sessionKey':self.session}
-        payload['target'] = target
-        un = (un and 'un') or ''
-        return self.basicsession(Post, f'{un}muteAll', data=json.dumps(payload))
-
-    def SetEssence(self, messageID:int): # 设置精华消息
-        payload = {'sessionKey':self.session}
-        payload['messageId'] = messageID
-        return self.basicsession(Post, 'setEssence', data=json.dumps(payload))
-
-    def GroupConfig(self, mode, target:int, name:str=None, announcement:str=None, confessTalk:bool=False,
-    allowMemberInvite:bool=False, autoApprove:bool=False, anonymousChat:bool=False): # 获取修改群设置
-        r'mode = get or set'
-        payload = {'sessionKey':self.session}
-        payload['target'] = target
-        if mode == 'get':
-            return self.basicsession(Get, 'groupConfig', params=payload)
-        elif mode == 'set':
-            config = dict(self.groupConfig('get', target))
-            config['name'] = name or config['name'] # 群名
-            config["announcement"] = announcement or config['announcement'] # 群公告
-            config["confessTalk"] = confessTalk or config['confessTalk'] # 坦白说
-            config["allowMemberInvite"] = allowMemberInvite or config['allowMemberInvite'] # 群员邀请
-            config["autoApprove"] = autoApprove or config['autoApprove'] # 自动审批
-            config["anonymousChat"] = anonymousChat # 匿名
-            payload['config'] = config
-            return self.basicsession(Post, 'groupConfig', data=json.dumps(payload))
-        else:
-            raise RequestError
-    
-    def MemberInfo(self, mode, target:int, memberID:int, name:str=None, special:str=None): # 获取修改群员设置
-        payload = {'sessionKey':self.session}
-        payload['target'] = target
-        payload['memberId'] = memberID
-        if mode == 'get':
-            return self.basicsession(Get, 'memverInfo', params=payload)
-        elif mode == 'set':
-            info = dict(self.memberInfo('get', target, memberID))
-            info['name'] = name or info['name'] # 群名称
-            info['specialTitle'] = special or info['specialTitle'] # 群头衔
-            payload['info'] = info
-            return self.basicsession(Post, 'memverInfo', data=json.dumps(payload))
-
-### 申请事件 ###
-
-    def _even(self, even, operate:int=0, msg:str=''):
-        payload = {'sessionKey':self.session}
-        payload['eventId'] = even.eventId
-        payload['fromId'] = even.fromId
-        payload['groupId'] = even.groupId
-        payload['operate'] = operate
-        payload['message'] = msg
-        type = even.type[0].lower() + even.type[1:]
-        self.basicsession(Post, f'resp/{type}', data=json.dumps(payload))
-
-    def NewFriend(self, *args, **kwargs): # 好友申请
-        self._even(*args, **kwargs)
-
-    def MemberJoin(self, *args, **kwargs): # 入群申请
-        self._even(*args, **kwargs)
-
-    def InvitedJoinGroup(self, *args, **kwargs): # 邀请进群申请
-        self._even(*args, **kwargs)
 
 if __name__ == '__main__':
     from qconf import QConf

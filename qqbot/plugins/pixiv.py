@@ -76,7 +76,7 @@ def onInterval(bot):
 def day_ranking(bot):
     '''\
     每日凌晨6点发送pixiv日榜'''
-    if not hasattr(bot, 'pixiv'):return
+    if not hasattr(bot, 'pixiv'):onPlug(bot)
     api = bot.pixiv
     _n = '\n'
     n = 10
@@ -104,7 +104,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
     发送 推荐插画 或 插画推荐
     返回pixiv插画推荐（最多发30幅图）'''
-    if not hasattr(bot, 'pixiv'):return
+    if not hasattr(bot, 'pixiv'):onPlug(bot)
     api = bot.pixiv
     if Type not in ['Friend', 'Group']:
         return

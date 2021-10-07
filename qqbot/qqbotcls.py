@@ -45,21 +45,12 @@ class QQBot():
         self.Mirai = MiraiApi(self.conf.qq, self.conf.verifyKey, self.conf.host, self.conf.port)
         while not self.Mirai.started:pass
 
-        self.ErrorCode = self.Mirai.ErrorCode
         self.MessageFromId = self.Mirai.MessageFromId
-        self.List = self.Mirai.List
-        self.Profile = self.Mirai.Profile
         self.SendMessage = self.Mirai.SendMessage
         self.Nudge = self.Mirai.Nudge
         self.Recall = self.Mirai.Recall
-        self.FileList = self.Mirai.FileList
-        self.FileInfo = self.Mirai.FileInfo
-        self.FileMkdir = self.Mirai.FileMkdir
-        self.FileDelete = self.Mirai.FileDelete
-        self.FileMove = self.Mirai.FileMove
-        self.FilereName = self.Mirai.FilereName
-        self.FileUpload = self.Mirai.FileUpload
-        self.Upload = self.Mirai.Upload
+        self.List = self.Mirai.List
+        self.Profile = self.Mirai.Profile
         self.DeleteFriend = self.Mirai.DeleteFriend
         self.Mute = self.Mirai.Mute
         self.kick = self.Mirai.kick
@@ -68,6 +59,14 @@ class QQBot():
         self.SetEssence = self.Mirai.SetEssence
         self.GroupConfig = self.Mirai.GroupConfig
         self.MemberInfo = self.Mirai.MemberInfo
+        self.FileList = self.Mirai.FileList
+        self.FileInfo = self.Mirai.FileInfo
+        self.FileMkdir = self.Mirai.FileMkdir
+        self.FileDelete = self.Mirai.FileDelete
+        self.FileMove = self.Mirai.FileMove
+        self.FilereName = self.Mirai.FilereName
+        self.FileUpload = self.Mirai.FileUpload
+        self.Upload = self.Mirai.Upload
 
         if self.conf.startAfterFetch:
             self.Update()
@@ -96,10 +95,10 @@ class QQBot():
             raise SystemExit(1)
 
     def Stop(self):
-        sys.exit(0)
+        Put(sys.exit(0))
 
     def Restart(self):
-        sys.exit(RESTART)
+        Put(sys.exit(RESTART))
 
     # child thread 1
     def pollForever(self):
@@ -131,7 +130,7 @@ class QQBot():
         elif 'RequestEvent' in Message.type:
             if hasattr(self, 'onQQRequestEvent'):
                 operate, msg = self.onQQRequestEvent(Message)
-                self.Mirai._even(Message, operate, msg)
+                self.Mirai.Event_response(Message, operate, msg)
         elif 'Event' in Message.type:
             self.onQQEvent(Message)
 
