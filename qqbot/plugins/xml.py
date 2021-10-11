@@ -11,11 +11,11 @@ import __soup as soup
 # 群限制用
 def onPlug(bot):
     if not hasattr(bot,'xml'):
-        setattr(bot, 'xml', 5)
+        setattr(bot, 'xml', 1)
 
 # 刷新群限制
 def onInterval(bot):
-    bot.xml = 5
+    bot.xml = 1
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
