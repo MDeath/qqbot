@@ -136,12 +136,12 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     if admin_ID(bot, Sender.id, True):
         if '重启' == Plain:
             bot.SendMessage(Type, target, [soup.Plain('bot正在重启')])
-            bot.Restart
+            Put(bot.Restart)
             return
 
         elif '关机' == Plain:
             bot.SendMessage(Type, target, [soup.Plain('bot以关闭')])
-            bot.Stop
+            Put(bot.Stop)
 
         elif '休眠' == Plain:
             for p in bot.Plugins():
