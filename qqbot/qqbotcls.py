@@ -95,10 +95,10 @@ class QQBot():
             raise SystemExit(1)
 
     def Stop(self):
-        Put(sys.exit(0))
+        sys.exit(0)
 
     def Restart(self):
-        Put(sys.exit(RESTART))
+        sys.exit(RESTART)
 
     # child thread 1
     def pollForever(self):
