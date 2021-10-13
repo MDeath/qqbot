@@ -109,7 +109,7 @@ class MiraiApi():
         payload = {'sessionKey':self.session,'id':messageID}
         return self.basicsession(Get, 'messageFromId', params=payload)
 
-    def SendMessage(self, form:str, target:int, message:list, quote:int=None) -> int: # 发给好友、群、临时消息，返回消息ID
+    def SendMessage(self, Type:str, target:int, *message:dict, quote:int=None) -> int: # 发给好友、群、临时消息，返回消息ID
         r'''form = Friend, Group, Temp
         Group and Friend: target = target
         Temp: qq = qqID, or group = groupID
@@ -117,30 +117,35 @@ class MiraiApi():
         quote is messageID
         message is messagelist
         '''
-        if form not in ['Friend', 'Group', 'Temp'] or not (isinstance(message,list) and len(message)):
+        if Type not in ['Friend', 'Group', 'Temp']:
             raise RequestError
         payload = {'sessionKey':self.session}
-        if form != 'Temp':
+        if Type != 'Temp':
             payload['target'] = target
-        elif form == 'Temp':
+        elif Type == 'Temp':
             payload['qq'] = target
             payload['group'] = target
+        if isinstance(message,dict):
+            payload['messageChain'] = [message]
+        elif isinstance(message,tuple):
+            payload['messageChain'] = [msg for msg in message]
+        else:
+            raise RequestError
         if quote:
             payload['quote'] = quote
-        payload['messageChain'] = message
-        INFO(f'发到 {form} {target}:{(quote and "回复消息 "+str(quote)+" ") or " "}{message}')
-        return self.basicsession(Post, f'send{form}Message', data=json.dumps(payload))
+        Quote = self.basicsession(Post, f'send{Type}Message', data=json.dumps(payload))
+        INFO(f'发到 {Type} {target}({Quote}):{(quote and "回复消息 "+str(quote)+" ") or " "}{message}')
 
-    def Nudge(self, Type:str, target:int, ID:int) -> None: # 戳一戳
+    def Nudge(self, type:str, target:int, id:int) -> None: # 戳一戳
         r'''kind = Friend, Group, Stranger
         subject = qqID, groupID
         target = qqID, memberID
         '''
-        if Type not in ['Friend', 'Group', 'Stranger']:raise RequestError
+        if type not in ['Friend', 'Group', 'Stranger']:raise RequestError
         payload = {'sessionKey':self.session}
-        payload['target'] = ID
+        payload['target'] = id
         payload['subject'] = target
-        payload['kind'] = kind
+        payload['kind'] = type
         return self.basicsession(Post, 'sendNudge', data=json.dumps(payload))
 
     def Recall(self, messageID:int) -> None: # 撤回消息

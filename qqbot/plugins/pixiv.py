@@ -77,10 +77,11 @@ def day_ranking(bot):
     '''\
     每日凌晨6点发送pixiv日榜'''
     if not hasattr(bot, 'pixiv'):onPlug(bot)
-    api = bot.pixiv
+    api:Pixiv = bot.pixiv
     _n = '\n'
-    n = 10
+    n = 30
     result = api.illust_ranking()
+    node = []
     while n > 0:
         for i in result.illusts:
             if n < 1:break
@@ -93,12 +94,12 @@ def day_ranking(bot):
                     message.append(soup.Image(url=page.image_urls.original.replace('pximg.net','pixiv.cat')))
             else:
                 message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('pximg.net','pixiv.cat')))
-            for g in bot.Group:
-                bot.SendMessage('Group', g.id, message)
-            time.sleep(1)
+            node.append(soup.Node(bot.conf.qq,'robot',*message))
             n -= 1
         if n > 0:
-            result = api.illust_ranking(**api.parse_qs(result.next_url),req_auth=bot.pixiv.req_auth)
+            result = api.illust_ranking(**api.parse_qs(result.next_url))
+    for g in bot.Group:
+        bot.SendMessage('Group', g.id, soup.Forward(*node))
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
@@ -123,6 +124,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             except:
                 number = 1
             illusts = api.illust_recommended().illusts
+            node = []
             while number > 0:
                 number -= 1
                 illust = illusts[number]
@@ -134,5 +136,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                         message.append(soup.Image(url=page.image_urls.original.replace('pximg.net','pixiv.cat')))
                 else:
                     message.append(soup.Image(url=illust.meta_single_page.original_image_url.replace('pximg.net','pixiv.cat')))
-                bot.SendMessage(Type, target, message)
+                node.append(soup.Node(bot.conf.qq,'robot',*message))
+            bot.SendMessage(Type, target, soup.Forward(*node))
             return

@@ -47,4 +47,4 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                         message.append(soup.Plain(
                             f'\n相似度：{r.similarity}\nurl：{urls}'
                         ))
-                bot.SendMessage(Type, target, message, quote)
+                bot.SendMessage(Type, target, *message, quote=quote)

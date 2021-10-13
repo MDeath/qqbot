@@ -1,7 +1,23 @@
 # -*- coding: utf-8 -*-
 
-from logging import NOTSET
+from time import time
 
+def Source(id,t=None):
+    return {
+        "type": "Source",
+        "id": 123456,
+        "time": t or int(time())
+    }
+
+def Quote(sender,target,id=None,*message:dict):
+    return {
+        "type": "Quote",
+        "id": id,
+        "groupId": 0,
+        "senderId": sender,
+        "targetId": target,
+        "origin": [msg for msg in message]
+    }
 
 def At(id:int) -> list:
     # target | Long | 群员QQ号
@@ -23,7 +39,7 @@ def Plain(s:str) -> dict:
     # text | String | 文字消息
     return {"type": "Plain","text": s}
 
-def Image(id=None, url=None, path=None, base64=None) -> dict:
+def Image(url=None, path=None, base64=None, id=None) -> dict:
     # id     | String | 图片的id，群图片与好友图片格式不同。不为空时将忽略url属性
     # url    | String | 图片的URL，发送时可作网络图片的链接；接收时为腾讯图片服务器的链接，可用于图片下载
     # path   | String | 图片的路径，发送本地图片，路径相对于 JVM 工作路径（默认是当前路径，可通过 `-Duser.dir=...`指定），也可传入绝对路径
@@ -36,7 +52,7 @@ def Image(id=None, url=None, path=None, base64=None) -> dict:
         "base64": base64
     }
 
-def FlashImage(id=None, url=None, path=None, base64=None) -> dict:
+def FlashImage(url=None, path=None, base64=None, id=None) -> dict:
     # 同 `Image`
     return {
         "type": "Image",
@@ -46,7 +62,7 @@ def FlashImage(id=None, url=None, path=None, base64=None) -> dict:
         "base64": base64
     }
 
-def Voice(id=None, url=None, path=None, base64=None) -> dict:
+def Voice(url=None, path=None, base64=None, id=None) -> dict:
     # id     | String | 语音的id，不为空时将忽略url属性
     # url    | String | 语音的URL，发送时可作网络语音的链接；接收时为腾讯语音服务器的链接，可用于语音下载
     # path   | String | 语音的路径，发送本地语音，路径相对于 JVM 工作路径（默认是当前路径，可通过 `-Duser.dir=...`指定），也可传入绝对路径。
@@ -107,24 +123,24 @@ def MusicShare(kind=None,title=None,summary=None,jumpUrl=None,pictureUrl=None,mu
         "brief": brief
     }
     
-def Forward(*node:dict):
+def Forward(*node:dict) -> dict:
     # nodeList | object | 消息节点
     return {
         "type": "Forward",
         "nodeList": [n for n in node]
     }
 
-def Node(senderid=None,time=None,senderName=None,message=None,id=None):
-    # | senderid   | Long   | 发送人QQ号
-    # | time       | Int    | 发送时间
-    # | senderName | String | 显示名称
-    # | message    | Array  | 消息数组
-    # | id         | Int    | 可以只使用消息id，从缓存中读取一条消息作为节点
+def Node(sender:int=None,name:str=None,*message:dict,t:int=None,id:int=None) -> dict:
+    # senderid   | Long   | 发送人QQ号
+    # time       | Int    | 发送时间
+    # senderName | String | 显示名称
+    # message    | Array  | 消息数组
+    # id         | Int    | 可以只使用消息id，从缓存中读取一条消息作为节点
     return {
-        "senderId": senderid,
-        "time": time,
-        "senderName": senderName,
-        "messageChain": message,
+        "senderId": sender or None,
+        "time": t or (int(time())if not id else None),
+        "senderName": name or None,
+        "messageChain": [msg for msg in message],
         "messageId": id
     }
 

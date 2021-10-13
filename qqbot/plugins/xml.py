@@ -42,24 +42,24 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         try:
             ET.fromstring(message)
         except:
-            bot.SendMessage(Type, target, [soup.Plain('xml 格式有误')])
+            bot.SendMessage(Type, target, soup.Plain('xml 格式有误'))
 
         # 群限制
         if hasattr(Sender, 'group'):
             if hasattr(bot, 'xml') and bot.xml > 0:
                 bot.xml -= 1
             else:
-                bot.SendMessage(Type, target, [soup.Plain('xml 群消息达上限')])
+                bot.SendMessage(Type, target, soup.Plain('xml 群消息达上限'))
                 return
 
-        bot.SendMessage(Type, target, [soup.Xml(message)])
+        bot.SendMessage(Type, target, soup.Xml(message))
     elif 'xml' == message and Quote:
         for msg in Quote.messageChain:
             if msg.type == 'Xml':
                 xml = msg.xml
                 break
         else:
-            bot.SendMessage(Type, target, [soup.Plain('对象不是xml类型')])
+            bot.SendMessage(Type, target, soup.Plain('对象不是xml类型'))
             return
         xml = xml.replace('\\\\', '\\')
         xml = xml.replace('\\\'','\'')
@@ -67,6 +67,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         try:
             ET.fromstring(xml)
         except:
-            bot.SendMessage(Type, target, [soup.Plain('消息不是 xml 类型')])
+            bot.SendMessage(Type, target, soup.Plain('消息不是 xml 类型'))
         else:
-            bot.SendMessage(Type, target, [soup.Plain(xml)])
+            bot.SendMessage(Type, target, soup.Plain(xml))

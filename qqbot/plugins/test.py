@@ -47,4 +47,4 @@ def onQQMessage(bot, Type, Sender, Source, Message): # 获取消息后调用此�
         message = message.replace('\\\\', '\\')
         message = message.replace('\\\'','\'')
         message = message.replace('\\\"','\"')
-        bot.SendMessage(Type, target, quote=quote, message=[soup.Plain(message)])
+        bot.SendMessage(Type, target, soup.Plain(message), quote=quote)

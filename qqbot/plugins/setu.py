@@ -4,7 +4,6 @@ try:
     import xml.etree.cElementTree as ET
 except ImportError:
     import xml.etree.ElementTree as ET
-import re
 import requests
 
 import __soup as soup
@@ -41,22 +40,26 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     if hasattr(Sender, 'group'):target = Sender.group.id
     else:target = Sender.id
     for msg in Message:
-        if msg.type == 'Plain' and 'setu' in msg.text:
-            message = msg.text.replace('setu', '')
+        if msg.type == 'Plain':
+            msg = msg.text
+            break
+    for r in ['setu','色图','涩图']:
+        if r in msg:
+            msg = msg.replace(r, '')
             break
     else:return
     for r in ['r18', 'R18', 'r-18', 'R-18']:
-        if r in message:
-            message = message.replace(r, '')
+        if r in msg:
+            msg = msg.replace(r, '')
             r = 1
             break
     else:r = 0
-    try:num = int(message)
+    try:num = int(msg)
     except:num = 1
     else:num = (num > 30 and 30) or (num < 1 and 1) or num
     j = setu(r, num)
     if j['error'] != '':
-        bot.SendMessage(Type, target, [soup.Plain(j['error'])])
+        bot.SendMessage(Type, target, soup.Plain(j['error']))
         return
     j = j['data']
     if r:
@@ -79,16 +82,20 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if hasattr(Sender, 'group'):
             if hasattr(bot, 'xml') and bot.xml > 0:
                 bot.xml -= 1
+                bot.SendMessage(Type, target, soup.Xml(xml))
             else:
-                bot.SendMessage(Type, target, [soup.Plain('xml 群消息达上限')])
-                return
+                bot.SendMessage(Type, target, soup.Plain('r18每5分钟刷新重置'))
 
-        bot.SendMessage(Type, target, [soup.Xml(xml)])
     else:
         _n = '\n'
-        for i in j:
-            Plain = f'标题:{i["title"]} Pid:{i["pid"]}{_n}作者:{i["author"]} Uid:{i["uid"]}{_n}标签:'
-            for tag in i['tags']:Plain += tag + ' '
-            message = [soup.Plain(Plain), soup.Image(url=i['urls']['original'])]
-            print(type(message),message)
-            bot.SendMessage(Type, target, message)
+        if len(j) > 1:
+            node = []
+            for i in j:
+                Plain = f'标题:{i["title"]} Pid:{i["pid"]}{_n}作者:{i["author"]} Uid:{i["uid"]}{_n}标签:'
+                for tag in i['tags']:Plain += tag + ' '
+                node.append(soup.Node(bot.conf.qq,'robot',soup.Plain(Plain),soup.Image(url=i['urls']['original'])))
+            bot.SendMessage(Type, target, soup.Forward(*node))
+        else:
+            Plain = f'标题:{j[0]["title"]} Pid:{j[0]["pid"]}{_n}作者:{j[0]["author"]} Uid:{j[0]["uid"]}{_n}标签:'
+            for tag in j[0]['tags']:Plain += tag + ' '
+            bot.SendMessage(Type, target, soup.Plain(Plain), soup.Image(url=j[0]['urls']['original']))

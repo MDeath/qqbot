@@ -17,6 +17,10 @@ def admin_ID(bot, ID, admin=False):
         elif f.id == ID and f.remark == 'User' and admin == 0:return True
     else:return False
 
+def Reply(bot,type,target):
+    def func(*message,quote=None):
+        bot.SendMessage(type,target,*message,quote=quote)
+    return func
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
@@ -58,7 +62,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         target = Sender.group.id
     else:
         target = Sender.id
-
+    reply = Reply(bot,Type,target)
     shell = ['$', '￥','//']
     for s in shell:
         if Plain.startswith(s)and admin_ID(bot ,Sender.id, True):
@@ -66,18 +70,18 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 rt = str(eval(Plain.replace(s, '', 1)))
             except:
                 rt = traceback.format_exc()
-            bot.SendMessage(Type, target, message=[soup.Plain(rt)])
+            reply(soup.Plain(rt))
             return
     
     n = '\n'
     plug = [m.split('.')[0] for m in os.listdir(bot.conf.pluginPath)]
     
     if 'who is your daddy' == Plain:
-        bot.SendMessage(Type, target, message=[soup.At(Sender.id)])
+        reply(soup.At(Sender.id))
         return
 
     elif '菜单' == Plain:
-        bot.SendMessage(Type, target, message=[soup.Plain(onQQMessage.__doc__)])
+        reply(soup.Plain(onQQMessage.__doc__))
         return
 
     elif Plain.startswith('说明'):
@@ -97,7 +101,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                     mod = getattr(module,slotName)
                     if mod.__doc__:
                         message += n+mod.__name__+n+mod.__doc__+n
-        return bot.SendMessage(Type, target, message=[soup.Plain(message)])
+        return reply(soup.Plain(message))
 
     elif '插件列表' == Plain.replace(' ',''):
         for p in plug:
@@ -107,14 +111,13 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 Plain += f'\n已加载 {p}'
             else:
                 Plain += f'\n未加载 {p}'
-        message = [soup.Plain(Plain)]
-        bot.SendMessage(Type, target, message)
+        reply(soup.Plain(Plain))
         return
 
     if admin_ID(bot, Sender.id):
         if '更新联系人' == Plain:
             bot.Update()
-            bot.SendMessage(Type, target, [soup.Plain('更新完毕')])
+            reply(soup.Plain('更新完毕'))
             return
 
         elif Plain.startswith('加载插件'):
@@ -122,7 +125,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             Modules = moduleName.split(' ')
             for m in Modules:
                 result = bot.Plug(m)
-                bot.SendMessage(Type, target, message=[soup.Plain(result)])
+                reply(soup.Plain(result))
             return
 
         if Plain.startswith('卸载插件'):
@@ -130,29 +133,29 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             Modules = moduleName.split(' ')
             for m in Modules:
                 result = bot.Unplug(m)
-                bot.SendMessage(Type, target, message=[soup.Plain(result)])
+                reply(soup.Plain(result))
             return
 
     if admin_ID(bot, Sender.id, True):
         if '重启' == Plain:
-            bot.SendMessage(Type, target, [soup.Plain('bot正在重启')])
+            reply(soup.Plain('bot正在重启'))
             Put(bot.Restart)
             return
 
         elif '关机' == Plain:
-            bot.SendMessage(Type, target, [soup.Plain('bot以关闭')])
+            reply(soup.Plain('bot以关闭'))
             Put(bot.Stop)
 
         elif '休眠' == Plain:
             for p in bot.Plugins():
                 bot.Unplug(p)
-            bot.SendMessage(Type, target, [soup.Plain('bot已休眠')])
+            reply(soup.Plain('bot已休眠'))
             return
 
         elif '喂' == Plain:
             for p in bot.conf.plugins:
                 bot.Plug(p)
-            bot.SendMessage(Type, target, [soup.Plain('bot已唤醒')])
+            reply(soup.Plain('bot已唤醒'))
             return
         
 def onQQEvent(bot, Message):
