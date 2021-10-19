@@ -75,6 +75,10 @@ QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息�
     Source  : 消息 对象，属性有 id/time
     Message : Message 对象，消息链，具体详解查看[消息类型说明](https://github.com/project-mirai/mirai-api-http/blob/master/docs/api/MessageType.md)
 
+
+🚧🚧🚧 以下还未修改 🚧🚧🚧
+
+
 contact 代表消息发送者，其 ctype 属性可以为 `buddy`/`group`/`discuss` ，代表 好友/群/讨论组 对象，表示本消息是 好友消息/群消息/讨论组消息 。
 
 member 仅当本消息为  群消息或讨论组消息 时有效，代表实际发消息的成员，它的 ctype 属性可以为 `group-member`/`discuss-member` ，代表 群成员/讨论组成员 对象。当本消息为 好友消息 时， member 等于 None 。
