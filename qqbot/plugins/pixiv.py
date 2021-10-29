@@ -10,16 +10,10 @@ from plugins.admin import admin_ID
 from pixivpy3 import ByPassSniApi
 from qqbotcls import QQBotSched
 
-<<<<<<< Updated upstream
 _n = '\n'
 cat = 'i.pixiv.cat'
 re = 'i.pixiv.re'
 moe = 'proxy.pixivel.moe'
-=======
-USERNAME = None
-PASSWORD = None
-REFRESH_TOKEN = 'HE7649-uwJxUXSjqYv82-gxvr5l9hlAdT1ol3lC-Ul0'
->>>>>>> Stashed changes
 
 class Pixiv(ByPassSniApi):
     def __init__(self,**requests_kwargs): #初始化api
