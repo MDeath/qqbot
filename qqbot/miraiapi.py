@@ -26,13 +26,14 @@ class RequestError(Exception):
     pass
 
 class MiraiApi():
-    def __init__(self, qq, verifyKey, host='localhost', port=8080) -> None:
+    def __init__(self, qq, verifyKey, host='localhost', port=8080, session=None) -> None:
         self.started = False
         self.host=host
         self.port=port
         self.qq = qq
         self.verifyKey = verifyKey
-        self.Verify()
+        if session:self.session = session
+        else:self.Verify()
 
     def ErrorCode(self, code):
         if code == 1:
