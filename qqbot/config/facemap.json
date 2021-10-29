@@ -1093,6 +1093,7 @@
                 "base64": null
             }
         ]
+<<<<<<< Updated upstream
     },
     {
         "text": [
@@ -1207,5 +1208,7 @@
                 "base64": null
             }
         ]
+=======
+>>>>>>> Stashed changes
     }
 ]
