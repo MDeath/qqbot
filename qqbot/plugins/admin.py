@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import os
+import os,json
 import traceback
 from mainloop import Put
-import __soup as soup
+import soup
 
 
 def onUnplug(bot):
     '''\
     此插件不可卸载'''
-    bot.Plug(str(__name__))
+    bot.Plug(__name__)
 
 def admin_ID(bot, ID, admin=False):
     for f in bot.Friend:
@@ -19,7 +19,7 @@ def admin_ID(bot, ID, admin=False):
 
 def Reply(bot,type,target):
     def func(*message,quote=None):
-        bot.SendMessage(type,target,*message,quote=quote)
+        return bot.SendMessage(type,target,*message,quote=quote)
     return func
 
 def onQQMessage(bot, Type, Sender, Source, Message):
@@ -63,20 +63,18 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     else:
         target = Sender.id
     reply = Reply(bot,Type,target)
-    shell = ['$', '￥','//']
-    for s in shell:
-        if Plain.startswith(s)and admin_ID(bot ,Sender.id, True):
-            try:
-                rt = str(eval(Plain.replace(s, '', 1)))
-            except:
-                rt = traceback.format_exc()
-            reply(soup.Plain(rt))
-            return
+    if Plain.startswith(('$', '￥'))and admin_ID(bot ,Sender.id, True):
+        try:
+            rt = eval(Plain[1:])
+        except:
+            rt = traceback.format_exc()
+        reply(soup.Plain(rt))
+        return
     
     n = '\n'
     plug = [m.split('.')[0] for m in os.listdir(bot.conf.pluginPath)]
     
-    if 'who is your daddy' == Plain:
+    if 'who is your daddy' == Plain and admin_ID(bot ,Sender.id, True):
         reply(soup.At(Sender.id))
         return
 
@@ -103,7 +101,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                         message += n+mod.__name__+n+mod.__doc__+n
         return reply(soup.Plain(message))
 
-    elif '插件列表' == Plain.replace(' ',''):
+    elif '插件列表' == Plain:
         for p in plug:
             if '__' in p:
                 continue
@@ -124,17 +122,27 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             moduleName = Plain.replace('加载插件','')
             Modules = moduleName.split(' ')
             for m in Modules:
-                result = bot.Plug(m)
-                reply(soup.Plain(result))
+                if m:
+                    result = bot.Plug(m)
+                    reply(soup.Plain(result))
             return
 
         if Plain.startswith('卸载插件'):
             moduleName = Plain.replace('卸载插件','')
             Modules = moduleName.split(' ')
             for m in Modules:
-                result = bot.Unplug(m)
-                reply(soup.Plain(result))
+                if m:
+                    result = bot.Unplug(m)
+                    reply(soup.Plain(result))
             return
+        if Plain == '解析'and Quote:
+            quote = Quote.id
+            Quote = bot.MessageFromId(Quote.id)
+            message = json.dumps(Quote.messageChain, ensure_ascii=False, indent=4)
+            message = message.replace('\\\\', '\\')
+            message = message.replace('\\\'','\'')
+            message = message.replace('\\\"','\"')
+            bot.SendMessage(Type, target, soup.Plain(message), quote=quote)
 
     if admin_ID(bot, Sender.id, True):
         if '重启' == Plain:

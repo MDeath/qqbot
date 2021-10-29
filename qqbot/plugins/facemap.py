@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import json
-from admin import admin_ID
 from random import randint
-import __soup as soup
 from os.path import exists
+
+from admin import admin_ID
+import soup
 
 root = []
 def onPlug(bot):

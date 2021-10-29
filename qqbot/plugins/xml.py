@@ -6,7 +6,7 @@ except ImportError:
   import xml.etree.ElementTree as ET
 
 import re
-import __soup as soup
+import soup
 
 # 群限制用
 def onPlug(bot):
@@ -38,7 +38,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             break
     else:
         return
-    if "?xml" in message:
+    if '<?xml version="1.0"' in message:
         try:
             ET.fromstring(message)
         except:
@@ -51,8 +51,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             else:
                 bot.SendMessage(Type, target, soup.Plain('xml 群消息达上限'))
                 return
-
         bot.SendMessage(Type, target, soup.Xml(message))
+        
     elif 'xml' == message and Quote:
         for msg in Quote.messageChain:
             if msg.type == 'Xml':

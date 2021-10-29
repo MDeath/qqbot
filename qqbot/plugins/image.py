@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from __saucenao_api import SauceNao
-import __soup as soup
+import soup
 from mainloop import Put
 
 api_key = 'bb8c58baab8a50ab362c752b9f4252147c376da9'

@@ -125,16 +125,13 @@ class MiraiApi():
         elif Type == 'Temp':
             payload['qq'] = target
             payload['group'] = target
-        if isinstance(message,dict):
-            payload['messageChain'] = [message]
-        elif isinstance(message,tuple):
-            payload['messageChain'] = [msg for msg in message]
-        else:
-            raise RequestError
+        payload['messageChain'] = [msg for msg in message]
         if quote:
             payload['quote'] = quote
+        INFO(f'发到 {Type} {target}:{(quote and "回复消息 "+str(quote)+" ") or " "}{message}')
         Quote = self.basicsession(Post, f'send{Type}Message', data=json.dumps(payload))
-        INFO(f'发到 {Type} {target}({Quote}):{(quote and "回复消息 "+str(quote)+" ") or " "}{message}')
+        if Quote:return Quote
+        else:WARNING(f'发到 {Type} {target} 发送失败')
 
     def Nudge(self, type:str, target:int, id:int) -> None: # 戳一戳
         r'''kind = Friend, Group, Stranger
