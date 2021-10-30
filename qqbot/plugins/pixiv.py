@@ -83,7 +83,7 @@ def day_r18(bot):
 
 @QQBotSched(day_of_week=1)
 def day_r18(bot):
-    bot.r18['offset'] = 0
+    bot.r18['viewed'] = 0
 
 @QQBotSched(year=None, 
             month=None, 
@@ -113,9 +113,9 @@ def day_ranking(bot):
             message = [soup.Plain(Plain)]
             if i.page_count > 1:
                 for page in i.meta_pages:
-                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',re)))
+                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',moe)))
             else:
-                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',re)))
+                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',moe)))
             node.append(soup.Node(bot.conf.qq,'robot',*message))
             n -= 1
         if n > 0:
@@ -165,9 +165,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             message = [soup.Plain(Plain)]
             if illust.page_count > 1:
                 for page in illust.meta_pages:
-                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',re)))
+                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',moe)))
             else:
-                message.append(soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',re)))
+                message.append(soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',moe)))
             node.append(soup.Node(bot.conf.qq,'robot',*message))
         while not bot.SendMessage(Type, target, soup.Forward(*node)):pass
         return
@@ -203,6 +203,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if 'error' in user:
             [bot.SendMessage(Type, target, soup.Plain(f'{k}:{v}'+'\n')) for k,v in user.error.items() if v]
             return
-        message = soup.Image(user.user.profile_image_urls.medium.replace('i.pximg.net',re)),
+        message = soup.Image(user.user.profile_image_urls.medium.replace('i.pximg.net',moe)),
         message += soup.Plain(f"Uid:{user.user.id} 名字:{user.user.name}{_n} 插画:{user.profile.total_illusts} 漫画:{user.profile.total_manga} 小说:{user.profile.total_novels}"),
         while not bot.SendMessage(Type,target,*message):pass
