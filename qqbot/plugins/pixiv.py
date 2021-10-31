@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import json, os, requests, time, traceback
-import urllib.parse as up
+import json, os, time, traceback
 
 import soup
-from common import BYTES2STR, JsonLoads
 from utf8logger import WARNING
-from plugins.admin import admin_ID
 from pixivpy3 import ByPassSniApi
 from qqbotcls import QQBotSched
 
@@ -14,13 +11,23 @@ _n = '\n'
 cat = 'i.pixiv.cat'
 re = 'i.pixiv.re'
 moe = 'proxy.pixivel.moe'
+config = {
+    'hosts':None,
+    'REFRESH_TOKEN':'',
+    'USERNAME':'',
+    'PASSWORD':''
+}
 
 class Pixiv(ByPassSniApi):
-    def __init__(self,**requests_kwargs): #初始化api
+    def __init__(self,hosts=None,**requests_kwargs): #初始化api
         super().__init__(**requests_kwargs)
         self.cat = False
         self.set_accept_language('zh-cn')
-        self.require_appapi_hosts(hostname="public-api.secure.pixiv.net")
+        if hosts:self.hosts = hosts
+        else:
+            while not hasattr(self,'hosts'):
+                try:self.require_appapi_hosts(hostname="public-api.secure.pixiv.net")
+                except:pass
 
     def no_auth_requests_call(self, *args, **kwargs):
         while True:
@@ -46,19 +53,22 @@ class Pixiv(ByPassSniApi):
 def onPlug(bot): # 群限制用和登录pixiv
     if not hasattr(bot,'r18'):
         bot.r18 = {'limit':5,'offset':0,'viewed':set()}
-    api = Pixiv()
     try:
         if os.path.exists(bot.conf.Config('pixiv.json')):
-            with open(bot.conf.Config('pixiv.json'), 'r', encoding='utf-8') as f:
-                config = json.load(f)
+            with open(bot.conf.Config('pixiv.json'), 'r', encoding='utf-8') as f:conf = json.load(f)
         else:raise
     except:
-        with open(bot.conf.Config('pixiv.json'),'w', encoding='utf-8') as f:
-            json.dump({'REFRESH_TOKEN':'','USERNAME':'','PASSWORD':''}, f, ensure_ascii=False, indent=4)
-            bot.Unplug(__name__)
-    REFRESH_TOKEN = config['REFRESH_TOKEN']
-    USERNAME = config['USERNAME']
-    PASSWORD = config['PASSWORD']
+        with open(bot.conf.Config('pixiv.json'),'w', encoding='utf-8') as f:json.dump(config, f, ensure_ascii=False, indent=4)
+        conf = config.copy()
+    if conf['hosts']:
+        api = Pixiv(conf['hosts'])
+    else:
+        api = Pixiv()
+        conf['hosts'] = api.hosts
+        with open(bot.conf.Config('pixiv.json'),'w', encoding='utf-8') as f:json.dump(conf, f, ensure_ascii=False, indent=4)
+    REFRESH_TOKEN = conf['REFRESH_TOKEN']
+    USERNAME = conf['USERNAME']
+    PASSWORD = conf['PASSWORD']
     try:
         if REFRESH_TOKEN:
             api.auth(refresh_token=REFRESH_TOKEN)
