@@ -8,9 +8,14 @@ from pixivpy3 import ByPassSniApi
 from qqbotcls import QQBotSched
 
 _n = '\n'
-cat = 'i.pixiv.cat'
-re = 'i.pixiv.re'
-moe = 'proxy.pixivel.moe'
+# 图片代理
+hosts = {
+    'cat' : 'i.pixiv.cat',
+    're' : 'i.pixiv.re',
+    'moe' : 'proxy.pixivel.moe',
+    'a_f' : 'pixiv.a-f.workers.dev'
+}
+# pixiv配置
 config = {
     'hosts':None,
     'REFRESH_TOKEN':'',
@@ -52,7 +57,13 @@ class Pixiv(ByPassSniApi):
 
 def onPlug(bot): # 群限制用和登录pixiv
     if not hasattr(bot,'r18'):
-        bot.r18 = {'limit':5,'offset':0,'viewed':set()}
+        bot.r18 = {'limit':5,'offset':0,'viewed':[]}
+        try:
+            if os.path.exists(bot.conf.Config('R18.json')):
+                with open(bot.conf.Config('R18.json'), 'r', encoding='utf-8') as f:bot.r18['viewed'] = json.load(f)
+            else:raise
+        except:
+            with open(bot.conf.Config('R18.json'),'w', encoding='utf-8') as f:json.dump([], f, ensure_ascii=False, indent=4)
     try:
         if os.path.exists(bot.conf.Config('pixiv.json')):
             with open(bot.conf.Config('pixiv.json'), 'r', encoding='utf-8') as f:conf = json.load(f)
@@ -61,31 +72,27 @@ def onPlug(bot): # 群限制用和登录pixiv
         with open(bot.conf.Config('pixiv.json'),'w', encoding='utf-8') as f:json.dump(config, f, ensure_ascii=False, indent=4)
         conf = config.copy()
     if conf['hosts']:
-        api = Pixiv(conf['hosts'])
+        bot.pixiv = Pixiv(conf['hosts'])
     else:
-        api = Pixiv()
-        conf['hosts'] = api.hosts
+        bot.pixiv = Pixiv()
+        conf['hosts'] = bot.pixiv.hosts
         with open(bot.conf.Config('pixiv.json'),'w', encoding='utf-8') as f:json.dump(conf, f, ensure_ascii=False, indent=4)
-    REFRESH_TOKEN = conf['REFRESH_TOKEN']
-    USERNAME = conf['USERNAME']
-    PASSWORD = conf['PASSWORD']
     try:
-        if REFRESH_TOKEN:
-            api.auth(refresh_token=REFRESH_TOKEN)
-        elif USERNAME and PASSWORD:
-            api.login(USERNAME,PASSWORD)
+        if conf['REFRESH_TOKEN']:
+            bot.pixiv.auth(refresh_token=conf['REFRESH_TOKEN'])
+        elif conf['USERNAME'] and conf['PASSWORD']:
+            bot.pixiv.login(conf['USERNAME'],conf['PASSWORD'])
         else:
             bot.Unplug(__name__)
-        setattr(bot,'pixiv',api)
     except:raise
 
 def onUnplug(bot):
-    if hasattr(bot, 'pixiv'):
-        del bot.pixiv
+    del bot.pixiv
 
 def onInterval(bot): # 刷新群限制和刷新令牌
-    bot.r18['limit'] = 5
     bot.pixiv.auth()
+    bot.r18['limit'] = 5
+    with open(bot.conf.Config('R18.json'),'w', encoding='utf-8') as f:json.dump(bot.r18['viewed'], f)
 
 @QQBotSched(hour=0)
 def day_r18(bot):
@@ -93,7 +100,7 @@ def day_r18(bot):
 
 @QQBotSched(day_of_week=1)
 def day_r18(bot):
-    bot.r18['viewed'] = 0
+    bot.r18['viewed'] = []
 
 @QQBotSched(year=None, 
             month=None, 
@@ -123,15 +130,42 @@ def day_ranking(bot):
             message = [soup.Plain(Plain)]
             if i.page_count > 1:
                 for page in i.meta_pages:
-                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',moe)))
+                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['a_f'])))
             else:
-                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',moe)))
+                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',hosts['a_f'])))
             node.append(soup.Node(bot.conf.qq,'robot',*message))
             n -= 1
         if n > 0:
             result = api.illust_ranking(**api.parse_qs(result.next_url))
     for g in bot.Group:
         while not bot.SendMessage('Group', g.id, soup.Forward(*node)):pass
+
+@QQBotSched(hour=0)
+def day_ranking(bot):
+    if not hasattr(bot, 'pixiv'):onPlug(bot)
+    api:Pixiv = bot.pixiv
+    n = 10
+    result = api.illust_ranking('day_r18')
+    node = [soup.Node(bot.conf.qq,'robot',soup.Plain('Pixiv 每日榜'))]
+    while n > 0:
+        for i in result.illusts:
+            if n < 1:break
+            if i.type != 'illust':continue
+            Plain = f'标题:{i.title} Pid:{i.id}{_n}作者:{i.user.name} Uid:{i.user.id}{_n}标签:'
+            for tag in i.tags:Plain += f'{_n}{tag.name}:{tag.translated_name}'
+            message = [soup.Plain(Plain)]
+            if i.page_count > 1:
+                for page in i.meta_pages:
+                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['a_f'])))
+            else:
+                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',hosts['a_f'])))
+            node.append(soup.Node(bot.conf.qq,'robot',*message))
+            n -= 1
+        if n > 0:
+            result = api.illust_ranking(**api.parse_qs(result.next_url))
+    for f in bot.Friend:
+        if f.remark == 'Admin':
+            while not bot.SendMessage('Friend', f.id, soup.Forward(*node)):pass
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
@@ -160,7 +194,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             for illust in api.illust_ranking('day_r18',offset=bot.r18['offset']).illusts:
                 bot.r18['offset'] += 1
                 if illust.id not in bot.r18['viewed']:
-                    bot.r18['viewed'].add(illust.id)
+                    bot.r18['viewed'].append(illust.id)
                     break
             illusts = [illust]
             break
@@ -175,9 +209,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             message = [soup.Plain(Plain)]
             if illust.page_count > 1:
                 for page in illust.meta_pages:
-                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',moe)))
+                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['a_f'])))
             else:
-                message.append(soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',moe)))
+                message.append(soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts['a_f'])))
             node.append(soup.Node(bot.conf.qq,'robot',*message))
         while not bot.SendMessage(Type, target, soup.Forward(*node)):pass
         return
@@ -198,9 +232,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         node = soup.Node(bot.conf.qq,'robot',soup.Plain(Plain)),
         if illust.page_count > 1:
             for page in illust.meta_pages:
-                node += soup.Node(bot.conf.qq,'robot',soup.Image(url=page.image_urls.original.replace('i.pximg.net',moe))),
+                node += soup.Node(bot.conf.qq,'robot',soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['a_f']))),
         else:
-            node += soup.Node(bot.conf.qq,'robot',soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',moe))),
+            node += soup.Node(bot.conf.qq,'robot',soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts['a_f']))),
         while not bot.SendMessage(Type, target, soup.Forward(*node)):pass
         return
 
@@ -213,6 +247,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if 'error' in user:
             [bot.SendMessage(Type, target, soup.Plain(f'{k}:{v}'+'\n')) for k,v in user.error.items() if v]
             return
-        message = soup.Image(user.user.profile_image_urls.medium.replace('i.pximg.net',moe)),
+        message = soup.Image(user.user.profile_image_urls.medium.replace('i.pximg.net',hosts['a_f'])),
         message += soup.Plain(f"Uid:{user.user.id} 名字:{user.user.name}{_n} 插画:{user.profile.total_illusts} 漫画:{user.profile.total_manga} 小说:{user.profile.total_novels}"),
         while not bot.SendMessage(Type,target,*message):pass
