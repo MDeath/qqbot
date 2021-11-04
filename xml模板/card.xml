@@ -1,48 +1,37 @@
 <?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<root>
+
+<msg serviceID="1" templateID="-1" action="plugin" a_actionData="mqqapi://card/ show_pslcard?src_type=internal&amp;source=sharecard&amp;version=1&amp;uin=" brief="您已成为群主" sourceMsgId="0" url="" flag="2" adverSign="0" multiMsgFlag="0">
+    <item layout="5" bg="2" advertiser_id="0" aid="0">
+        <title>点击查看本群色批</title>
+    </item>
+    <source name="" icon="" action="" appid="-1" />
 </msg>
-<msg serviceID="14" 
-templateID="1" 
-action="plugin" 
-actionData="AppCmd://OpenContactInfo/?uin=2907237958" 
-a_actionData="mqqapi://card/show_pslcard?src_type=internal&amp;source=sharecard&amp;version=1&amp;uin=2907237958" 
-i_actionData="mqqapi://card/show_pslcard?src_type=internal&amp;source=sharecard&amp;version=1&amp;uin=2907237958" 
-brief="推荐了精神病院里的人" 
-sourceMsgId="0" 
-url="" 
-flag="1" 
-adverSign="0" 
-multiMsgFlag="0">
+
+<msg serviceID="14" templateID="1" action="plugin" actionData="AppCmd://OpenContactInfo/?uin=2907237958" a_actionData="mqqapi://card/ show_pslcard?src_type=internal&amp;source=sharecard&amp;version=1&amp;uin=2907237958" i_actionData="mqqapi://card/ show_pslcard?src_type=internal&amp;source=sharecard&amp;version=1&amp;uin=2907237958" brief="推荐了精神病院里的人" sourceMsgId="0" url="" flag="1" adverSign="0" multiMsgFlag="0">
     <item layout="0" mode="1" advertiser_id="0" aid="0">
         <summary>推荐联系人</summary>
         <hr hidden="false" style="0" />
     </item>
     <item layout="2" mode="1" advertiser_id="0" aid="0">
-        <picture cover="mqqapi://card/show_pslcard?src_type=internal&amp;source=sharecard&amp;version=1&amp;uin=2907237958" w="0" h="0" />
+        <picture cover="mqqapi://card/ show_pslcard?src_type=internal&amp;source=sharecard&amp;version=1&amp;uin=2907237958" w="0" h="0" />
         <title>精神病院里的人</title>
         <summary>帐号:2907237958</summary>
     </item>
     <source name="" icon="" action="" appid="-1" />
 </msg>
 
-<msg serviceID="14" 
-templateID="1" 
-action="web" 
-actionData="AppCmd://OpenContactInfo/?uin=2854196310" 
-a_actionData="mqqapi://card/show_pslcard?src_type=internal&amp;source=sharecard&amp;version=1&amp;uin=2854196310" 
-i_actionData="mqqapi://card/show_pslcard?src_type=internal&amp;source=sharecard&amp;version=1&amp;uin=2854196310" 
-brief="推荐了Q群管家" 
-sourceMsgId="0" 
-url="https://web.qun.qq.com/qunrobot/data.html?robot_uin=2854196310&amp;_wwv=128&amp;_wv=3" 
-flag="1" 
-adverSign="0" 
-multiMsgFlag="0">
+<msg serviceID="14" templateID="1" action="web" actionData="AppCmd://OpenContactInfo/?uin=2854196310" a_actionData="mqqapi://card/ show_pslcard?src_type=internal&amp;source=sharecard&amp;version=1&amp;uin=2854196310" i_actionData="mqqapi://card/ show_pslcard?src_type=internal&amp;source=sharecard&amp;version=1&amp;uin=2854196310" brief="推荐了Q群管家" sourceMsgId="0" url="https://web.qun.qq.com/qunrobot/data.html?robot_uin=2854196310&amp;_wwv=128&amp;_wv=3" flag="1" adverSign="0" multiMsgFlag="0">
     <item layout="0" mode="1" advertiser_id="0" aid="0">
         <summary>推荐机器人</summary>
         <hr hidden="false" style="0" />
     </item>
     <item layout="2" mode="1" advertiser_id="0" aid="0">
-        <picture cover="mqqapi://card/show_pslcard?src_type=internal&amp;source=sharecard&amp;version=1&amp;uin=2854196310" w="0" h="0" />
+        <picture cover="mqqapi://card/ show_pslcard?src_type=internal&amp;source=sharecard&amp;version=1&amp;uin=2854196310" w="0" h="0" />
         <title>Q群管家</title>
         <summary>帐号:2854196310</summary>
     </item>
     <source name="" icon="" action="" appid="-1" />
+</msg>
+
+</root>
