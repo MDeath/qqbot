@@ -26,7 +26,6 @@ config = {
 class Pixiv(ByPassSniApi):
     def __init__(self,hosts=None,**requests_kwargs): #初始化api
         super().__init__(**requests_kwargs)
-        self.cat = False
         self.set_accept_language('zh-cn')
         if hosts:self.hosts = hosts
         else:
@@ -130,9 +129,9 @@ def day_ranking(bot):
             message = [soup.Plain(Plain)]
             if i.page_count > 1:
                 for page in i.meta_pages:
-                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['a_f'])))
+                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['moe'])))
             else:
-                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',hosts['a_f'])))
+                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',hosts['moe'])))
             node.append(soup.Node(bot.conf.qq,'robot',*message))
             n -= 1
         if n > 0:
@@ -156,9 +155,9 @@ def day_ranking(bot):
             message = [soup.Plain(Plain)]
             if i.page_count > 1:
                 for page in i.meta_pages:
-                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['a_f'])))
+                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['moe'])))
             else:
-                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',hosts['a_f'])))
+                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',hosts['moe'])))
             node.append(soup.Node(bot.conf.qq,'robot',*message))
             n -= 1
         if n > 0:
@@ -209,9 +208,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             message = [soup.Plain(Plain)]
             if illust.page_count > 1:
                 for page in illust.meta_pages:
-                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['a_f'])))
+                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['moe'])))
             else:
-                message.append(soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts['a_f'])))
+                message.append(soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts['moe'])))
             node.append(soup.Node(bot.conf.qq,'robot',*message))
         while not bot.SendMessage(Type, target, soup.Forward(*node)):pass
         return
@@ -232,9 +231,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         node = soup.Node(bot.conf.qq,'robot',soup.Plain(Plain)),
         if illust.page_count > 1:
             for page in illust.meta_pages:
-                node += soup.Node(bot.conf.qq,'robot',soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['a_f']))),
+                node += soup.Node(bot.conf.qq,'robot',soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['moe']))),
         else:
-            node += soup.Node(bot.conf.qq,'robot',soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts['a_f']))),
+            node += soup.Node(bot.conf.qq,'robot',soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts['moe']))),
         while not bot.SendMessage(Type, target, soup.Forward(*node)):pass
         return
 
@@ -247,6 +246,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if 'error' in user:
             [bot.SendMessage(Type, target, soup.Plain(f'{k}:{v}'+'\n')) for k,v in user.error.items() if v]
             return
-        message = soup.Image(user.user.profile_image_urls.medium.replace('i.pximg.net',hosts['a_f'])),
+        message = soup.Image(user.user.profile_image_urls.medium.replace('i.pximg.net',hosts['moe'])),
         message += soup.Plain(f"Uid:{user.user.id} 名字:{user.user.name}{_n} 插画:{user.profile.total_illusts} 漫画:{user.profile.total_manga} 小说:{user.profile.total_novels}"),
         while not bot.SendMessage(Type,target,*message):pass
