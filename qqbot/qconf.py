@@ -46,10 +46,7 @@ sampleConfStr = '''
         "pluginPath" : ".",
 
         # 启动时需加载的插件
-        "plugins" : ['admin'],
-
-        # 插件的配置（由用户自定义）
-        "pluginsConf" : {},
+        "plugins" : ['admin']
 
     },
 
@@ -63,13 +60,7 @@ sampleConfStr = '''
         "restartOnOffline" : False,
         "startAfterFetch" : False,
         "pluginPath" : ".",
-        "plugins" : [
-            'plugins.sampleslots',
-            'plugins.schedrestart',
-        ],
-	    "pluginsConf" : {
-	        'plugins.schedrestart': '8:00',
-	    }
+        "plugins" : ['admin']
     },
 
     # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
@@ -82,8 +73,7 @@ sampleConfStr = '''
     #     "daemon" : False,
     #     "startAfterFetch" : False,
     #     "pluginPath" : "",
-    #     "plugins" : ['admin'],
-    #     "pluginsConf" : {}
+    #     "plugins" : ['admin']
     # },
 
 }
@@ -99,8 +89,7 @@ rootConf = {
     "daemon" : False,
     "startAfterFetch" : False,
     "pluginPath" : "",
-    "plugins" : ['admin'],
-    "pluginsConf" : {},
+    "plugins" : ['admin']
 }
 
 if sys.argv[0].endswith('.py') or sys.argv[0].endswith('.pyc'):
