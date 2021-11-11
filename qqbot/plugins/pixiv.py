@@ -139,7 +139,17 @@ def day_ranking(bot):
     for g in bot.Group:
         while not bot.SendMessage('Group', g.id, soup.Forward(*node)):pass
 
-@QQBotSched(hour=0)
+@QQBotSched(year=None, 
+            month=None, 
+            day=None, 
+            week=None, 
+            day_of_week=None, 
+            hour=0, 
+            minute=None, 
+            second=None, 
+            start_date=None, 
+            end_date=None, 
+            timezone=None)
 def day_ranking(bot):
     if not hasattr(bot, 'pixiv'):onPlug(bot)
     api:Pixiv = bot.pixiv
@@ -168,7 +178,7 @@ def day_ranking(bot):
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
-    发送 '插画推荐','推荐插画','setu','色图','涩图'
+    发送 'setu','色图'或'涩图'(可指定数量)
     返回pixiv插画推荐（最多发15幅图）
     Pid Uid 查询'''
     if not hasattr(bot, 'pixiv'):onPlug(bot)
@@ -180,7 +190,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     for msg in Message:
         if msg.type == 'Plain':Plain += msg.text
 
-    for keyword in ['插画推荐','推荐插画','setu','色图','涩图']:
+    for keyword in ['setu','色图','涩图']:
         if not Plain.startswith(keyword):continue
         Plain = Plain.replace(keyword,'')
         node = [soup.Node(Sender.id,None,soup.Plain(keyword))]
