@@ -11,11 +11,11 @@ import soup
 # 群限制用
 def onPlug(bot):
     if not hasattr(bot,'xml'):
-        setattr(bot, 'xml', 1)
+        setattr(bot, 'xml', 5)
 
 # 刷新群限制
 def onInterval(bot):
-    bot.xml = 1
+    bot.xml = 5
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
@@ -38,7 +38,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             break
     else:
         return
-    if '<?xml version="1.0"' in message:
+    if '<?xml version=' in message:
         try:
             ET.fromstring(message)
         except:
