@@ -1,9 +1,24 @@
 # -*- coding: utf-8 -*-
 
-import os,json
-import traceback
+import os,json,time,traceback
+
 from mainloop import Put
 import soup
+
+@QQBotSched(year=None, 
+            month=None, 
+            day=None, 
+            week=None, 
+            day_of_week=None, 
+            hour=None, 
+            minute=None, 
+            second=0, 
+            start_date=None, 
+            end_date=None, 
+            timezone=None)
+def heartbeat(bot):
+    '定时任务心跳'
+    bot.heart = time.strftime("%Y-%m-%d\n%H:%M:%S\n%z\n%a-%A\n%b-%B\n%c\n%I %p",time.localtime())
 
 
 def onUnplug(bot):
