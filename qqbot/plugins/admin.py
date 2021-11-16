@@ -2,6 +2,7 @@
 
 import os,json,time,traceback
 
+from qqbotcls import QQBotSched
 from mainloop import Put
 import soup
 
