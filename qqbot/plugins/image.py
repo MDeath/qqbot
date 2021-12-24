@@ -39,12 +39,16 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 for r in results:
                     urls = ''
                     for url in r.urls:urls+='\n'+url
-                    if r.similarity > 50:
+                    if r.similarity > 60:
+                        message.append(soup.Image(r.thumbnail))
                         message.append(soup.Plain(
                             f'\n相似度：{r.similarity}\n标题：{r.title}\n作者：{r.author}\nurl：{urls}'
                         ))
+                        if r.urls and 'https://www.pixiv.net/' in r.urls[0]:
+                            ID = r.urls[0].split('=')[-1]
+                            bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{ID}')])
                     else:
                         message.append(soup.Plain(
                             f'\n相似度：{r.similarity}\nurl：{urls}'
                         ))
-                bot.SendMessage(Type, target, *message, quote=quote)
+                while not bot.SendMessage(Type, target, *message, quote=quote):pass
