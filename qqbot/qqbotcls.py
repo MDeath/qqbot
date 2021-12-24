@@ -135,7 +135,7 @@ class QQBot():
             self.onQQEvent(Message)
 
     def onQQRequestEvent(self, Message):
-        for f in self.slotsTable['onQQEvent']:
+        for f in self.slotsTable['onQQRequestEvent']:
             operate, msg = f(self, Message)
             if not operate:
                 return operate, msg
@@ -176,6 +176,8 @@ class QQBot():
         self.Member = {}
         for g in self.Group:
             self.Member[g.id] = self.List('member',g.id)
+            for m in self.Member[g.id]:
+                delattr(m,'group')
 
     def unplug(self, moduleName, removeJob=True):
         for slots in self.slotsTable.values():
