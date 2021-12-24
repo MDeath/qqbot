@@ -15,6 +15,11 @@ class JsonDict(dict):
             raise AttributeError(r"'JsonDict' object has no attribute '%s'" % attr)
     def __setattr__(self, attr, value):
         self[attr] = value
+    def __delattr__(self, attr):
+        try:
+            del self[attr]
+        except KeyError:
+            raise AttributeError(r"'JsonDict' object has no attribute '%s'" % attr)
 
 def parse_json(json_str):
     return json.loads(json_str, object_hook=JsonDict)
