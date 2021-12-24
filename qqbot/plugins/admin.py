@@ -21,7 +21,6 @@ def heartbeat(bot):
     '定时任务心跳'
     bot.heart = time.strftime("%Y-%m-%d\n%H:%M:%S\n%z\n%a-%A\n%b-%B\n%c\n%I %p",time.localtime())
 
-
 def onUnplug(bot):
     '''\
     此插件不可卸载'''
@@ -40,14 +39,15 @@ def Reply(bot,type,target):
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
-    @bot 并输入指令使用
+    输入指令使用
     菜单
     重启
     更新联系人
     插件列表
     加载插件《插件名》
     卸载插件《插件名》
-    说明(可附带插件名)'''
+    说明(可附带插件名)
+    命令行前置符 ￥ 或 $'''
     if Type not in ['Friend', 'Group']:
         return
     At = []
@@ -90,7 +90,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     n = '\n'
     plug = [m.split('.')[0] for m in os.listdir(bot.conf.pluginPath)]
     
-    if 'who is your daddy' == Plain and admin_ID(bot ,Sender.id, True):
+    if bot.conf.qq in At and Plain in ['who is your daddy','你是谁的']:
         reply(soup.At(Sender.id))
         return
 
@@ -182,13 +182,28 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             reply(soup.Plain('bot已唤醒'))
             return
         
-def onQQEvent(bot, Message):
+def onQQEvent(bot, Message):pass
+
+def onQQRequestEvent(bot, Message):
     '''\
     申请事件'''
     if Message.type == 'MemberJoinRequestEvent':
+        '''
+        0	同意入群
+        1	拒绝入群
+        2	忽略请求
+        3	拒绝入群并添加黑名单，不再接收该用户的入群申请
+        4	忽略入群并添加黑名单，不再接收该用户的入群申请'''
         return 0, '欢迎'
     elif Message.type == 'NewFriendRequestEvent':
-        return 0, 'hello'
+        '''
+        0	同意添加好友
+        1	拒绝添加好友
+        2	拒绝添加好友并添加黑名单，不再接收该用户的好友申请'''
+        return 0, '发送 菜单 查看基本指令'
     elif Message.type == 'BotInvitedJoinGroupRequestEvent':
-        return 0, '大家好我是 robot'
+        '''
+        0	同意邀请
+        1	拒绝邀请'''
+        return 0, '发送 菜单 查看基本指令'
     else: return None, ''
