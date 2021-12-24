@@ -15,6 +15,7 @@ hosts = {
     'moe' : 'proxy.pixivel.moe',
     'a_f' : 'pixiv.a-f.workers.dev'
 }
+hosts = hosts['re']
 # pixiv配置
 config = {
     'hosts':None,
@@ -119,7 +120,7 @@ def day_ranking(bot):
     api:Pixiv = bot.pixiv
     n = 10
     result = api.illust_ranking()
-    node = [soup.Node(bot.conf.qq,'robot',soup.Plain('Pixiv 每日榜'))]
+    node = [soup.Node(2854196310,'QQ管家',soup.Plain('Pixiv 每日榜'))]
     while n > 0:
         for i in result.illusts:
             if n < 1:break
@@ -129,10 +130,10 @@ def day_ranking(bot):
             message = [soup.Plain(Plain)]
             if i.page_count > 1:
                 for page in i.meta_pages:
-                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['moe'])))
+                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts)))
             else:
-                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',hosts['moe'])))
-            node.append(soup.Node(bot.conf.qq,'robot',*message))
+                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',hosts)))
+            node.append(soup.Node(2854196310,'QQ管家',*message))
             n -= 1
         if n > 0:
             result = api.illust_ranking(**api.parse_qs(result.next_url))
@@ -150,12 +151,12 @@ def day_ranking(bot):
             start_date=None, 
             end_date=None, 
             timezone=None)
-def day_ranking(bot):
+def day_r18_ranking(bot):
     if not hasattr(bot, 'pixiv'):onPlug(bot)
     api:Pixiv = bot.pixiv
     n = 10
     result = api.illust_ranking('day_r18')
-    node = [soup.Node(bot.conf.qq,'robot',soup.Plain('Pixiv 每日榜'))]
+    node = [soup.Node(2854196310,'QQ管家',soup.Plain('Pixiv 每日榜'))]
     while n > 0:
         for i in result.illusts:
             if n < 1:break
@@ -165,10 +166,10 @@ def day_ranking(bot):
             message = [soup.Plain(Plain)]
             if i.page_count > 1:
                 for page in i.meta_pages:
-                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['moe'])))
+                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts)))
             else:
-                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',hosts['moe'])))
-            node.append(soup.Node(bot.conf.qq,'robot',*message))
+                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',hosts)))
+            node.append(soup.Node(2854196310,'QQ管家',*message))
             n -= 1
         if n > 0:
             result = api.illust_ranking(**api.parse_qs(result.next_url))
@@ -218,10 +219,10 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             message = [soup.Plain(Plain)]
             if illust.page_count > 1:
                 for page in illust.meta_pages:
-                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['moe'])))
+                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts)))
             else:
-                message.append(soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts['moe'])))
-            node.append(soup.Node(bot.conf.qq,'robot',*message))
+                message.append(soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts)))
+            node.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*message))
         while not bot.SendMessage(Type, target, soup.Forward(*node)):pass
         return
 
@@ -238,12 +239,12 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         illust = illust.illust
         Plain = f'标题:{illust.title} Pid:{illust.id}{_n}作者:{illust.user.name} Uid:{illust.user.id}{_n}类型:{illust.type} 收藏:{illust.total_bookmarks} 标签:'
         for tag in illust.tags:Plain += f'{_n}{tag.name}:{tag.translated_name}'
-        node = soup.Node(bot.conf.qq,'robot',soup.Plain(Plain)),
+        node = soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,soup.Plain(Plain)),
         if illust.page_count > 1:
             for page in illust.meta_pages:
-                node += soup.Node(bot.conf.qq,'robot',soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts['moe']))),
+                node += soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts))),
         else:
-            node += soup.Node(bot.conf.qq,'robot',soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts['moe']))),
+            node += soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts))),
         while not bot.SendMessage(Type, target, soup.Forward(*node)):pass
         return
 
@@ -256,6 +257,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if 'error' in user:
             [bot.SendMessage(Type, target, soup.Plain(f'{k}:{v}'+'\n')) for k,v in user.error.items() if v]
             return
-        message = soup.Image(user.user.profile_image_urls.medium.replace('i.pximg.net',hosts['moe'])),
+        message = soup.Image(user.user.profile_image_urls.medium.replace('i.pximg.net',hosts)),
         message += soup.Plain(f"Uid:{user.user.id} 名字:{user.user.name}{_n} 插画:{user.profile.total_illusts} 漫画:{user.profile.total_manga} 小说:{user.profile.total_novels}"),
         while not bot.SendMessage(Type,target,*message):pass
