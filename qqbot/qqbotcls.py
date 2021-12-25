@@ -171,11 +171,11 @@ class QQBot():
         return wrapper
 
     def Update(self):
-        self.Friend = self.List('friend')
-        self.Group = self.List('group')
+        self.Friend = self.List('fFriend')
+        self.Group = self.List('Group')
         self.Member = {}
         for g in self.Group:
-            self.Member[g.id] = self.List('member',g.id)
+            self.Member[g.id] = self.List('Member',g.id)
             for m in self.Member[g.id]:
                 delattr(m,'group')
 

@@ -163,12 +163,12 @@ class MiraiApi():
 
 ### 联系人操作 ###
 
-    def List(self, type, groupID:int=None) -> list: # 获取好友、群、成员列表
-        r'type = friend , group , member'
-        if type not in ['friend', 'group', 'member']:raise RequestError
+    def List(self, type:str, groupID:int=None) -> list: # 获取好友、群、成员列表
+        r'type = Friend , Group , Member'
+        if type not in ['Friend', 'Group', 'Member']:raise RequestError
         payload = {'sessionKey':self.session}
         if type == 'member':payload['target'] = groupID
-        return self.basicsession(Get, f'{type}List', params=payload)
+        return self.basicsession(Get, f'{type.lower()}List', params=payload)
 
     def Profile(self, form:str, target:int=None, memberID:int=None) -> dict: # 获取bot、好友、成员资料
         r'''form = bot, friend, member
