@@ -40,13 +40,16 @@ def Reply(bot,type,target):
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
     输入指令使用
+    ### 一般权限
     菜单
-    重启
     更新联系人
     插件列表
+    说明(可附带插件名)
+    ### 管理员权限
     加载插件《插件名》
     卸载插件《插件名》
-    说明(可附带插件名)
+    ### 超级权限
+    关机 重启 
     命令行前置符 ￥ 或 $'''
     if Type not in ['Friend', 'Group']:
         return
@@ -170,18 +173,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             reply(soup.Plain('bot以关闭'))
             Put(bot.Stop)
 
-        elif '休眠' == Plain:
-            for p in bot.Plugins():
-                bot.Unplug(p)
-            reply(soup.Plain('bot已休眠'))
-            return
-
-        elif '喂' == Plain:
-            for p in bot.conf.plugins:
-                bot.Plug(p)
-            reply(soup.Plain('bot已唤醒'))
-            return
-        
 def onQQEvent(bot, Message):pass
 
 def onQQRequestEvent(bot, Message):
