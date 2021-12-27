@@ -223,7 +223,11 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             else:
                 message.append(soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts)))
             node.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*message))
-        while not bot.SendMessage(Type, target, soup.Forward(*node)):pass
+        error_number = 0
+        while not bot.SendMessage(Type, target, soup.Forward(*node)):
+            if error_number == 1:
+                bot.SendMessage(Type, target, soup.Plain('图床超时请等待'),quote=Source.id)
+            error_number += 1
         return
 
     Plain = Plain.replace(' ','').replace(':','').replace('：','')
@@ -245,7 +249,11 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 node += soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts))),
         else:
             node += soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts))),
-        while not bot.SendMessage(Type, target, soup.Forward(*node)):pass
+        error_number = 0
+        while not bot.SendMessage(Type, target, soup.Forward(*node)):
+            if error_number == 1:
+                bot.SendMessage(Type, target, soup.Plain('图床超时请等待'),quote=Source.id)
+            error_number += 1
         return
 
     if Plain.startswith(('uid','Uid','UID')):
