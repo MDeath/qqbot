@@ -34,11 +34,11 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             break
     for msg in Message:
         if msg.type == 'Plain' and 'xml' in msg.text:
-            message = msg.text
+            message:str = msg.text
             break
     else:
         return
-    if '<?xml version=' in message:
+    if message.startswith('<?xml version='):
         try:
             ET.fromstring(message)
         except:
