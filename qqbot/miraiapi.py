@@ -167,7 +167,7 @@ class MiraiApi():
         r'type = Friend , Group , Member'
         if type not in ['Friend', 'Group', 'Member']:raise RequestError
         payload = {'sessionKey':self.session}
-        if type == 'member':payload['target'] = groupID
+        if type == 'Member':payload['target'] = groupID
         return self.basicsession(Get, f'{type.lower()}List', params=payload)
 
     def Profile(self, form:str, target:int=None, memberID:int=None) -> dict: # 获取bot、好友、成员资料

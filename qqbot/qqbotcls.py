@@ -68,9 +68,6 @@ class QQBot():
         self.FileUpload = self.Mirai.FileUpload
         self.Upload = self.Mirai.Upload
 
-        if self.conf.startAfterFetch:
-            self.Update()
-
         for pluginName in self.conf.plugins:
             self.Plug(pluginName)
 
@@ -81,8 +78,7 @@ class QQBot():
         StartDaemonThread(self.pollForever)
         StartDaemonThread(self.intervalForever)
         self.scheduler.start()
-        if not self.conf.startAfterFetch:
-            Put(self.Update)
+        Put(self.Update)
 
         try:
             MainLoop()
@@ -171,7 +167,7 @@ class QQBot():
         return wrapper
 
     def Update(self):
-        self.Friend = self.List('fFriend')
+        self.Friend = self.List('Friend')
         self.Group = self.List('Group')
         self.Member = {}
         for g in self.Group:

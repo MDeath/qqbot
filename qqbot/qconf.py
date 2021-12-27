@@ -38,9 +38,6 @@ sampleConfStr = '''
 
         # 在后台运行 qqbot ( daemon 模式)
         "daemon": False,
-        
-        # 完成全部联系人列表获取之后才启动 QQBot 
-        "startAfterFetch" : False,
 
         # 插件目录
         "pluginPath" : ".",
@@ -58,7 +55,6 @@ sampleConfStr = '''
         "verifyKey" : "VerifyKey",
         "debug" : False,
         "restartOnOffline" : False,
-        "startAfterFetch" : False,
         "pluginPath" : ".",
         "plugins" : ['admin']
     },
@@ -71,7 +67,6 @@ sampleConfStr = '''
     #     "debug" : False,
     #     "restartOnOffline" : False,
     #     "daemon" : False,
-    #     "startAfterFetch" : False,
     #     "pluginPath" : "",
     #     "plugins" : ['admin']
     # },
@@ -87,7 +82,6 @@ rootConf = {
     "debug" : False,
     "restartOnOffline" : False,
     "daemon" : False,
-    "startAfterFetch" : False,
     "pluginPath" : "",
     "plugins" : ['admin']
 }
@@ -142,7 +136,6 @@ QQBot 机器人
     -nr, --norestart        在掉线时不要重新启动。
 
   其他：
-    -saf, --startAfterFetch 全部联系人资料获取完成后再启动 QQBot
     -pp PLUGINPATH, --pluginPath PLUGINPATH
                             设置插件目录
     -pl PLUGINS, --plugins PLUGINS
@@ -199,8 +192,6 @@ class QConf(object):
         parser.add_argument('-dm', '--daemon', action='store_true', default=None)
 
         parser.add_argument('-ndm', '--nodaemon', action='store_true')
-
-        parser.add_argument('-saf', '--startAfterFetch', action='store_true', default=None)
 
         parser.add_argument('-pp', '--pluginPath')
 
@@ -356,9 +347,6 @@ class QConf(object):
         INFO('调试模式：%s', self.debug and '开启' or '关闭')
         INFO('掉线后自动重启：%s', self.restartOnOffline and '是' or '否')
         INFO('后台模式（daemon 模式）：%s', self.daemon and '是' or '否')
-        INFO('启动方式：%s',
-             self.startAfterFetch and '慢启动（联系人列表获取完成后再启动）'
-                                   or '快速启动（登录成功后立即启动）')
         self.pluginPath and INFO('插件目录：%s', self.pluginPath)
         INFO('启动时需要加载的插件：%s', self.plugins)
 
