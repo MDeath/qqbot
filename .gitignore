@@ -18,3 +18,5 @@ qqbot/plugins/__saucenao_api/__pycache__/containers.cpython-38.pyc
 qqbot/plugins/__saucenao_api/__pycache__/errors.cpython-38.pyc
 qqbot/plugins/__saucenao_api/__pycache__/params.cpython-38.pyc
 qqbot/plugins/__saucenao_api/__pycache__/saucenao_api.cpython-38.pyc
+qqbot/plugins/__pycache__/player.cpython-38.pyc
+qqbot/plugins/__pycache__/twentyone.cpython-38.pyc
