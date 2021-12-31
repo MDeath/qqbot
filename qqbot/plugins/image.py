@@ -44,7 +44,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                         message.append(soup.Plain(
                             f'\n相似度：{r.similarity}\n标题：{r.title}\n作者：{r.author}\nurl：{urls}'
                         ))
-                        if r.urls and 'https://www.pixiv.net/' in r.urls[0]:
+                        if r.urls and 'https://www.pixiv.net/' in r.urls[0] and 'pixiv'in bot.plugins:
                             ID = r.urls[0].split('=')[-1]
                             bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{ID}')])
                             return
