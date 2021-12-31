@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import json, os, time, traceback
+import json, os, time, traceback, requests
 
 import soup
 from utf8logger import WARNING
@@ -206,6 +206,12 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 if illust.id not in bot.r18['viewed']:
                     bot.r18['viewed'].append(illust.id)
                     break
+            else:
+                while True:
+                    illust = api.illust_detail(requests.get('https://api.lolicon.app/setu/v2?r18=1').json()['data'][0]['pid'])
+                    if 'error' not in illust:
+                        illust = illust.illust
+                        break
             illusts = [illust]
             break
         else: # 正常推荐
@@ -225,7 +231,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             node.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*message))
         error_number = 0
         while not bot.SendMessage(Type, target, soup.Forward(*node)):
-            if error_number == 1:
+            if error_number == 5:
                 bot.SendMessage(Type, target, soup.Plain('图床超时请等待'),quote=Source.id)
             error_number += 1
         return
@@ -251,7 +257,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             node += soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts))),
         error_number = 0
         while not bot.SendMessage(Type, target, soup.Forward(*node)):
-            if error_number == 1:
+            if error_number == 5:
                 bot.SendMessage(Type, target, soup.Plain('图床超时请等待'),quote=Source.id)
             error_number += 1
         return
