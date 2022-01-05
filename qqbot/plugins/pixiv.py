@@ -55,9 +55,29 @@ class Pixiv(ByPassSniApi):
                     continue
             return r
 
+def ranking(api:Pixiv,mode='day',date=time.strftime('%Y-%m-%d',time.localtime(time.time()-86400))):
+    n = 10
+    result = api.illust_ranking(mode,date=date)
+    node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv {time.strftime("%Y-%m-%d",time.localtime(time.time()-86400))} 日榜单'))]
+    while n:
+        for i in result.illusts:
+            if n < 1:break
+            if i.type != 'illust':continue
+            Plain = f'标题:{i.title} Pid:{i.id}{_n}作者:{i.user.name} Uid:{i.user.id}{_n}标签:{_n}'
+            for tag in i.tags:Plain += f'{tag.name}:{tag.translated_name}{_n}'
+            message = [soup.Plain(Plain)]
+            if i.page_count > 1:
+                for page in i.meta_pages:
+                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts)))
+            else:
+                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',hosts)))
+            node.append(soup.Node(2854196310,'QQ管家',*message))
+            n -= 1
+    return node
+
 def onPlug(bot): # 群限制用和登录pixiv
     if not hasattr(bot,'r18'):
-        bot.r18 = {'limit':5,'offset':0,'viewed':[]}
+        bot.r18 = {'offset':0,'viewed':[]}
         try:
             if os.path.exists(bot.conf.Config('R18.json')):
                 with open(bot.conf.Config('R18.json'), 'r', encoding='utf-8') as f:bot.r18['viewed'] = json.load(f)
@@ -91,7 +111,6 @@ def onUnplug(bot):
 
 def onInterval(bot): # 刷新群限制和刷新令牌
     bot.pixiv.auth()
-    bot.r18['limit'] = 5
     with open(bot.conf.Config('R18.json'),'w', encoding='utf-8') as f:json.dump(bot.r18['viewed'], f)
 
 @QQBotSched(hour=0)
@@ -114,31 +133,19 @@ def day_r18(bot):
             end_date=None, 
             timezone=None)
 def day_ranking(bot):
-    '''\
-    每日凌晨6点发送pixiv日榜'''
     if not hasattr(bot, 'pixiv'):onPlug(bot)
-    api:Pixiv = bot.pixiv
-    n = 10
-    result = api.illust_ranking()
-    node = [soup.Node(2854196310,'QQ管家',soup.Plain('Pixiv 每日榜'))]
-    while n > 0:
-        for i in result.illusts:
-            if n < 1:break
-            if i.type != 'illust':continue
-            Plain = f'标题:{i.title} Pid:{i.id}{_n}作者:{i.user.name} Uid:{i.user.id}{_n}标签:'
-            for tag in i.tags:Plain += f'{_n}{tag.name}:{tag.translated_name}'
-            message = [soup.Plain(Plain)]
-            if i.page_count > 1:
-                for page in i.meta_pages:
-                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts)))
-            else:
-                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',hosts)))
-            node.append(soup.Node(2854196310,'QQ管家',*message))
-            n -= 1
-        if n > 0:
-            result = api.illust_ranking(**api.parse_qs(result.next_url))
+    node = ranking(bot.pixiv)
     for g in bot.Group:
-        while not bot.SendMessage('Group', g.id, soup.Forward(*node)):pass
+        while True:
+            code = bot.SendMessage('Group', g.id, soup.Forward(*node))
+            if type(code) is str:return
+            if code == 30:
+                top = []
+                for n in node:
+                    if len(top) < len(n.messageChain):top = n.messageChain
+                top[4] = soup.Plain(f'剩余 {top[4:]} 张被折叠，请使用 pid 查询')
+                node[node.index(top)] = top[:5]
+            
 
 @QQBotSched(year=None, 
             month=None, 
@@ -153,29 +160,18 @@ def day_ranking(bot):
             timezone=None)
 def day_r18_ranking(bot):
     if not hasattr(bot, 'pixiv'):onPlug(bot)
-    api:Pixiv = bot.pixiv
-    n = 10
-    result = api.illust_ranking('day_r18')
-    node = [soup.Node(2854196310,'QQ管家',soup.Plain('Pixiv 每日榜'))]
-    while n > 0:
-        for i in result.illusts:
-            if n < 1:break
-            if i.type != 'illust':continue
-            Plain = f'标题:{i.title} Pid:{i.id}{_n}作者:{i.user.name} Uid:{i.user.id}{_n}标签:'
-            for tag in i.tags:Plain += f'{_n}{tag.name}:{tag.translated_name}'
-            message = [soup.Plain(Plain)]
-            if i.page_count > 1:
-                for page in i.meta_pages:
-                    message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts)))
-            else:
-                message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',hosts)))
-            node.append(soup.Node(2854196310,'QQ管家',*message))
-            n -= 1
-        if n > 0:
-            result = api.illust_ranking(**api.parse_qs(result.next_url))
+    node = ranking(bot.pixiv,'day_r18')
     for f in bot.Friend:
-        if f.remark == 'Admin':
-            while not bot.SendMessage('Friend', f.id, soup.Forward(*node)):pass
+        if f.remark != 'Admin' or f.nickname == 'Admin':continue
+        while True:
+            code = bot.SendMessage('Friend', f.id, soup.Forward(*node))
+            if type(code) is str:return
+            if code == 30:
+                top = []
+                for n in node:
+                    if len(top) < len(n.messageChain):top = n.messageChain
+                top[4] = soup.Plain(f'剩余 {top[4:]} 张被折叠，请使用 pid 查询')
+                node[node.index(top)] = top[:5]
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
@@ -197,10 +193,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         node = [soup.Node(Sender.id,None,soup.Plain(keyword))]
         for keyword in ['r18', 'R18', 'r-18', 'R-18']: # r18
             if keyword not in Plain:continue
-            if bot.r18['limit'] < 1: # r18 限制
-                bot.SendMessage(Type,target,soup.Plain('r18每5分钟刷新'))
-                return
-            bot.r18['limit'] -= 1
             for illust in api.illust_ranking('day_r18',offset=bot.r18['offset']).illusts:
                 bot.r18['offset'] += 1
                 if illust.id not in bot.r18['viewed']:
@@ -220,8 +212,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             else:number = (number > 15 and 15) or (number < 1 and 1) or number
             illusts = api.illust_recommended().illusts[:number]
         for illust in illusts: # 合并发送
-            Plain = f'标题:{illust.title} Pid:{illust.id}{_n}作者:{illust.user.name} Uid:{illust.user.id}{_n}类型:{illust.type} 收藏:{illust.total_bookmarks} 标签:'
-            for tag in illust.tags:Plain += f'{_n}{tag.name}:{tag.translated_name}'
+            Plain = f'标题:{illust.title} Pid:{illust.id}{_n}作者:{illust.user.name} Uid:{illust.user.id}{_n}类型:{illust.type} 收藏:{illust.total_bookmarks} 标签:{_n}'
+            for tag in illust.tags:Plain += f'{tag.name}:{tag.translated_name}{_n}'
             message = [soup.Plain(Plain)]
             if illust.page_count > 1:
                 for page in illust.meta_pages:
@@ -230,11 +222,18 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 message.append(soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts)))
             node.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*message))
         error_number = 0
-        while not bot.SendMessage(Type, target, soup.Forward(*node)):
+        while True:
+            code = bot.SendMessage(Type, target, soup.Forward(*node))
             if error_number == 5:
                 bot.SendMessage(Type, target, soup.Plain('图床超时请等待'),quote=Source.id)
             error_number += 1
-        return
+            if type(code) is str:return
+            if code == 30:
+                top = []
+                for n in node:
+                    if len(top) < len(n.messageChain):top = n.messageChain
+                top[4] = soup.Plain(f'剩余 {top[4:]} 张被折叠，请使用 pid 查询')
+                node[node.index(top)] = top[:5]
 
     Plain = Plain.replace(' ','').replace(':','').replace('：','')
     if Plain.startswith(('pid','Pid','PID')):
@@ -256,10 +255,13 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         else:
             node += soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts))),
         error_number = 0
-        while not bot.SendMessage(Type, target, soup.Forward(*node)):
-            if error_number == 5:
-                bot.SendMessage(Type, target, soup.Plain('图床超时请等待'),quote=Source.id)
-            error_number += 1
+        for n in range(0,len(node),50):
+            while True:
+                code = bot.SendMessage(Type, target, soup.Forward(*node[n:n+50]))
+                if error_number == 5:
+                    bot.SendMessage(Type, target, soup.Plain('图床超时请等待'),quote=Source.id)
+                error_number += 1
+                if type(code) is str:break
         return
 
     if Plain.startswith(('uid','Uid','UID')):
