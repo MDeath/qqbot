@@ -28,8 +28,8 @@ def onUnplug(bot):
 
 def admin_ID(bot, ID, admin=False):
     for f in bot.Friend:
-        if f.id == ID and f.remark == 'Admin':return True
-        elif f.id == ID and f.remark == 'User' and admin == 0:return True
+        if f.id == ID and f.remark == 'Admin' and f.nickname != 'Admin':return True
+        elif f.id == ID and f.remark == 'User' and f.nickname != 'User' and admin:return True
     else:return False
 
 def Reply(bot,type,target):
