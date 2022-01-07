@@ -68,7 +68,7 @@ class MiraiApi():
         r = parse_json(mode(f'http://{self.host}:{self.port}/{url}', **kwargs).text)
         if hasattr(r, 'code') and r.code:
             self.ErrorCode(r.code)
-            return
+            return str(r.code)
         if hasattr(r, 'data'):
             return r.data
         elif hasattr(r, 'messageId'):
