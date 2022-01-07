@@ -70,16 +70,16 @@ def illust_node(illusts, sendid=2854196310, name='QQ管家'):
         node.append(soup.Node(sendid,name,*message))
     return node
 
-def SendForward(bot, Type, target, node):
-        while True:
-            code = bot.SendMessage(Type, target, soup.Forward(*node))
-            if type(code) is str:return
-            if code == 30:
-                top = []
-                for n in node:
-                    if len(top) < len(n.messageChain):top = n.messageChain
-                top[4] = soup.Plain(f'剩余 {top[4:]} 张被折叠，请使用 pid 查询')
-                node[node.index(top)] = top[:5]
+def foldnode(node):
+        top = node[0]
+        for n in node:
+            if len(top.messageChain) < len(n.messageChain):top = n
+        msg = ''
+        for n in top.messageChain[4:]:msg += f'{_n}{n.url}'
+        msg += f'{_n}剩余 {len(top.messageChain[4:])} 张被折叠，请使用 pid 查询'
+        top.messageChain[4] = soup.Plain(msg)
+        top.messageChain = top.messageChain[:5]
+        return node
 
 def onPlug(bot): # 群限制用和登录pixiv
     if not hasattr(bot,'r18'):
@@ -140,11 +140,14 @@ def day_r18(bot):
             timezone=None)
 def day_ranking(bot):
     if not hasattr(bot, 'pixiv'):onPlug(bot)
-    illusts = bot.pixiv.illust_ranking(mode='day',date=time.strftime('%Y-%m-%d',time.localtime(time.time()-86400)))
+    illusts = bot.pixiv.illust_ranking(mode='day')
     node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv {time.strftime("%Y-%m-%d",time.localtime(time.time()-86400))} 日榜单'))]
     node += illust_node(illusts.illusts[:10])
     for g in bot.Group:
-        SendForward(bot,'Group',g.id,node)
+        while True:
+            code = bot.SendMessage('Group',g.id, soup.Forward(*node))
+            if type(code) is int:break
+            if code == '30':node = foldnode(node)
             
 
 @QQBotSched(year=None, 
@@ -160,12 +163,15 @@ def day_ranking(bot):
             timezone=None)
 def day_r18_ranking(bot):
     if not hasattr(bot, 'pixiv'):onPlug(bot)
-    illusts = bot.pixiv.illust_ranking(mode='day_r18',date=time.strftime('%Y-%m-%d',time.localtime(time.time()-86400)))
-    node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv {time.strftime("%Y-%m-%d",time.localtime(time.time()-86400))} 日榜单'))]
+    illusts = bot.pixiv.illust_ranking('day_r18')
+    node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv R18榜单'))]
     node += illust_node(illusts.illusts[:10])
     for f in bot.Friend:
         if f.remark != 'Admin' or f.nickname == 'Admin':continue
-        SendForward(bot,'Friend',f.id,node)
+        while True:
+            code = bot.SendMessage('Friend',f.id, soup.Forward(*node))
+            if type(code) is int:break
+            if code == '30':node = foldnode(node)
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
@@ -207,7 +213,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 if error_number == 5:
                     bot.SendMessage(Type, target, soup.Plain('图床超时请等待'),quote=Source.id)
                 error_number += 1
-                if type(code) is str:break
+                if type(code) is int:break
         return
 
     node = []
@@ -253,8 +259,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if error_number == 5:
             bot.SendMessage(Type, target, soup.Plain('图床超时请等待'),quote=Source.id)
         error_number += 1
-        if type(code) is str:return
-        if code == 30:
+        if type(code) is int:return
+        if code == '30':
             top = []
             for n in node:
                 if len(top) < len(n.messageChain):top = n.messageChain
