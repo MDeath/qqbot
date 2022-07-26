@@ -34,7 +34,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 Message += Quote.messageChain
     if not Image:return
     
-    if Plain.replace(' ','').replace('\n','') == '搜图':
+    if Plain.replace(' ','').replace('\n','').startswith('搜图'):
         for img in Image:
             # Replace the key with your own
             sauce:SauceNao = bot.sauce
