@@ -13,8 +13,8 @@ def admin_ID(bot, ID, user=False):
     else:return False
 
 def Reply(bot,type,target):
-    def func(*message,quote=None):
-        return bot.SendMessage(type,target,*message,id=quote)
+    def func(*message,id=None):
+        return bot.SendMessage(type,target,*message,id=id)
     return func
 
 def trans(s:str):

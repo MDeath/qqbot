@@ -63,7 +63,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
 
 将以上代码另存为 sample.py （注意保存为 utf8 编码的文件）。放到 plugins/ 目录下，或系统中可以 import 到的目录下（如 python 的安装目录下的 Lib/site-packages 目录）。
 
-之后，保持前面的 qqbot 进程运行，之后发消息给bot或者在bot所在的群里发送 加载插件 [插件名]，则可将此文件中的 onQQMessage 函数注册到 QQBot 的相应事件上去。此时，用另外一个 QQ 向本 QQ 发送带有@机器人的消息 ，则会自动复读你的消息
+之后，保持前面的 qqbot 进程运行，之后发消息给bot或者在bot所在的群里发送 加载插件 [插件名]，则可将此文件中的 onQQMessage 函数注册到 QQBot 的相应事件上去。此时，向 bot 所在的群里发送带有@机器人的消息 ，则会自动回复并复读你的消息
 
 发消息给bot或者在bot所在的群里发送 卸载插件 [插件名] 可以卸载此插件及相应的回调函数。可以同时加载多个插件，此时各插件中的相应函数会依次被调用（但调用顺序和加载次序无关）。
 
@@ -77,11 +77,11 @@ QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息�
 
 🚧🚧🚧 以下还未修改完毕 🚧🚧🚧
 
-contact 代表消息发送者，其 ctype 属性可以为 `buddy`/`group`/`discuss` ，代表 好友/群/讨论组 对象，表示本消息是 好友消息/群消息/讨论组消息 。
+Type 代表消息来源类型，可以为 `Friend`/`Group`/`Temp` ，代表 好友/群/临时 对象，表示本消息是 好友消息/群消息/临时消息 。
 
-member 仅当本消息为  群消息或讨论组消息 时有效，代表实际发消息的成员，它的 ctype 属性可以为 `group-member`/`discuss-member` ，代表 群成员/讨论组成员 对象。当本消息为 好友消息 时， member 等于 None 。
+Sender 本消息发送者  代表实际发消息的对象，可以来自 `Friend`/`Group`/`Temp` 当本消息为 好友消息 或 临时消息 时， 不包含 `group` 对象。当本消息为 群消息 时 包含 `group` 对象，代表 群成员 对象。
 
-contact 和 member 都是 QContact 对象，不同类型的 QContact 对象所具有的属性含义见： [qcontact-attr](https://github.com/pandolia/qqbot/blob/master/qcontact-attr.md) 。注意所有 QContact 对象都是 **只读对象** ，只能读取它的属性，不能设置它的属性，也不能向它添加额外的属性。 
+Source 代表本消息，包含消息 `id` `time`
 
 可以调用 QQBot 对象的 SendTo 接口向 QContact 对象发送消息，但要注意：只可以向 好友/群/讨论组 发消息， **不可以向 群成员/讨论组成员 发送消息** 。也就是说，只可以调用 bot.SendTo(contact, 'xxx') ， 不可以调用 bot.SendTo(member, 'xxx') 。
 
