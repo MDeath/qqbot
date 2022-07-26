@@ -2,9 +2,15 @@
 
 from __saucenao_api import SauceNao
 import soup
-from mainloop import Put
+from admin import admin_ID
 
 api_key = 'bb8c58baab8a50ab362c752b9f4252147c376da9'
+
+def onPlug(bot):
+    bot.sauce = SauceNao(api_key)
+
+def onUnplug(bot):
+    del bot.sauce
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
@@ -31,7 +37,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     if Plain.replace(' ','').replace('\n','') == '搜图':
         for img in Image:
             # Replace the key with your own
-            sauce = SauceNao(api_key)
+            sauce:SauceNao = bot.sauce
             results = sauce.from_url(img.url) # or from_file()
             message = []
             if results:
@@ -44,12 +50,21 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                         message.append(soup.Plain(
                             f'\n相似度：{r.similarity}\n标题：{r.title}\n作者：{r.author}\nurl：{urls}'
                         ))
-                        if r.urls and 'https://www.pixiv.net/' in r.urls[0] and 'pixiv'in bot.plugins:
+                        if r.urls and 'https://www.pixiv.net/' in r.urls[0] and 'pixiv'in bot.plugins and r.urls and 'fanbox' not in r.urls[0]:
                             ID = r.urls[0].split('=')[-1]
                             bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{ID}')])
                             return
+                        elif 'source' in r.raw['data']:
+                            if'https://i.pximg.net' in r.raw['data']['source'] or 'https://www.pixiv.net' in r.raw['data']['source']:
+                                ID = r.raw['data']['source'].split('/')[-1]
+                                bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{ID}')])
+                                return
+                            elif r.raw['data']['source'].startswith('http'):
+                                for f in bot.Friend:
+                                    if admin_ID(bot, f.id):
+                                        bot.SendMessage('Friend', f.id, soup.Plain(r.raw))
                     else:
                         message.append(soup.Plain(
                             f'\n相似度：{r.similarity}\nurl：{urls}'
                         ))
-                while not bot.SendMessage(Type, target, *message, quote=quote):pass
+                while not bot.SendMessage(Type, target, *message, id=quote):pass

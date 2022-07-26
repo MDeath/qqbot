@@ -4,9 +4,6 @@ import json, subprocess, threading, sys, platform, os
 
 PY3 = sys.version_info[0] == 3
 
-JsonLoads = PY3 and json.loads or (lambda s: encJson(json.loads(s)))
-JsonDumps = json.dumps
-
 class JsonDict(dict):
     def __getattr__(self, attr):
         try:
@@ -23,6 +20,11 @@ class JsonDict(dict):
 
 def parse_json(json_str):
     return json.loads(json_str, object_hook=JsonDict)
+
+JsonLoad = lambda *avgs, **kwavgs: JsonDict(json.load(*avgs, **kwavgs))
+JsonDump = json.dump
+JsonLoads = lambda *avgs, **kwavgs: JsonDict(json.loads(*avgs, **kwavgs))
+JsonDumps = json.dumps
 
 _PASS = lambda s: s
 
@@ -192,15 +194,6 @@ def AutoTest():
                 else:
                     raw_input()
                 sys.stdout.write('\n')
-
-if not PY3:
-    import HTMLParser; htmlUnescape = HTMLParser.HTMLParser().unescape
-    def HTMLUnescape(s):
-        return htmlUnescape(s.decode('utf8')).replace(u'\xa0', u' ').encode('utf8')
-else:
-    import html.parser; htmlUnescape = html.parser.HTMLParser().unescape
-    def HTMLUnescape(s):
-        return htmlUnescape(s).replace('\xa0', ' ')
 
 def IsMainThread():
     return threading.current_thread().name == 'MainThread'

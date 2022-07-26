@@ -20,7 +20,7 @@ def _call(func, *args, **kwargs):
         ERROR('', exc_info=True)
         ERROR('执行 %s.%s 时出错，%s', func.__module__, func.__name__, e)
 
-class QQBot():
+class QQBot(object):
     def __init__(self) -> None:
         self.scheduler = BackgroundScheduler(daemon=True)
         self.schedTable = defaultdict(list)

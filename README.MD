@@ -56,7 +56,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if msg.type == 'ForwardMessage':pass 
         if msg.type == 'File':pass
     if bot.conf.qq in At: # 如果有@机器人
-        bot.SendMessage(Type,target,Message,quote=Source.id)
+        bot.SendMessage(Type,target,Message,id=Source.id)
 ```
 
 注意，上面注册的响应函数的函数名必须为 “onQQMessage” ，函数参数也必须和上面的一致。

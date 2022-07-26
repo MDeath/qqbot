@@ -110,7 +110,7 @@ class MiraiApi():
         payload = {'sessionKey':self.session,'id':messageID}
         return self.basicsession(Get, 'messageFromId', params=payload)
 
-    def SendMessage(self, Type:str, target:int, *message:dict, quote:int=None) -> int: # 发给好友、群、临时消息，返回消息ID
+    def SendMessage(self, Type:str, target:int, *message:dict, id:int=None) -> int: # 发给好友、群、临时消息，返回消息ID
         r'''form = Friend, Group, Temp
         Group and Friend: target = target
         Temp: qq = qqID, or group = groupID
@@ -127,12 +127,12 @@ class MiraiApi():
             payload['qq'] = target
             payload['group'] = target
         payload['messageChain'] = [msg for msg in message]
-        if quote:
-            payload['quote'] = quote
-        INFO(f'发到 {Type} {target}:{(quote and "回复消息 "+str(quote)+" ") or " "}{message}')
+        if id:
+            payload['quote'] = id
+        INFO(f'发到 {Type} {target}:{(id and "回复消息 "+str(id)+" ") or " "}{message}')
         Quote = self.basicsession(Post, f'send{Type}Message', data=json.dumps(payload))
         if Quote:return Quote
-        else:WARNING(f'发到 {Type} {target} 发送失败')
+        else:return WARNING(f'发到 {Type} {target} 发送失败')
 
     def Nudge(self, type:str, target:int, id:int) -> None: # 戳一戳
         r'''kind = Friend, Group, Stranger
@@ -248,7 +248,7 @@ class MiraiApi():
         if mode == 'get':
             return self.basicsession(Get, 'memverInfo', params=payload)
         elif mode == 'set':
-            info = dict(self.memberInfo('get', target, memberID))
+            info = self.MemberInfo('get', target, memberID)
             info['name'] = name or info['name'] # 群名称
             info['specialTitle'] = special or info['specialTitle'] # 群头衔
             payload['info'] = info

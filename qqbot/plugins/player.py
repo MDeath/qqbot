@@ -14,6 +14,12 @@ def onPlug(bot):
                 json.dump([], f, ensure_ascii=False, indent=4)
             Map = []
         setattr(bot, 'player', Map)
+        for f in bot.Friend:
+            for p in Map:
+                if p
+                Map.append()
+        for g in bot.Group:
+            for m in bot.Member(g.id):
         
 def onUnplug(bot):
     if hasattr(bot, 'player'):

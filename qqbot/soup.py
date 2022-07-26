@@ -35,7 +35,7 @@ def Face(id:int=None, name:str=None):
 id   | Int     | QQ表情编号，可选，优先高于name
 name | String  | QQ表情拼音，可选'''
     params = {"type": "Face"}
-    if id:params["faceId":] = id
+    if id:params["faceId"] = id
     if name:params["name"] = name
     return JsonDict(params)
 
@@ -152,6 +152,7 @@ message    | Array  | 消息数组
 id         | Int    | 可以只使用消息id，从缓存中读取一条消息作为节点'''
     params = {}
     if sender:params['senderId'] = sender
+    if not name:name = str(sender)
     if name:params['senderName'] = name
     params['messageChain'] = [msg for msg in message]
     if t:params['time'] = t or (int(time())if not id else None)
