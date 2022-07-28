@@ -95,3 +95,155 @@ class ContactDB(object):
         else:
             self.conn.commit()
             return rName(tinfo)
+    
+    def List(self, tinfo, cinfo=None):
+        tname, tmaker = tName(tinfo), tMaker(tinfo)
+
+        if not self.exist(tname):
+            return None
+            
+        if cinfo is None:
+            items = self.selectAll(tname)
+        elif cinfo == '':
+            items = []
+        else:
+            like = False
+            if cinfo.isdigit():
+                column = 'qq'
+            else:
+                for tag in TAGS:
+                    if cinfo.startswith(tag):
+                        column = tag[:-1]
+                        cinfo = cinfo[len(tag):]
+                        break
+                    if cinfo.startswith(tag[:-1]+':like:'):
+                        column = tag[:-1]
+                        cinfo = cinfo[(len(tag)+5):]
+                        if not cinfo:
+                            return []
+                        like = True
+                        break
+                else:
+                    if cinfo.startswith(':like:'):
+                        cinfo = cinfo[6:]
+                        if not cinfo:
+                            return []
+                        if cinfo.isdigit():
+                            column = 'qq'
+                        else:
+                            column = 'name'
+                        like = True
+                    else:
+                        column = 'name'
+                
+            if column not in tmaker.fields:
+                return []
+
+            items = self.select(tname, column, cinfo, like)
+        
+        return [tmaker(*item) for item in items]
+    
+    def exist(self, tname):
+        self.cursor.execute(
+            ("SELECT tbl_name FROM sqlite_master "
+             "WHERE type='table' AND tbl_name='%s'") % tname
+        )
+        return bool(self.cursor.fetchall())
+
+    def select(self, tname, column, value, like=False):
+        if not like:
+            sql = "SELECT * FROM '%s' WHERE %s=?" % (tname, column)
+        else:
+            value = '%' + value + '%'
+            sql = "SELECT * FROM '%s' WHERE %s like ?" % (tname, column)
+        self.cursor.execute(sql, (value,))
+        return self.cursor.fetchall()
+
+    def selectAll(self, tname):
+        self.cursor.execute("SELECT * FROM '%s'" % tname)
+        return self.cursor.fetchall()
+    
+    def Delete(self, tinfo, c):
+        tname = tName(tinfo)
+        try:
+            self.cursor.execute("DELETE FROM '%s' WHERE uin=?" % tname, [c.uin])
+        except:
+            self.conn.rollback()
+            traceback.print_exc()
+            return False
+        else:
+            self.conn.commit()
+            return True
+    
+    def Modify(self, tinfo, c, **kw):
+        tname, tmaker = tName(tinfo), tMaker(tinfo)
+        colstr, values = [], []
+
+        for column, value in kw.items():
+            assert column in tmaker.fields
+            colstr.append("%s=?" % column)
+            values.append(value)
+            c.__dict__[column] = value
+
+        values.append(c.uin)
+
+        sql = "UPDATE '%s' SET %s WHERE uin=?" % (tname, ','.join(colstr))
+        try:
+            self.cursor.execute(sql, values)
+        except:
+            self.conn.rollback()
+            traceback.print_exc()
+            return False
+        else:
+            self.conn.commit()
+            return True
+
+    @classmethod
+    def NullContact(cls, tinfo, uin):
+        tmaker = tMaker(tinfo)
+        fields = []
+        for row in tmaker.columns.strip().split('\n'):
+            field, ftype = row.strip().split(None, 1)
+            if field == 'uin':
+                val = uin
+            elif field == 'name':
+                val = 'uin' + uin
+            elif ftype.startswith('VARCHAR'):
+                val = '#NULL'
+            else:
+                val = -1
+            fields.append(val)
+        return tmaker(*fields)
+
+if __name__ == '__main__':
+    db = ContactDB()
+    db.Update('buddy', [
+        ['qq1', 'uin1', 'nick昵称1', 'mark备注1', 'name名称1'],
+        ['qq2', 'uin2', 'nick昵称2', 'mark备注2', 'name名称2']
+    ])
+    bl = db.List('buddy')
+    print((bl, bl[0].__dict__))
+    
+    print(db.List('buddy', 'nick=nick昵称2'))
+    print(db.List('buddy', 'name名称1'))
+
+    db.Update('group', [
+        ['123456', 'uin849384', '昵称1', '备注1', '名称1', 'gcode1'],
+        ['456789', 'uin823484', '昵称2', '备注2', '名称2', 'gcode2']
+    ])
+    
+    print(db.List('group', '12345'))
+    g = db.List('group', '123456')[0]
+    
+    db.Update(g, [
+        ['123456', 'uin849384', '昵称1', '备注1', '名片1', '名称1', 123456, 78944, '成员',
+         2, 0, 100, 'tucao', 100],
+        ['123456', 'uin845684', '昵称2', '备注2', '名片2', '名称2', 123456, 78944, '成员',
+         2, 0, 100, 'tucao', 100]  
+    ])
+    
+    print(db.List(g, 'name:like:名称'))
+    print(db.List(g, '123456'))
+    print(db.List(g, '名称2'))
+    print(db.List(g, ':like:名称'))
+    print(db.List(g, ':like:1'))
