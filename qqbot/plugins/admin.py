@@ -163,7 +163,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         else:
             return
         for module in modules:
-            message += '\n' + module.__name__ + '模块'
+            message += '\n-= ' + module.__name__ + '模块 =-'
             for slotName in bot.slotsTable.keys():
                 if hasattr(module, slotName):
                     mod = getattr(module,slotName)
