@@ -297,7 +297,7 @@ def onQQEvent(bot, Message):
                     bot.SendMessage('Friend',f.id,soup.Plain(f'群 {Message.operator.group.name}({Message.operator.group.id}) 成员 {Message.member.memberName}({Message.member.id}) 被 {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] 解禁'))
                     bot.SendMessage('Group',Message.member.group.id,soup.Plain('啧'))
                 elif Message.type == 'MemberHonorChangeEvent': # 群员称号改变
-                    bot.SendMessage('Friend',f.id,soup.Plain(f'成员 {Message.member.memberName}({Message.member.id}) 在群 {Message.operator.group.name}({Message.operator.group.id}) {(Message.action=="achieve"and"获得")or "失去"} {Message.honor} 称号'))
+                    bot.SendMessage('Friend',f.id,soup.Plain(f'成员 {Message.member.memberName}({Message.member.id}) 在群 {Message.member.group.name}({Message.member.group.id}) {(Message.action=="achieve"and"获得")or "失去"} {Message.honor} 称号'))
                     if Message.action=='achieve'and Message.honor=='龙王':bot.SendMessage('Group',Message.member.group.id,soup.At(Message.member.id),soup.Plain('龙王给爷喷水'))
                 elif Message.type == 'OtherClientOnlineEvent': # 其他客户端上线
                     bot.SendMessage('Friend',f.id,soup.Plain(f'{Message.platform} 客户端上线'))
@@ -317,27 +317,27 @@ def onQQRequestEvent(bot, Message):
     申请事件'''
     for f in bot.Friend:
         if admin_ID(bot,f.id):
-            if Message.type == 'MemberJoinRequestEvent': # 添加好友申请
+            if Message.type == 'NewFriendRequestEvent': # 添加好友申请
+                '''
+                0	同意添加好友
+                1	拒绝添加好友
+                2	拒绝添加好友并添加黑名单，不再接收该用户的好友申请'''
+                bot.SendMessage('Friend',f.id,soup.Plain(f'{Message.nick}({Message.fromId}){(Message.groupId and" 通过群 "+[g.name for g in bot.Group if g.id==Message.groupId][0]+"("+str(Message.groupId)+")")or ""} 申请好友'))
+                return 0, '发送 菜单 查看基本指令'
+            elif Message.type == 'MemberJoinRequestEvent': # 用户入群申请（Bot需要有管理员权限）
                 '''
                 0	同意入群
                 1	拒绝入群
                 2	忽略请求
                 3	拒绝入群并添加黑名单，不再接收该用户的入群申请
                 4	忽略入群并添加黑名单，不再接收该用户的入群申请'''
-                bot.SendMessage('Friend',f.id,soup.Plain(f'{Message.nick}({Message.fromId}){Message.groupId and" 通过群"+str(Message.groupId)} 申请好友'))
+                bot.SendMessage('Friend',f.id,soup.Plain(f'{Message.nick}({Message.fromId}) 申请加入 {[g.name for g in bot.Group if g.id==Message.groupId][0]}({Message.groupId})'))
                 return 0, '欢迎'
-            elif Message.type == 'NewFriendRequestEvent': # 用户入群申请（Bot需要有管理员权限）
-                '''
-                0	同意添加好友
-                1	拒绝添加好友
-                2	拒绝添加好友并添加黑名单，不再接收该用户的好友申请'''
-                bot.SendMessage('Friend',f.id,soup.Plain(f'{Message.nick}({Message.fromId}) 申请加入 {Message.groupName}({Message.groupId})'))
-                return 0, '发送 菜单 查看基本指令'
             elif Message.type == 'BotInvitedJoinGroupRequestEvent': # Bot被邀请入群申请
                 '''
                 0	同意邀请
                 1	拒绝邀请'''
-                bot.SendMessage('Friend',f.id,soup.Plain(f'{Message.nick}({Message.fromId}) 邀请加入 {Message.groupName}({Message.groupId})'))
+                bot.SendMessage('Friend',f.id,soup.Plain(f'{Message.nick}({Message.fromId}) 邀请加入 {Message.groupId} 群'))
                 return 0, '发送 菜单 查看基本指令'
             else:
                 bot.SendMessage('Friend',f.id,soup.Plain(trans(Message)))
