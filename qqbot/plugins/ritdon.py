@@ -54,6 +54,8 @@ data = {
 }
 
 def onPlug(bot):
+    '''\
+    深夜图书馆'''
     try:
         if os.path.exists(bot.conf.Config('ritdon.json')):
             with open(bot.conf.Config('ritdon.json'), 'r', encoding='utf-8') as f:bot.ritdon = JsonLoad(f)
