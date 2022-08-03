@@ -144,7 +144,7 @@ def day_r18(bot):
     bot.r18['offset'] = 0
 
 @QQBotSched(day_of_week=1)
-def day_r18(bot):
+def week_r18(bot):
     bot.r18['viewed'] = []
 
 @QQBotSched(year=None, 
@@ -152,7 +152,7 @@ def day_r18(bot):
             day=None, 
             week=None, 
             day_of_week=None, 
-            hour=6, 
+            hour=8, 
             minute=None, 
             second=None, 
             start_date=None, 
@@ -181,21 +181,15 @@ def day_ranking(bot):
             start_date=None, 
             end_date=None, 
             timezone=None)
-def day_r18_ranking(bot,Type='Group',target=None):
+def day_r18_ranking(bot):
     if not hasattr(bot, 'pixiv'):onPlug(bot)
     illusts = bot.pixiv.illust_ranking('day_r18')
     node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv R18榜单'))]
     node += illusts_node(illusts.illusts[:10])
-    if target is None:
-        for f in bot.Friend:
-            if f.remark != 'Admin' or f.nickname == 'Admin':continue
-            while True:
-                code = bot.SendMessage('Friend',f.id, soup.Forward(*node))
-                if type(code) is int:break
-                if code == '30':node = fold_node(node)
-    elif target in [t.id for t in getattr(bot,Type)]:
+    for f in bot.Friend:
+        if f.remark != 'Admin' or f.nickname == 'Admin':continue
         while True:
-            code = bot.SendMessage(Type,target, soup.Forward(*node))
+            code = bot.SendMessage('Friend',f.id, soup.Forward(*node))
             if type(code) is int:break
             if code == '30':node = fold_node(node)
 
@@ -259,6 +253,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         return
         
     node = []
+    keyward = ('setu','色图','涩图')
     if Plain.startswith(('uid','Uid','UID')):
         try:uid = int(Plain[3:])
         except:
@@ -273,8 +268,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         node.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*message))
         illusts = bot.pixiv.user_illusts(user.user.id).illusts[:10]
 
-    elif Plain.startswith(('setu','色图','涩图')):
-        for kw in ['setu','色图','涩图']:Plain = Plain.replace(kw,'')
+    elif Plain.startswith(keyward):
+        for kw in keyward:Plain = Plain.replace(kw,'')
         if Plain.startswith(('r18', 'r-18')): # r18
             for illust in bot.pixiv.illust_ranking('day_r18',offset=bot.r18['offset']).illusts:
                 bot.r18['offset'] += 1
