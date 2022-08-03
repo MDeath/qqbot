@@ -27,14 +27,16 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     for msg in Message:
         if msg.type == 'Plain':Plain += msg.text
         if msg.type == 'Image':Image.append(msg)
-        elif msg.type == 'Quote':
+        if msg.type == 'Quote':
             quote = msg.id
             Quote = bot.MessageFromId(quote)
             if Quote:
                 Message += Quote.messageChain
-    if not Image:return
     
     if Plain.replace(' ','').replace('\n','').startswith('搜图'):
+        if not Image:
+            bot.SendMessage(Type, target, soup.Plain('没有关联图片'), id=Source.id)
+            return
         for img in Image:
             # Replace the key with your own
             sauce:SauceNao = bot.sauce
