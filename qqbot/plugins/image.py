@@ -62,9 +62,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                                 bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{ID}')])
                                 return
                             elif r.raw['data']['source'].startswith('http'):
-                                for f in bot.Friend:
-                                    if admin_ID(bot, f.id):
-                                        bot.SendMessage('Friend', f.id, soup.Plain(r.raw))
+                                for f in admin_ID():
+                                    bot.SendMessage('Friend', f, soup.Plain(r.raw))
                     else:
                         message.append(soup.Plain(
                             f'\n相似度：{r.similarity}\nurl：{urls}'

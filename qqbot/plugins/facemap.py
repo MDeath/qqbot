@@ -65,7 +65,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                     bot.SendMessage(Type,target,soup.Image(url=d['image'][randint(1,len(d['image']))-1]['url']))
         return
 
-    if not admin_ID(bot, Sender.id):return
+    if Sender.id not in admin_ID():return
     message = message.replace('表情包','',1)
 
     # Del

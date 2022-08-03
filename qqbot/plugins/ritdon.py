@@ -107,9 +107,8 @@ def last_member_id(bot):
             'inajax': '1',
         }
         response = requests.post('http://ritdon.com/home.php', params=params, cookies=cookies, data=data, verify=False)
-        for f in bot.Friend:
-            if admin_ID(bot, f.id):
-                bot.SendMessage('Friend', f.id, soup.Plain(f'{bot.ritdon.last_member_id} 加为好友'))
+        for f in admin_ID():
+            bot.SendMessage('Friend', f, soup.Plain(f'{bot.ritdon.last_member_id} 加为好友'))
         bot.ritdon.last_member_id += 1
         with open(bot.conf.Config('ritdon.json'),'w', encoding='utf-8') as f:JsonDump(bot.ritdon, f, indent=4)
     if f'<em id="return_a_friend_li_2">批准请求</em>' in response.text:
@@ -121,8 +120,7 @@ def last_member_id(bot):
             'inajax': '1',
         }
         response = requests.post('http://ritdon.com/home.php', headers=headers, params=params, cookies=cookies, data=data, verify=False)
-        for f in bot.Friend:
-            if admin_ID(bot, f.id):
-                bot.SendMessage('Friend', f.id, soup.Plain(f'{bot.ritdon.last_member_id} 批准请求'))
+        for f in admin_ID():
+            bot.SendMessage('Friend', f, soup.Plain(f'{bot.ritdon.last_member_id} 批准请求'))
         bot.ritdon.last_member_id += 1
         with open(bot.conf.Config('ritdon.json'),'w', encoding='utf-8') as f:JsonDump(bot.ritdon, f, indent=4)
