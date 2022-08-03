@@ -83,15 +83,15 @@ def onUnplug(bot):
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
     输入指令使用
-    ### 一般权限
+    -=# 一般权限
     菜单
     更新联系人
     插件列表
     说明(可附带插件名)
-    ### 管理员权限
+    -=# 管理员权限
     加载插件《插件名》
     卸载插件《插件名》
-    ### 超级权限
+    -=# 超级权限
     关机 重启 
     命令行前置符 ￥ 或 $'''
     if Type not in ['Friend', 'Group']:
@@ -125,7 +125,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     else:
         target = Sender.id
 
-    reply = lambda msg:bot.SendMessage(Type,target,*msg)
+    reply = lambda *msg:bot.SendMessage(Type,target,*msg)
 
     if Plain.startswith(('$', '￥'))and Sender.id in admin_ID(True):
         try:
@@ -135,17 +135,13 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         reply(soup.Plain(rt))
         return
     
-    if FlashImage:
-        for a in admin_ID():bot.SendMessage('Friend',a,soup.Image(id=FlashImage.id))
+    if FlashImage:[bot.SendMessage('Friend',a,soup.Image(id=FlashImage.id))for a in admin_ID()]
+    if bot.conf.qq in At:[bot.SendMessage('Friend',a,*Message)for a in admin_ID()]
 
     n = '\n'
     plug = [m.split('.')[0] for m in os.listdir(bot.conf.pluginPath)]
     
-    if bot.conf.qq in At and Plain in ['who is your daddy','你是谁的']:
-        reply(soup.At(Sender.id))
-        return
-
-    elif '菜单' == Plain:
+    if Plain in ['菜单','帮助','help','memu']:
         reply(soup.Plain(onQQMessage.__doc__))
         return
 
