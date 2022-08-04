@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import os,json,time,traceback
+import os,json,random,time,traceback
+
+from scipy import rand
 
 from qqbotcls import QQBotSched,_bot
 from mainloop import Put
@@ -109,7 +111,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if msg.type == 'Face':pass
         if msg.type == 'Plain':Plain += msg.text
         if msg.type == 'Image':Image.append(msg)
-        if msg.type == 'FlashImage':FlashImage.append(msg)
+        if msg.type == 'FlashImage':FlashImage = msg
         if msg.type == 'Voice':Voice = msg
         if msg.type == 'Xml':Xml = msg.xml
         if msg.type == 'Json':Json.append(msg.json)
@@ -135,8 +137,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         reply(soup.Plain(rt))
         return
     
-    if FlashImage:[bot.SendMessage('Friend',a,soup.Image(id=FlashImage.id))for a in admin_ID()]
-    if bot.conf.qq in At:[bot.SendMessage('Friend',a,*Message)for a in admin_ID()]
+    if FlashImage:[bot.SendMessage('Friend',a,soup.Image(id=FlashImage.imageId))for a in admin_ID()]
+    if bot.conf.qq in At:[bot.SendMessage('Friend',a,soup.Plain('[@ME]'),*[msg for msg in Message if msg.type!='At'])for a in admin_ID()]
 
     n = '\n'
     plug = [m.split('.')[0] for m in os.listdir(bot.conf.pluginPath)]
@@ -255,7 +257,7 @@ def onQQEvent(bot, Message):
             elif Message.type == 'FriendRecallEvent': # 好友消息撤回
                 bot.SendMessage('Friend',f,soup.Plain(f'好友 {Message.authorId} 撤回了消息ID {Message.messageId}'))
             elif Message.type == 'NudgeEvent': # 戳一戳事件
-                bot.SendMessage('Friend',f,soup.Plain(f'{(Message.subject.kind=="Group" and "群") or "好友"}({Message.fromId}) 戳了戳 {Message.target} 的脸'))
+                if Message.target==bot.conf.qq:bot.SendMessage('Friend',f,soup.Plain(f'{(Message.subject.kind=="Group" and "群") or "好友"}({Message.fromId}) 戳了戳 {Message.target} 的脸'))
             elif Message.type == 'GroupNameChangeEvent': # 某个群名改变
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.origin}({Message.group.id}) 被 {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] 改成 {Message.current}'))
             elif Message.type == 'GroupEntranceAnnouncementChangeEvent': # 某群入群公告改变
@@ -270,10 +272,10 @@ def onQQEvent(bot, Message):
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.group.name}({Message.group.id}) {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] {(Message.current and "开启了邀请入群")or "关闭了邀请入群"}'))
             elif Message.type == 'MemberJoinEvent': # 新人入群的事件
                 bot.SendMessage('Friend',f,soup.Plain(f'新人 {Message.member.memberName}({Message.member.id}) 加入了 {Message.member.group.name}({Message.member.group.id}) 群'))
-                bot.SendMessage('Group',Message.member.group.id,soup.Plain('欢迎新人'),soup.Face(13))
+                if random.randint(0,1):bot.SendMessage('Group',Message.member.group.id,soup.Plain('欢迎新人'),soup.Face(13))
             elif Message.type == 'MemberLeaveEventKick': # 成员被踢出群（该成员不是Bot）
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.operator.group.name}({Message.operator.group.id}) 成员 {Message.member.memberName}({Message.member.id}) 被 {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] 踢了'))
-                bot.SendMessage('Group',Message.member.group.id,soup.Face(13))
+                if random.randint(0,1):bot.SendMessage('Group',Message.member.group.id,soup.Face(13))
             elif Message.type == 'MemberLeaveEventQuit': # 成员主动离群（该成员不是Bot）
                 bot.SendMessage('Friend',f,soup.Plain(f'{Message.member.memberName}({Message.member.id}) 退出了 {Message.member.group.name}({Message.member.group.id})'))
             elif Message.type == 'MemberCardChangeEvent': # 群名片改动
@@ -284,13 +286,13 @@ def onQQEvent(bot, Message):
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.member.group.name}({Message.member.group.id}) 成员 {Message.member.memberName}({Message.member.id}) 权限 {Message.origin} 改为 {Message.current}'))
             elif Message.type == 'MemberMuteEvent': # 群成员被禁言事件（该成员不是Bot）
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.operator.group.name}({Message.operator.group.id}) 成员 {Message.member.memberName}({Message.member.id}) 被 {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] 禁言 {time.strftime("%j天%H时%M分",time.gmtime(Message.durationSeconds))}'))
-                bot.SendMessage('Group',Message.member.group.id,soup.At(Message.member.id),soup.Plain('你倒是说句话呀'),soup.Face(13))
+                if random.randint(0,1):bot.SendMessage('Group',Message.member.group.id,soup.At(Message.member.id),soup.Plain('你倒是说句话呀'),soup.Face(13))
             elif Message.type == 'MemberUnmuteEvent': # 群成员被取消禁言事件（该成员不是Bot）
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.operator.group.name}({Message.operator.group.id}) 成员 {Message.member.memberName}({Message.member.id}) 被 {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] 解禁'))
-                bot.SendMessage('Group',Message.member.group.id,soup.Plain('啧'))
+                if random.randint(0,1):bot.SendMessage('Group',Message.member.group.id,soup.Plain('啧'))
             elif Message.type == 'MemberHonorChangeEvent': # 群员称号改变
                 bot.SendMessage('Friend',f,soup.Plain(f'成员 {Message.member.memberName}({Message.member.id}) 在群 {Message.member.group.name}({Message.member.group.id}) {(Message.action=="achieve"and"获得")or "失去"} {Message.honor} 称号'))
-                if Message.action=='achieve'and Message.honor=='龙王':bot.SendMessage('Group',Message.member.group.id,soup.At(Message.member.id),soup.Plain('龙王给爷喷水'))
+                if Message.action=='achieve'and Message.honor=='龙王'and random.randint(0,1):bot.SendMessage('Group',Message.member.group.id,soup.At(Message.member.id),soup.Plain('龙王给爷喷水'))
             elif Message.type == 'OtherClientOnlineEvent': # 其他客户端上线
                 bot.SendMessage('Friend',f,soup.Plain(f'{Message.platform} 客户端上线'))
             elif Message.type == 'OtherClientOfflineEvent': # 其他客户端下线
