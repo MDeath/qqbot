@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os,json,random,time,traceback
+from attr import has
 
 from scipy import rand
 
@@ -137,7 +138,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         reply(soup.Plain(rt))
         return
     
-    if FlashImage:[bot.SendMessage('Friend',a,soup.Image(id=FlashImage.imageId))for a in admin_ID()]
+    if FlashImage:
+        msg = f"{(hasattr(Sender,'group')and'群 '+Sender.group.name+'('+str(Sender.group.id)+') '+Sender.memberName+'('+str(Sender.id)+') ')or'好友 '+Sender.nickname+'('+str(Sender.id)+') '} 的闪图"
+        [bot.SendMessage('Friend',a,soup.Plain(msg),soup.Image(id=FlashImage.imageId))for a in admin_ID()]
     if bot.conf.qq in At:[bot.SendMessage('Friend',a,soup.Plain('[@ME]'),*[msg for msg in Message if msg.type!='At'])for a in admin_ID()]
 
     n = '\n'
@@ -253,8 +256,10 @@ def onQQEvent(bot, Message):
             elif Message.type == 'BotLeaveEventDisband': # Bot因群主解散群而退出群, 操作人一定是群主
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.group.name}({Message.group.id}) 被解散'))
             elif Message.type == 'GroupRecallEvent': # 群消息撤回
+                bot.SendMessage('Friend',f,soup.Forward(soup.Node(id=Message.messageId)))
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.group.name}({Message.group.id}) {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] 撤回了 {Message.authorId} 的消息ID {Message.messageId}'))
             elif Message.type == 'FriendRecallEvent': # 好友消息撤回
+                bot.SendMessage('Friend',f,soup.Forward(soup.Node(id=Message.messageId)))
                 bot.SendMessage('Friend',f,soup.Plain(f'好友 {Message.authorId} 撤回了消息ID {Message.messageId}'))
             elif Message.type == 'NudgeEvent': # 戳一戳事件
                 if Message.target==bot.conf.qq:bot.SendMessage('Friend',f,soup.Plain(f'{(Message.subject.kind=="Group" and "群") or "好友"}({Message.fromId}) 戳了戳 {Message.target} 的脸'))
@@ -294,9 +299,9 @@ def onQQEvent(bot, Message):
                 bot.SendMessage('Friend',f,soup.Plain(f'成员 {Message.member.memberName}({Message.member.id}) 在群 {Message.member.group.name}({Message.member.group.id}) {(Message.action=="achieve"and"获得")or "失去"} {Message.honor} 称号'))
                 if Message.action=='achieve'and Message.honor=='龙王'and random.randint(0,1):bot.SendMessage('Group',Message.member.group.id,soup.At(Message.member.id),soup.Plain('龙王给爷喷水'))
             elif Message.type == 'OtherClientOnlineEvent': # 其他客户端上线
-                bot.SendMessage('Friend',f,soup.Plain(f'{Message.platform} 客户端上线'))
+                bot.SendMessage('Friend',f,soup.Plain(f'{Message.client.platform} 客户端{(hasattr(Message,"kind") and Message.kind)or""}上线'))
             elif Message.type == 'OtherClientOfflineEvent': # 其他客户端下线
-                bot.SendMessage('Friend',f,soup.Plain(f'{Message.platform} 客户端下线'))
+                bot.SendMessage('Friend',f,soup.Plain(f'{Message.client.platform} 客户端下线'))
             elif Message.type == 'CommandExecutedEvent': # 命令被执行
                 pass
             else:
