@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import json, os, time, traceback, requests
+from admin import admin_ID
 
 import soup
 from utf8logger import WARNING
@@ -72,8 +73,6 @@ def illust_node(illust,bot,Type,target,sender=2854196310, name='QQ管家',Source
                 bot.SendMessage(Type, target, soup.Plain('图床超时请等待'),id=Source)
             error_number += 1
             if type(code) is int:break
-    return
-
 
 def illusts_node(illusts, sender=2854196310, name='QQ管家'):
     node = []
@@ -158,11 +157,16 @@ def week_r18(bot):
             start_date=None, 
             end_date=None, 
             timezone=None)
-def day_ranking(bot):
+def day_ranking(bot,target=None,Type='Group'):
     if not hasattr(bot, 'pixiv'):onPlug(bot)
     illusts = bot.pixiv.illust_ranking(mode='day')
     node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv {time.strftime("%Y-%m-%d",time.localtime(time.time()-86400))} 日榜单'))]
     node += illusts_node(illusts.illusts[:10])
+    if target:
+        while True:
+            code = bot.SendMessage(Type,target, soup.Forward(*node))
+            if type(code) is int:return
+            if code == '30':node = fold_node(node)
     for g in bot.Group:
         while True:
             code = bot.SendMessage('Group',g.id, soup.Forward(*node))
@@ -181,15 +185,19 @@ def day_ranking(bot):
             start_date=None, 
             end_date=None, 
             timezone=None)
-def day_r18_ranking(bot):
+def day_r18_ranking(bot,target=None,Type='Group'):
     if not hasattr(bot, 'pixiv'):onPlug(bot)
     illusts = bot.pixiv.illust_ranking('day_r18')
     node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv R18榜单'))]
     node += illusts_node(illusts.illusts[:10])
-    for f in bot.Friend:
-        if f.remark != 'Admin' or f.nickname == 'Admin':continue
+    if target:
         while True:
-            code = bot.SendMessage('Friend',f.id, soup.Forward(*node))
+            code = bot.SendMessage(Type,target, soup.Forward(*node))
+            if type(code) is int:return
+            if code == '30':node = fold_node(node)
+    for f in admin_ID():
+        while True:
+            code = bot.SendMessage('Friend',f, soup.Forward(*node))
             if type(code) is int:break
             if code == '30':node = fold_node(node)
 
@@ -217,10 +225,9 @@ def illust_follow(bot):
                 break
         if next_url:
             next_url = bot.pixiv.parse_qs(illusts.next_url)
-    for f in bot.Friend:
-        if f.remark != 'Admin' or f.nickname == 'Admin':continue
+    for f in admin_ID():
         for illust in illust_new:
-            illust_node(illust,bot,'Friend',f.id)
+            illust_node(illust,bot,'Friend',f)
     
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
@@ -236,8 +243,10 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if msg.type == 'Plain':Plain += msg.text
     Plain = Plain.lower()
 
+    node = []
+    keyward = ('setu','色图','涩图')
     Plain = Plain.replace(' ','').replace(':','').replace('：','')
-    if Plain.startswith(('pid','Pid','PID')):
+    if Plain.startswith('pid'):
         try:pid = int(Plain[3:])
         except:
             bot.SendMessage(Type,target,soup.Plain('例:PID12345678'))
@@ -251,10 +260,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             if f.remark != 'Admin' or f.nickname == 'Admin':continue
             illust_node(illust.illust,bot,'Friend',f.id,Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,Source.id)
         return
-        
-    node = []
-    keyward = ('setu','色图','涩图')
-    if Plain.startswith(('uid','Uid','UID')):
+
+    elif Plain.startswith('uid'):
         try:uid = int(Plain[3:])
         except:
             bot.SendMessage(Type,target,soup.Plain('例:UID12345678'))
@@ -288,7 +295,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             except:number = 1
             else:number = (number > 15 and 15) or (number < 1 and 1) or number
             illusts = bot.pixiv.illust_recommended().illusts[:number]
+
     else:return
+
     node += illusts_node(illusts,Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname)
     error_number = 0
     while True:
