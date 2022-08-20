@@ -141,7 +141,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     if FlashImage:
         msg = f"{(hasattr(Sender,'group')and'群 '+Sender.group.name+'('+str(Sender.group.id)+') '+Sender.memberName+'('+str(Sender.id)+') ')or'好友 '+Sender.nickname+'('+str(Sender.id)+') '} 的闪图"
         [bot.SendMessage('Friend',a,soup.Plain(msg),soup.Image(id=FlashImage.imageId))for a in admin_ID()]
-    if bot.conf.qq in At:[bot.SendMessage('Friend',a,soup.Plain('[@ME]'),*[msg for msg in Message if msg.type!='At'])for a in admin_ID()]
+    if bot.conf.qq in At:[bot.SendMessage('Friend',a,soup.Plain(f"[@ME] in 群 {Sender.group.name}({Sender.group.id}) {Sender.memberName}({Sender.id}):\n"),*[msg if msg.type!='At' else soup.Plain(f"{(msg.target==bot.conf.qq and '[@ME]')or f'@{msg.target}'}") for msg in Message])for a in admin_ID()]
 
     n = '\n'
     plug = [m.split('.')[0] for m in os.listdir(bot.conf.pluginPath)]
@@ -314,7 +314,7 @@ def onQQEvent(bot, Message):
 def onQQRequestEvent(bot, Message):
     '''\
     申请事件'''
-    for f in admin_ID:
+    for f in admin_ID():
         if Message.type == 'NewFriendRequestEvent': # 添加好友申请
             '''
             0	同意添加好友
