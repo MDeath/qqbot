@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import os,json,random,time,traceback
+import os,json,psutil,random,time,traceback
 from attr import has
 
 from scipy import rand
@@ -9,6 +9,9 @@ from qqbotcls import QQBotSched,_bot
 from mainloop import Put
 import soup
 
+@property
+def battery():return f'{psutil.sensors_battery().percent}%'
+    
 def admin_ID(user=False):
     return [f.id for f in _bot.Friend if(f.remark=='Admin'and f.nickname!='Admin')or(f.remark=='User'and f.nickname!='User'and user)]
 
@@ -78,10 +81,23 @@ def heartbeat(bot):
     '定时任务心跳'
     bot.heart = time.strftime("HeartBeat\n%Y-%m-%d\n%H:%M:%S\n%z\n%a-%A\n%b-%B\n%c\n%I %p",time.localtime())
 
+def onPlug(bot):
+    bot.battery = psutil.sensors_battery().percent
+
 def onUnplug(bot):
     '''\
     此插件不可卸载'''
     bot.Plug(__name__)
+
+def onInterval(bot):
+    battery = psutil.sensors_battery().percent
+    if bot.battery != battery:
+        for f in admin_ID():
+            if 100 > battery > bot.battery >= 90:bot.SendMessage('Friend',f,soup.Plain(f'电池电量已到达 {battery} %，请停止充电'))
+            elif 20 > bot.battery > battery > 0:bot.SendMessage('Friend',f,soup.Plain(f'电池电量已不足 {battery} %，请接上电源'))
+            elif battery == 0:bot.SendMessage('Friend',f,soup.Plain(f'电池电量已不足 {battery} %，即将要关机'))
+            elif battery % 5 == 0:bot.SendMessage('Friend',f,soup.Plain(f'电池电量{battery} %'))
+        bot.battery = battery
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
