@@ -131,8 +131,7 @@ class MiraiApi():
             payload['quote'] = id
         INFO(f'发到 {Type} {target}:{(id and "回复消息 "+str(id)+" ") or " "}{message}')
         Quote = self.basicsession(Post, f'send{Type}Message', data=json.dumps(payload))
-        if Quote:return Quote
-        else:return WARNING(f'发到 {Type} {target} 发送失败')
+        return Quote
 
     def Nudge(self, type:str, target:int, id:int) -> None: # 戳一戳
         r'''kind = Friend, Group, Stranger
