@@ -28,14 +28,18 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if msg.type == 'Plain':Plain += msg.text
         if msg.type == 'Image':Image.append(msg)
         if msg.type == 'Quote':
-            quote = msg.id
-            Quote = bot.MessageFromId(quote)
-            if Quote:
-                Message += Quote.messageChain
+            if msg.id > 0:
+                Quote = bot.MessageFromId(msg.id)
+            elif msg.id < 0:
+                Quote = []
+                for n in range(Source.id-1,Source.id-11,-1):
+                    Quote += bot.MessageFromId(n)
+            else:continue
+            Message += Quote.messageChain
     
     if Plain.replace(' ','').replace('\n','').startswith('搜图'):
         if not Image:
-            bot.SendMessage(Type, target, soup.Plain('没有关联图片'), id=Source.id)
+            bot.SendMessage(Type, target, soup.Plain('没有关联图片，请尝试直接和图片一起发送'), id=Source.id)
             return
         for img in Image:
             # Replace the key with your own
@@ -54,17 +58,21 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                         ))
                         if r.urls and 'https://www.pixiv.net/' in r.urls[0] and 'pixiv'in bot.plugins and r.urls and 'fanbox' not in r.urls[0]:
                             ID = r.urls[0].split('=')[-1]
-                            bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{ID}')])
-                            return
+                            illust = bot.pixiv.illust_detail(ID)
+                            if 'error'not in illust:
+                                bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{ID}')])
+                                return
                         elif 'source' in r.raw['data']:
                             if'https://i.pximg.net' in r.raw['data']['source'] or 'https://www.pixiv.net' in r.raw['data']['source']:
                                 ID = r.raw['data']['source'].split('/')[-1]
-                                bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{ID}')])
-                                return
+                                illust = bot.pixiv.illust_detail(ID)
+                                if 'error'not in illust:
+                                    bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{ID}')])
+                                    return
                             elif r.raw['data']['source'].startswith('http'):
                                 for f in admin_ID():
                                     bot.SendMessage('Friend', f, soup.Plain(r.raw))
                     else:
                         message.append(soup.Plain(f'\n相似度：{r.similarity}\nurl：{urls}'))
-                if max([r.similarity for r in results]) < 60:message.append(soup.Plain('匹配度较低，图片可能被裁切或者有拼接'))
+                if max([r.similarity for r in results]) < 60:message.append(soup.Plain('\n匹配度较低，图片可能被裁切或者有拼接'))
                 while not bot.SendMessage(Type, target, *message, id=quote):pass
