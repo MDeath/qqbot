@@ -31,18 +31,19 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     bot.retell[target].append({'id':Sender.id,'msg':str(Message)})
     bot.retell[target] = bot.retell[target][-10:]
 
-    if random.randint(1,100) == 1:
-        bot.SendMessage(Type, target, *Message)
-        bot.retell[target] = []
-        return
+    # if random.randint(1,100) == 1:
+    #     bot.SendMessage(Type, target, *Message)
+    #     bot.retell[target] = []
+    #     return
 
     Sender_id = {log['id'] for log in bot.retell[target]}
     if len(Sender_id) < random.randint(1,10):return
     log = [log['msg'] for log in bot.retell[target]]
     if len(log) > random.randint(1,10) >= len(set(log)):
-        Max = [1,None]
+        Max = [1,None,0]
         for msg in log:
-            if log.count(msg)>Max[0]:Max = [log.count(msg),msg]
-        if Max[1]:
+            if log.count(msg)>Max[0]:Max = [log.count(msg),msg,0]
+            Max[2] += 1
+        if Max[1] and random.randint(1,Max[2]) == Max[2]:
             bot.SendMessage(Type, target, *eval(Max[1]))
             bot.retell[target] = []
