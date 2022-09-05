@@ -2,6 +2,12 @@
 
 import sqlite3, traceback
 
+TAGS = ('id=', 'name=', 'mark=', 'title=')
+
+CTYPES = {
+    'friend': '好友', 'group': '群', 'group-member': '成员'
+}
+
 class QContact(object):
     def __init__(self, *fields):
         for k, field in zip(self.fields, fields):
@@ -9,49 +15,51 @@ class QContact(object):
         self.__dict__['ctype'] = self.__class__.ctype
 
     def __repr__(self):
-        return '%s“%s”' % (self.chs_type, self.name)
+        return f'{self.chs_type}“{self.name}”'
 
     def __setattr__(self, k, v):
         raise TypeError("QContact object is readonly")
 
 class Friend(QContact):
     columns = '''\
-        qq VARCHAR(12) PRIMARY KEY,
+        id INTEGER PRIMARY KEY,
         name VARCHAR(80),
-        mark VARCHAR(80),
-        power INTEGER(1)
+        mark VARCHAR(80)
     '''
 
 class Group(QContact):
     columns = '''\
-        qq VARCHAR(12) PRIMARY KEY,
+        id INTEGER PRIMARY KEY,
         name VARCHAR(80),
-        permission VARCHAR(10)
+        permission VARCHAR(13)
     '''
 
 class GroupMember(QContact):
     columns = '''\
-        qq VARCHAR(12) PRIMARY KEY,
+        id INTEGER PRIMARY KEY,
         name VARCHAR(80),
-        permission  VARCHAR(10)
-        card VARCHAR(80),
-        joinTime INTEGER,
-        lastSpeakTime INTEGER,
-        muteTime INTEGER
+        title VARCHAR(80),
+        permission VARCHAR(13),
+        joinTimestamp INTEGER,
+        lastSpeakTimestamp INTEGER,
+        muteTimeRemaining INTEGER
     '''
-
-CTYPES = {
-    'friend': '好友', 'group': '群', 'groupmember': '成员'
-}
 
 contactMaker = {}
 
 for cls in [Friend, Group, GroupMember]:
-    cls.ctype = cls.__name__.lower()
+    cls.ctype = cls.__name__.lower().replace('member', '-member')
     cls.chs_type = CTYPES[cls.ctype]
     cls.fields = [row.strip().split(None, 1)[0]
                   for row in cls.columns.strip().split('\n')]
     contactMaker[cls.ctype] = cls
+
+def tName(tinfo):
+    if tinfo in ('friend', 'group'):
+        return tinfo
+    else:
+        assert type(tinfo.id) is int or tinfo.id.isdigit()
+        return f'{tinfo.ctype}_member_{tinfo.id}'
 
 def rName(tinfo):
     if tinfo in ('friend', 'group'):
@@ -59,14 +67,14 @@ def rName(tinfo):
     else:
         return str(tinfo)+'的成员列表'
 
-def tName(tinfo):
+def tType(tinfo):
     if tinfo in ('friend', 'group'):
         return tinfo
     else:
-        return tinfo.ctype+'_member_'+tinfo.uin
+        return tinfo.ctype + '-member'
 
 def tMaker(tinfo):
-    return contactMaker[tinfo]
+    return contactMaker[tType(tinfo)]
 
 class ContactDB(object):
     def __init__(self, dbname=':memory:'):
@@ -77,17 +85,21 @@ class ContactDB(object):
     def Update(self, tinfo, contacts):
         tname, tmaker = tName(tinfo), tMaker(tinfo)
         
+        w = ','.join(['?']*len(tmaker.fields))
+        sql = "INSERT INTO '%s' VALUES(%s)" % (tname, w)
         try:
             if self.exist(tname):
-                self.cursor.execute("DELETE FROM '%s'" % tname)
-            else:
-                sql = ("CREATE TABLE '%s' (" % tname) + tmaker.columns + ')'
-                self.cursor.execute(sql)
+                for contact in contacts:
+                    cl = self.select(tname, tmaker.fields[0], contact[0])
+                    if cl:
+                        self.Modify(tinfo, cl, **dict(zip(tmaker.fields[1:],contact[1:])))
+                    else:
+                        self.cursor.execute(sql, contact)
             
-            if contacts:
-                w = ','.join(['?']*len(tmaker.fields))
-                sql = "INSERT INTO '%s' VALUES(%s)" % (tname, w)
-                self.cursor.executemany(sql, contacts)
+            else:
+                self.cursor.execute(f"CREATE TABLE '{tname}' ({tmaker.columns})")
+                if contacts:
+                    self.cursor.executemany(sql, contacts)
         except:
             self.conn.rollback()
             traceback.print_exc()
@@ -108,8 +120,8 @@ class ContactDB(object):
             items = []
         else:
             like = False
-            if cinfo.isdigit():
-                column = 'qq'
+            if type(cinfo) is int or cinfo.isdigit():
+                column = 'id'
             else:
                 for tag in TAGS:
                     if cinfo.startswith(tag):
@@ -129,7 +141,7 @@ class ContactDB(object):
                         if not cinfo:
                             return []
                         if cinfo.isdigit():
-                            column = 'qq'
+                            column = 'id'
                         else:
                             column = 'name'
                         like = True
@@ -166,7 +178,7 @@ class ContactDB(object):
     def Delete(self, tinfo, c):
         tname = tName(tinfo)
         try:
-            self.cursor.execute("DELETE FROM '%s' WHERE uin=?" % tname, [c.uin])
+            self.cursor.execute("DELETE FROM '%s' WHERE id=?" % tname, [c.id])
         except:
             self.conn.rollback()
             traceback.print_exc()
@@ -185,9 +197,9 @@ class ContactDB(object):
             values.append(value)
             c.__dict__[column] = value
 
-        values.append(c.uin)
+        values.append(c.id)
 
-        sql = "UPDATE '%s' SET %s WHERE uin=?" % (tname, ','.join(colstr))
+        sql = "UPDATE '%s' SET %s WHERE id=?" % (tname, ','.join(colstr))
         try:
             self.cursor.execute(sql, values)
         except:
@@ -199,15 +211,15 @@ class ContactDB(object):
             return True
 
     @classmethod
-    def NullContact(cls, tinfo, uin):
+    def NullContact(cls, tinfo, id):
         tmaker = tMaker(tinfo)
         fields = []
         for row in tmaker.columns.strip().split('\n'):
             field, ftype = row.strip().split(None, 1)
-            if field == 'uin':
-                val = uin
+            if field == 'id':
+                val = id
             elif field == 'name':
-                val = 'uin' + uin
+                val = 'id' + id
             elif ftype.startswith('VARCHAR'):
                 val = '#NULL'
             else:
@@ -217,33 +229,31 @@ class ContactDB(object):
 
 if __name__ == '__main__':
     db = ContactDB()
-    db.Update('buddy', [
-        ['qq1', 'uin1', 'nick昵称1', 'mark备注1', 'name名称1'],
-        ['qq2', 'uin2', 'nick昵称2', 'mark备注2', 'name名称2']
+    db.Update('friend', [
+        ['1234567890', 'nick昵称1', 'mark备注1'],
+        [9876543210, 'nick昵称2', 'mark备注2']
     ])
-    bl = db.List('buddy')
-    print((bl, bl[0].__dict__))
-    
-    print(db.List('buddy', 'nick=nick昵称2'))
-    print(db.List('buddy', 'name名称1'))
+    bl = db.List('friend')
+    print(bl, bl[0].__dict__)
+
+    print(db.List('friend', 'name:like:nick昵称2'))
+    print(db.List('friend', 'nick昵称1'))
 
     db.Update('group', [
-        ['123456', 'uin849384', '昵称1', '备注1', '名称1', 'gcode1'],
-        ['456789', 'uin823484', '昵称2', '备注2', '名称2', 'gcode2']
+        ['1234567890', '群1', 'OWNER'],
+        [9876543210, '群2', 'ADMINISTRATOR']
     ])
     
-    print(db.List('group', '12345'))
-    g = db.List('group', '123456')[0]
+    print(db.List('group', 1234567890))
+    g = db.List('group', 'id:like:123456')[0]
     
     db.Update(g, [
-        ['123456', 'uin849384', '昵称1', '备注1', '名片1', '名称1', 123456, 78944, '成员',
-         2, 0, 100, 'tucao', 100],
-        ['123456', 'uin845684', '昵称2', '备注2', '名片2', '名称2', 123456, 78944, '成员',
-         2, 0, 100, 'tucao', 100]  
+        ['1234567890', '昵称1', '头衔1', 'OWNER', 123456, 78944, 0],
+        [9876543210, '昵称2', '头衔2', 'ADMINISTRATOR', 123456, 78944, 0]  
     ])
     
-    print(db.List(g, 'name:like:名称'))
-    print(db.List(g, '123456'))
-    print(db.List(g, '名称2'))
-    print(db.List(g, ':like:名称'))
+    print(db.List(g, 'name:like:昵称'))
+    print(db.List(g, '1234567890'))
+    print(db.List(g, '昵称2'))
+    print(db.List(g, ':like:昵称'))
     print(db.List(g, ':like:1'))
