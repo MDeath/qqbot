@@ -55,11 +55,11 @@ class Pixiv(ByPassSniApi):
                     continue
             return r
 
-def illust_node(illust,bot,Type,target,sender=2854196310, name='QQ管家',Source=None, Group=True):
+def illust_node(illust,bot,Type,target,sender=2854196310, name='QQ管家',Source=None):
     Plain = f'标题:{illust.title} Pid:{illust.id}\n作者:{illust.user.name} Uid:{illust.user.id}\n时间:{illust.create_date}\n类型:{illust.type} 收藏:{illust.total_bookmarks} 标签:'
     for tag in illust.tags:Plain += f'\n{tag.name}:{tag.translated_name}'
     node = soup.Node(sender,name,soup.Plain(Plain)),
-    if 'R-18' in Plain and Group:
+    if 'R-18' in Plain and Type=='Group':
         if illust.page_count > 1:
             for page in illust.meta_pages:
                 node += soup.Plain(page.image_urls.original.replace('i.pximg.net',hosts)),
