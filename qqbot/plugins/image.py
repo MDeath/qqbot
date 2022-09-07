@@ -73,6 +73,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                                 for f in admin_ID():
                                     bot.SendMessage('Friend', f, soup.Plain(r.raw))
                     else:
-                        message.append(soup.Plain(f'\n相似度：{r.similarity}\nurl：{urls}'))
+                        message.append(soup.Plain(f'\n相似度：{r.similarity}\n标题：{r.title}\nurl：{urls}'))
                 if max([r.similarity for r in results]) < 60:message.append(soup.Plain('\n匹配度较低，图片可能被裁切或者有拼接'))
                 while not bot.SendMessage(Type, target, *message, id=quote):pass
