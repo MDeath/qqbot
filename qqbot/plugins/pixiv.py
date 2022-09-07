@@ -62,9 +62,9 @@ def illust_node(illust,bot,Type,target,sender=2854196310, name='QQ管家',Source
     if 'R-18' in Plain and Type=='Group':
         if illust.page_count > 1:
             for page in illust.meta_pages:
-                node += soup.Plain(page.image_urls.original.replace('i.pximg.net',hosts)),
+                node += soup.Plain('\n'+page.image_urls.original.replace('i.pximg.net',hosts)),
         else:
-            node += soup.Plain(illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts)),
+            node += soup.Plain('\n'+illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts)),
     elif illust.page_count > 1:
         for page in illust.meta_pages:
             node += soup.Node(sender,name,soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts))),
@@ -89,9 +89,9 @@ def illusts_node(illusts, sender=2854196310, name='QQ管家', Group=True):
         if 'R-18' in Plain and Group:
             if i.page_count > 1:
                 for page in i.meta_pages:
-                    message.append(soup.Plain(page.image_urls.original.replace('i.pximg.net',hosts)))
+                    message.append(soup.Plain('\n'+page.image_urls.original.replace('i.pximg.net',hosts)))
             else:
-                message.append(soup.Plain(i.meta_single_page.original_image_url.replace('i.pximg.net',hosts)))
+                message.append(soup.Plain('\n'+i.meta_single_page.original_image_url.replace('i.pximg.net',hosts)))
         elif i.page_count > 1:
             for page in i.meta_pages:
                 message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts)))
