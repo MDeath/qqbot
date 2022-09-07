@@ -37,7 +37,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             else:continue
             Message += Quote.messageChain
     
-    if Plain.replace(' ','').replace('\n','').startswith('搜图'):
+    if Plain.strip()=='搜图':
         if not Image:
             bot.SendMessage(Type, target, soup.Plain('没有关联图片，请尝试直接和图片一起发送'), id=Source.id)
             return
