@@ -162,11 +162,11 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     n = '\n'
     plug = [m.split('.')[0] for m in os.listdir(bot.conf.pluginPath)]
     
-    if Plain in ['菜单','帮助','help','memu']:
+    if Plain.strip() in ['菜单','帮助','help','memu']:
         reply(soup.Plain(onQQMessage.__doc__))
         return
 
-    elif Plain.startswith('说明'):
+    elif Plain.strip().startswith('说明'):
         moduleName = Plain.replace('说明','',1).replace(' ','')
         if moduleName != '' and moduleName in bot.Plugins():
             message = Plain
@@ -202,7 +202,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         return
 
     if Sender.id in admin_ID(True):
-        if Plain.startswith('加载插件'):
+        if Plain.strip().startswith('加载插件'):
             moduleName = Plain.replace('加载插件','')
             Modules = moduleName.split(' ')
             for m in Modules:
@@ -211,7 +211,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                     reply(soup.Plain(result))
             return
 
-        if Plain.startswith('卸载插件'):
+        if Plain.strip().startswith('卸载插件'):
             moduleName = Plain.replace('卸载插件','')
             Modules = moduleName.split(' ')
             for m in Modules:
