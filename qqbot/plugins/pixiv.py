@@ -244,7 +244,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
     发送 'setu','色图'或'涩图'(可指定数量)
     返回pixiv插画推荐（最多发15幅图）
-    Pid Uid 查询'''
+    Pid Uid 查询
+    -=#群消息有概率被吞#=-'''
     if not hasattr(bot, 'pixiv'):onPlug(bot)
     if Type not in ['Friend', 'Group']:return
     Group = hasattr(Sender, 'group')
