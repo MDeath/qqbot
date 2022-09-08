@@ -130,7 +130,7 @@ def onPlug(bot): # 群限制用和登录pixiv
     if conf['hosts']:
         bot.pixiv = Pixiv(conf['hosts'])
     else:
-        bot.pixiv = Pixiv()
+        bot.pixiv = Pixiv("public-api.secure.pixiv.net")
         conf['hosts'] = bot.pixiv.hosts
         with open(bot.conf.Config('pixiv.json'),'w', encoding='utf-8') as f:json.dump(conf, f, ensure_ascii=False, indent=4)
     try:
