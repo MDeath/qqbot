@@ -200,7 +200,7 @@ def day_r18_ranking(bot,target=None,Type='Group'):
     if not hasattr(bot, 'pixiv'):onPlug(bot)
     illusts = bot.pixiv.illust_ranking('day_r18')
     node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv R18榜单'))]
-    node += illusts_node(illusts.illusts[:10], Group='Group'==Type)
+    node += illusts_node(illusts.illusts[:10], Group=bool(target))
     if target:
         while True:
             code = bot.SendMessage(Type,target, soup.Forward(*node))
