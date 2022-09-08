@@ -106,8 +106,8 @@ class MiraiApi():
         payload['count'] = 10
         return self.basicsession(Get, f'fetchMessage', params=payload)
 
-    def MessageFromId(self, messageID:int) -> dict: # 通过MessageID获取消息
-        payload = {'sessionKey':self.session,'id':messageID}
+    def MessageFromId(self, target:int, messageID:int) -> dict: # 通过MessageID获取消息
+        payload = {'sessionKey':self.session,'target':target,'id':messageID}
         return self.basicsession(Get, 'messageFromId', params=payload)
 
     def SendMessage(self, Type:str, target:int, *message:dict, id:int=None) -> int: # 发给好友、群、临时消息，返回消息ID
@@ -145,9 +145,10 @@ class MiraiApi():
         payload['kind'] = type
         return self.basicsession(Post, 'sendNudge', data=json.dumps(payload))
 
-    def Recall(self, messageID:int) -> None: # 撤回消息
+    def Recall(self, target:int, messageID:int) -> None: # 撤回消息
         payload = {'sessionKey':self.session}
-        payload['target'] = messageID
+        payload['target'] = target
+        payload['messageId'] = messageID
         return self.basicsession(Post, '/recall', data=json.dumps(payload))
 
     def Event_response(self, even, operate:int=0, msg:str=''):
@@ -215,8 +216,9 @@ class MiraiApi():
         un = (un and 'un') or ''
         return self.basicsession(Post, f'{un}muteAll', data=json.dumps(payload))
 
-    def SetEssence(self, messageID:int): # 设置精华消息
+    def SetEssence(self, target:int, messageID:int): # 设置精华消息
         payload = {'sessionKey':self.session}
+        payload['target'] = target
         payload['messageId'] = messageID
         return self.basicsession(Post, 'setEssence', data=json.dumps(payload))
 
