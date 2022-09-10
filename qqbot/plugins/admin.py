@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os,json,psutil,random,time,traceback
-from attr import has
-
-from scipy import rand
 
 from qqbotcls import QQBotSched,_bot
 from mainloop import Put
