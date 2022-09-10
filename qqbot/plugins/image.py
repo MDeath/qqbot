@@ -33,11 +33,11 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if msg.type == 'Image':Image.append(msg)
         if msg.type == 'Quote':
             if msg.id > 0:
-                Quote = bot.MessageFromId(msg.id)
+                Quote = bot.MessageFromId(msg.id, target)
             elif msg.id < 0:
                 Quote = []
                 for n in range(Source.id-1,Source.id-11,-1):
-                    Quote += bot.MessageFromId(n)
+                    Quote += bot.MessageFromId(n, target)
             else:continue
             Message += Quote.messageChain
     

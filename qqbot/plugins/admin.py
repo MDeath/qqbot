@@ -218,7 +218,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             return
         if Plain == '解析'and Quote:
             quote = Quote.id
-            Quote = bot.MessageFromId(Quote.id)
+            Quote = bot.MessageFromId(target, Quote.id)
             message = json.dumps(Quote.messageChain, ensure_ascii=False, indent=4)
             message = message.replace('\\\\', '\\')
             message = message.replace('\\\'','\'')

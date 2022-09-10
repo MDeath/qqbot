@@ -30,7 +30,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     for msg in Message:
         if msg.type == 'Quote':
             quote = msg.id
-            Quote = bot.MessageFromId(quote)
+            Quote = bot.MessageFromId(target, quote)
             break
     for msg in Message:
         if msg.type == 'Plain' and 'xml' in msg.text:
