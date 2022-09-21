@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import json, os, time, traceback, requests
-from admin import admin_ID
+from PIL import Image
+from pixivpy3 import AppPixivAPI
+from pixivpy3.utils import PixivError
 
 import soup
+from admin import admin_ID
 from utf8logger import WARNING
-from pixivpy3 import ByPassSniApi
 from qqbotcls import QQBotSched
 
 # 图片代理
@@ -18,29 +20,19 @@ hosts = {
 hosts = hosts['re']
 # pixiv配置
 config = {
-    'hosts':None,
     'REFRESH_TOKEN':'',
     'USERNAME':'',
     'PASSWORD':''
 }
 
-class Pixiv(ByPassSniApi):
-    def __init__(self,hosts=None,**requests_kwargs): #初始化api
+class Pixiv(AppPixivAPI):
+    def __init__(self,**requests_kwargs): #初始化api
         super().__init__(**requests_kwargs)
         self.set_accept_language('zh-cn')
-        if hosts:self.hosts = hosts
-        else:
-            while not hasattr(self,'hosts'):
-                try:self.require_appapi_hosts(hostname="public-api.secure.pixiv.net")
-                except:pass
 
     def no_auth_requests_call(self, *args, **kwargs):
         while True:
-            try:
-                r = super().no_auth_requests_call(*args, **kwargs)
-            except:
-                WARNING(traceback.format_exc())
-                continue
+            r = super().no_auth_requests_call(*args, **kwargs)
             if r.ok:return r
             jsondict = self.parse_json(r.text)
             if hasattr(jsondict.error,'user_message') and jsondict.error.user_message:
@@ -59,17 +51,11 @@ def illust_node(illust,bot,Type,target,sender=2854196310, name='QQ管家',Source
     Plain = f'标题:{illust.title} Pid:{illust.id}\n作者:{illust.user.name} Uid:{illust.user.id}\n时间:{illust.create_date}\n类型:{illust.type} 收藏:{illust.total_bookmarks} 标签:'
     for tag in illust.tags:Plain += f'\n{tag.name}:{tag.translated_name}'
     node = soup.Node(sender,name,soup.Plain(Plain)),
-    if 'R-18' in Plain and Type=='Group':
-        if illust.page_count > 1:
-            for page in illust.meta_pages:
-                node += soup.Plain('\n'+page.image_urls.original.replace('i.pximg.net',hosts)),
-        else:
-            node += soup.Plain('\n'+illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts)),
-    elif illust.page_count > 1:
+    if illust.page_count > 1:
         for page in illust.meta_pages:
-            node += soup.Node(sender,name,soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts))),
+            node += soup.Node(sender,name,soup.Image(page.image_urls.original.replace('i.pximg.net',hosts))),
     else:
-        node += soup.Node(sender,name,soup.Image(url=illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts))),
+        node += soup.Node(sender,name,soup.Image(illust.meta_single_page.original_image_url.replace('i.pximg.net',hosts))),
     error_number = 0
     for n in range(0,len(node),50):
         while True:
@@ -87,16 +73,14 @@ def illusts_node(illusts, sender=2854196310, name='QQ管家', Group=True):
         for tag in i.tags:Plain += f'{tag.name}:{tag.translated_name}\n'
         message = [soup.Plain(Plain)]
         if 'R-18' in Plain and Group:
-            if i.page_count > 1:
-                for page in i.meta_pages:
-                    message.append(soup.Plain('\n'+page.image_urls.original.replace('i.pximg.net',hosts)))
-            else:
-                message.append(soup.Plain('\n'+i.meta_single_page.original_image_url.replace('i.pximg.net',hosts)))
-        elif i.page_count > 1:
-            for page in i.meta_pages:
-                message.append(soup.Image(url=page.image_urls.original.replace('i.pximg.net',hosts)))
+            souptype = lambda url:soup.Plain('\n'+url)
         else:
-            message.append(soup.Image(url=i.meta_single_page.original_image_url.replace('i.pximg.net',hosts)))
+            souptype = soup.Image
+        if i.page_count > 1:
+            for page in i.meta_pages:
+                message.append(souptype(page.image_urls.original.replace('i.pximg.net',hosts)))
+        else:
+            message.append(souptype(i.meta_single_page.original_image_url.replace('i.pximg.net',hosts)))
         node.append(soup.Node(sender,name,*message))
     return node
 
@@ -127,19 +111,12 @@ def onPlug(bot): # 群限制用和登录pixiv
     except:
         with open(bot.conf.Config('pixiv.json'),'w', encoding='utf-8') as f:json.dump(config, f, ensure_ascii=False, indent=4)
         conf = config.copy()
-    if conf['hosts']:
-        bot.pixiv = Pixiv(conf['hosts'])
-    else:
-        bot.pixiv = Pixiv("public-api.secure.pixiv.net")
-        conf['hosts'] = bot.pixiv.hosts
-        with open(bot.conf.Config('pixiv.json'),'w', encoding='utf-8') as f:json.dump(conf, f, ensure_ascii=False, indent=4)
+    bot.pixiv = Pixiv()
     try:
         if conf['REFRESH_TOKEN']:
             bot.pixiv.auth(refresh_token=conf['REFRESH_TOKEN'])
         elif conf['USERNAME'] and conf['PASSWORD']:
             bot.pixiv.login(conf['USERNAME'],conf['PASSWORD'])
-        else:
-            bot.Unplug(__name__)
     except:raise
 
 def onUnplug(bot):
@@ -244,7 +221,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
     发送 'setu','色图'或'涩图'(可指定数量)
     返回pixiv插画推荐（最多发15幅图）
-    Pid Uid 查询
+    Pid Uid 查询插画和作者
     -=#群消息有概率被吞#=-'''
     if not hasattr(bot, 'pixiv'):onPlug(bot)
     if Type not in ['Friend', 'Group']:return
@@ -288,7 +265,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         node.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*message))
         illusts = bot.pixiv.user_illusts(user.user.id).illusts[:10]
 
-    elif Plain.startswith(keyward):
+    elif [kw for kw in keyward if kw in Plain]:
         for kw in keyward:Plain = Plain.replace(kw,'')
         if Plain.startswith(('r18', 'r-18')): # r18
             for illust in bot.pixiv.illust_ranking('day_r18',offset=bot.r18['offset']).illusts:
