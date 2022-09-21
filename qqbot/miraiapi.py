@@ -106,8 +106,8 @@ class MiraiApi():
         payload['count'] = 10
         return self.basicsession(Get, f'fetchMessage', params=payload)
 
-    def MessageFromId(self, target:int, messageID:int) -> dict: # 通过MessageID获取消息
-        payload = {'sessionKey':self.session,'target':target,'id':messageID}
+    def MessageFromId(self, messageID:int) -> dict: # 通过MessageID获取消息
+        payload = {'sessionKey':self.session,'id':messageID}
         return self.basicsession(Get, 'messageFromId', params=payload)
 
     def SendMessage(self, Type:str, target:int, *message:dict, id:int=None) -> int: # 发给好友、群、临时消息，返回消息ID
@@ -247,13 +247,13 @@ class MiraiApi():
         payload['target'] = target
         payload['memberId'] = memberID
         if mode == 'get':
-            return self.basicsession(Get, 'memverInfo', params=payload)
+            return self.basicsession(Get, 'memberInfo', params=payload)
         elif mode == 'set':
             info = self.MemberInfo('get', target, memberID)
             info['name'] = name or info['name'] # 群名称
             info['specialTitle'] = special or info['specialTitle'] # 群头衔
             payload['info'] = info
-            return self.basicsession(Post, 'memverInfo', data=json.dumps(payload))
+            return self.basicsession(Post, 'memberInfo', data=json.dumps(payload))
 
 ### 文件操作 目前支持群操作 ###
 
