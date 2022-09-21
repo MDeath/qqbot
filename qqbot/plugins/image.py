@@ -77,21 +77,19 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             else:
                 message.append(soup.Image(r.thumbnail))
                 s = f'\n相似度：{r.similarity}\n标题：{r.title}\n作者：{r.author}{urls}'
-                if 'source' in r.raw['data']:
+                if not pid and 'source' in r.raw['data']:
                     if 'fanbox' not in r.raw['data']['source'] and 'pixiv' in bot.plugins and ('https://www.pixiv.net' in r.raw['data']['source'] or 'https://i.pximg.net' in r.raw['data']['source']):
                         pid = r.raw['data']['source'].split('/')[-1].split('=')[-1].split('_')[0]
                         if 'error' in bot.pixiv.illust_detail(pid):pid = False
-                        else:break
                     elif r.raw['data']['source'].startswith('http'):
                         for f in admin_ID():
                             bot.SendMessage('Friend', f, soup.Plain(r.raw))
-                else:
+                elif not pid:
                     for url in r.urls:
                         if 'fanbox' not in url and 'pixiv' in bot.plugins and ('https://www.pixiv.net' in url or 'https://i.pximg.net' in url):
                             pid = url.split('/')[-1].split('=')[-1].split('_')[0]
                             if 'error' in bot.pixiv.illust_detail(pid):pid = False
                             else:break
-                    if pid:break
             for k,v in ban.items():
                 s = s.replace(k,v)
             message.append(soup.Plain(s))
