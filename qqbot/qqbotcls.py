@@ -112,15 +112,28 @@ class QQBot(object):
                     Put(self.MessageAnalyst, r)
 
     def MessageAnalyst(self, Message):
-        if 'Message' in Message.type:
+        if 'SyncMessage' in Message.type:
+            print(Message)
+            Type = Message.type.replace('SyncMessage','')
+            subject = Message.subject
+            Sender = ('Group'==Type and self.MemberInfo('get',subject.id, self.conf.qq)) or ('Friend'==Type and subject)
+            Message = Message.messageChain
+            Source = Message.pop(0)
+            if 'Group' == Type:
+                INFO(f'同步群 {subject.name}({subject.id}) 的消息({Source.id}):')
+            else:
+                INFO(f'同步好友 {subject.nickname}[{subject.remark}({subject.id})] 的消息({Source.id}):')
+            INFO(str(Message))
+            self.onQQMessage(Type, Sender, Source, Message)
+        elif 'Message' in Message.type:
             Type = Message.type.replace('Message','')
             Sender = Message.sender
             Message = Message.messageChain
             Source = Message.pop(0)
             if hasattr(Sender, 'group'):
-                INFO(f'来自 {Type} {Sender.group.name} {Sender.memberName} 的消息({Source.id}):')
+                INFO(f'来自群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的消息({Source.id}):')
             else:
-                INFO(f'来自 {Type} {Sender.nickname} 的消息({Source.id}):')
+                INFO(f'来自好友 {Sender.nickname}[{Sender.remark}({Sender.id})] 的消息({Source.id}):')
             INFO(str(Message))
             self.onQQMessage(Type, Sender, Source, Message)
         elif 'RequestEvent' in Message.type:
