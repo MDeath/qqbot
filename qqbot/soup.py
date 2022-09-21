@@ -19,7 +19,7 @@ message | Object | 被引用回复的原消息的消息链对象'''
     if sender:params["senderId"] = sender
     if target:params["targetId"] = target
     if id:params["id"] = id
-    if message:params["origin"] = [msg for msg in message]
+    if message:params["origin"] = list(message)
     return JsonDict(params)
 
 def At(id:int) -> list:
@@ -140,7 +140,7 @@ def Forward(*node:dict) -> dict:
 nodeList | object | 消息节点'''
     return JsonDict({
         "type": "Forward",
-        "nodeList": [n for n in node]
+        "nodeList": list(node)
     })
 
 def Node(sender:int=None,name:str=None,*message:dict,t:int=None,id:int=None) -> dict:
@@ -154,7 +154,7 @@ id         | Int    | 可以只使用消息id，从缓存中读取一条消息�
     if sender:params['senderId'] = sender
     if not name:name = str(sender)
     if name:params['senderName'] = name
-    params['messageChain'] = [msg for msg in message]
+    params['messageChain'] = list(message)
     if t:params['time'] = t or (int(time())if not id else None)
     if id:params['messageId'] = id
     return JsonDict(params)
