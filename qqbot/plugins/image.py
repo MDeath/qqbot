@@ -40,8 +40,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 Message += bot.MessageFromId(msg.id).messageChain
             elif msg.id < 0:
                 for n in range(Source.id-1,Source.id-11,-1):
-                    print(n)
-                    Message += bot.MessageFromId(n).messageChain
+                    Quote = bot.MessageFromId(n)
+                    if type(Quote) is not str:
+                        Message += Quote.messageChain
             else:continue
     
     if Plain.strip()!='搜图':return
