@@ -117,7 +117,7 @@ def onPlug(bot): # 群限制用和登录pixiv
             bot.pixiv.auth(refresh_token=conf['REFRESH_TOKEN'])
         elif conf['USERNAME'] and conf['PASSWORD']:
             bot.pixiv.login(conf['USERNAME'],conf['PASSWORD'])
-    except:raise
+    except:time.sleep(10)
 
 def onUnplug(bot):
     del bot.pixiv
