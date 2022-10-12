@@ -90,10 +90,14 @@ def onInterval(bot):
     battery = psutil.sensors_battery().percent
     if bot.battery != battery:
         for f in admin_ID():
-            if 100 > battery > bot.battery >= 90:bot.SendMessage('Friend',f,soup.Plain(f'电池电量已到达 {battery} %，请停止充电'))
-            elif 20 > bot.battery > battery > 0:bot.SendMessage('Friend',f,soup.Plain(f'电池电量已不足 {battery} %，请接上电源'))
-            elif battery == 0:bot.SendMessage('Friend',f,soup.Plain(f'电池电量已不足 {battery} %，即将要关机'))
-            elif battery % 5 == 0 or battery - bot.battery > 5 or bot.battery - battery > 5:bot.SendMessage('Friend',f,soup.Plain(f'电池电量{battery} %'))
+            if 100 > battery > bot.battery >= 90:
+                bot.SendMessage('Friend',f,soup.Plain(f'电池电量已到达 {battery} %，请停止充电'))
+            elif 20 > bot.battery > battery > 0:
+                bot.SendMessage('Friend',f,soup.Plain(f'电池电量已不足 {battery} %，请接上电源'))
+            elif battery == 0:
+                bot.SendMessage('Friend',f,soup.Plain(f'电池电量已不足 {battery} %，即将要关机'))
+            elif battery - bot.battery > 5 or bot.battery - battery > 5:
+                bot.SendMessage('Friend',f,soup.Plain(f'电池电量{battery} %'))
         bot.battery = battery
 
 def onQQMessage(bot, Type, Sender, Source, Message):
