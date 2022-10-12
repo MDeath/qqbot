@@ -10,10 +10,6 @@ api_key = [
     'deec4846d5d11b5686a1a67edbb14757354ba66d'
 ]
 
-ban = {
-    'https://danbooru.donmai.us':'https://danbooru donmai us'
-}
-
 def onPlug(bot):
     bot.sauce = SauceNao(api_key)
 
@@ -39,7 +35,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             if msg.id > 0:
                 Message += bot.MessageFromId(msg.id).messageChain
             elif msg.id < 0:
-                for n in range(Source.id-1,Source.id-11,-1):
+                for n in range(quote-1,quote-11,-1):
                     Quote = bot.MessageFromId(n)
                     if type(Quote) is not str:
                         Message += Quote.messageChain
@@ -54,12 +50,12 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             try:
                 results = bot.sauce.from_url(img.url) # or from_file()
             except UnknownApiError:
-                bot.SendMessage(Type, target, soup.Plain(f'搜图失败，请稍后尝试'))
+                bot.SendMessage(Type, target, soup.Plain(f'搜图失败，请稍后尝试'), id=quote)
             except LongLimitReachedError:
-                bot.SendMessage(Type, target, soup.Plain(f'今日已达上限，请到明日尝试'))
+                bot.SendMessage(Type, target, soup.Plain(f'今日已达上限，请到明日尝试'), id=quote)
                 return
             except ShortLimitReachedError:
-                bot.SendMessage(Type, target, soup.Plain(f'搜图进入CD，请30秒后尝试'))
+                bot.SendMessage(Type, target, soup.Plain(f'搜图进入CD，请30秒后尝试'), id=quote)
                 return
             else:
                 break
@@ -73,6 +69,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             continue
         for r in results:
             urls = ('source' in r.raw['data'] and '\n'+r.raw['data']['source']) or '\n'+'\n'.join(r.urls)
+            for k,v in {':':'：','.':'。'}.items():
+                urls = urls.replace(k,v)
             if r.similarity < 60:
                 s = f'\n相似度：{r.similarity}\n标题：{r.title}{urls}'
             else:
@@ -91,8 +89,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                             pid = url.split('/')[-1].split('=')[-1].split('_')[0]
                             if 'error' in bot.pixiv.illust_detail(pid):pid = False
                             else:break
-            for k,v in ban.items():
-                s = s.replace(k,v)
             message.append(soup.Plain(s))
         if pid:
             bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{pid}')])
