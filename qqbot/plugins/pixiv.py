@@ -73,7 +73,7 @@ def illusts_node(illusts, sender=2854196310, name='QQ管家', Group=True):
         for tag in i.tags:Plain += f'{tag.name}:{tag.translated_name}\n'
         message = [soup.Plain(Plain)]
         if 'R-18' in Plain and Group:
-            souptype = lambda url:soup.Plain('\n'+url)
+            souptype = lambda url:soup.Plain('\n'+url.replace(':','：').replace('.','。'))
         else:
             souptype = soup.Image
         if i.page_count > 1:
