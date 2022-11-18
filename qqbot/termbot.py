@@ -31,7 +31,10 @@ class TermBot(object):
                 result, err = None, '运行命令过程中出错：' + str(type(e)) + str(e)
                 ERROR(err, exc_info=True)
         else:
-            result, err = None, 'QQBot 命令格式错误'
+            try:
+                result, err = eval(command), None
+            except:
+                result, err = None, 'QQBot 命令格式错误'
         
         if http:
             rep = {'result':result, 'err': err}
