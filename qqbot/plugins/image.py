@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
+import time
+
 from __saucenao_api import SauceNao
 from __saucenao_api.errors import UnknownApiError,LongLimitReachedError,ShortLimitReachedError
 import soup
+from utf8logger import INFO, WARNING
 from admin import admin_ID
 
 api_key = [
@@ -18,8 +21,8 @@ def onUnplug(bot):
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
-    回复 图片 发送 搜图 返回 图片溯源'''
-    if Type not in ['Friend', 'Group']:
+    回复图片发送 '搜图' 可图片溯源'''
+    if Type not in ['Friend','Group']:
         return
     if hasattr(Sender, 'group'):
         target = Sender.group.id
@@ -30,32 +33,32 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     Image = []
     for msg in Message:
         if msg.type == 'Plain':Plain += msg.text
-        if msg.type == 'Image':Image.append(msg)
-        if msg.type == 'Quote':
-            if msg.id > 0:
-                Message += bot.MessageFromId(msg.id).messageChain
-            elif msg.id < 0:
+        elif msg.type == 'Image':Image.append(msg)
+        elif msg.type == 'Quote':
+            msg = bot.MessageFromId(msg.id)
+            if msg != '5':
+                Message += [msg for msg in msg.messageChain if msg.type in ['Image','FlashImage']]
+            else:
                 for n in range(quote-1,quote-11,-1):
-                    Quote = bot.MessageFromId(n)
-                    if type(Quote) is not str:
-                        Message += Quote.messageChain
-            else:continue
-    
+                    msg = bot.MessageFromId(n)
+                    if type(msg) is not str:
+                        Message += [msg for msg in msg.messageChain if msg.type in ['Image','FlashImage']]
     if Plain.strip()!='搜图':return
     if not Image:
         bot.SendMessage(Type, target, soup.Plain('没有关联图片，请尝试直接和图片一起发送'), id=Source.id)
         return
+    bot.SendMessage(Type, target, soup.Plain('正在搜图'), id=Source.id)
     for img in Image:
         while True:
             try:
                 results = bot.sauce.from_url(img.url) # or from_file()
             except UnknownApiError:
-                bot.SendMessage(Type, target, soup.Plain(f'搜图失败，请稍后尝试'), id=quote)
+                WARNING('搜图失败，请稍后尝试')
             except LongLimitReachedError:
-                bot.SendMessage(Type, target, soup.Plain(f'今日已达上限，请到明日尝试'), id=quote)
+                bot.SendMessage(Type, target, soup.Plain('今日已达上限，请到明日尝试'), id=quote)
                 return
             except ShortLimitReachedError:
-                bot.SendMessage(Type, target, soup.Plain(f'搜图进入CD，请30秒后尝试'), id=quote)
+                bot.SendMessage(Type, target, soup.Plain('搜图进入CD，请30秒后尝试'), id=quote)
                 return
             else:
                 break
@@ -64,6 +67,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         message = []
         if results:
             message.append(soup.Plain(f'有 {len(results)} 个结果'))
+            INFO(results)
         else:
             bot.SendMessage(Type, target, soup.Plain('搜图失败，请稍后尝试'))
             continue
@@ -90,7 +94,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                             if 'error' in bot.pixiv.illust_detail(pid):pid = False
                             else:break
             message.append(soup.Plain(s))
-        if pid:
-            bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{pid}')])
         if max([r.similarity for r in results]) < 60:message.append(soup.Plain('\n匹配度较低，图片可能被裁切或者有拼接'))
         bot.SendMessage(Type, target, *message, id=quote)
+        if pid:
+            bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{pid}')])
+
+        time.sleep(20)
