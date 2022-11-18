@@ -53,7 +53,7 @@ def illust_node(illust,bot,Type,target,sender=2854196310, name='QQ管家',Source
     Plain = f'标题:{illust.title} Pid:{illust.id}\n作者:{illust.user.name} Uid:{illust.user.id}\n时间:{illust.create_date}\n类型:{illust.type} 收藏:{illust.total_bookmarks} 标签:'
     for tag in illust.tags:Plain += f'\n{tag.name}:{tag.translated_name}'
     node = soup.Node(sender,name,soup.Plain(Plain)),
-    if 'R-18' in Plain and Type == 'Group':
+    if [kw in Plain.lower() for kw in ('r-18', 'r18', 'r-15', 'r15')] and Type == 'Group':
         souptype = lambda url:soup.Node(sender,name,imgurltoqr(url.replace('i.pximg.net',hosts)))
     else:
         souptype = lambda url:soup.Node(sender,name,soup.Image(url.replace('i.pximg.net',hosts)))
@@ -78,7 +78,7 @@ def illusts_node(illusts, sender=2854196310, name='QQ管家', Group=True):
         Plain = f'标题:{i.title} Pid:{i.id}\n作者:{i.user.name} Uid:{i.user.id}\n时间:{i.create_date}\n类型:{i.type} 收藏:{i.total_bookmarks} 标签:\n'
         for tag in i.tags:Plain += f'{tag.name}:{tag.translated_name}\n'
         message = [soup.Plain(Plain)]
-        if 'R-18' in Plain and Group:
+        if [kw in Plain.lower() for kw in ('r-18', 'r18', 'r-15', 'r15')] in Plain and Group:
             souptype = lambda url:imgurltoqr(url.replace('i.pximg.net',hosts))
         else:
             souptype = lambda url:soup.Image(url.replace('i.pximg.net',hosts))
@@ -276,7 +276,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         node.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*message))
         illusts = bot.pixiv.user_illusts(user.user.id).illusts[:10]
 
-    elif Plain.lower().startswith(keyward) or Plain.lower().endswith(keyward) or (bot.conf.qq in At and any(kw for kw in keyward if kw in Plain.lower())):
+    elif Plain.lower().startswith(keyward) or Plain.lower().endswith(keyward) or (bot.conf.qq in At and [kw for kw in keyward if kw in Plain.lower()]):
         bot.SendMessage(Type,target,soup.Plain('获取中'))
         for kw in keyward:Plain = Plain.replace(kw,'').strip()
         Rtag = False
