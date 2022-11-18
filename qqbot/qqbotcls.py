@@ -10,6 +10,8 @@ from miraiapi import MiraiApi, RequestError
 from common import Import, StartDaemonThread
 from qconf import QConf
 from utf8logger import INFO, CRITICAL, ERROR, PRINT, WARNING
+from qterm import QTermServer
+from termbot import TermBot
 
 RESTART = 201
 
@@ -20,7 +22,7 @@ def _call(func, *args, **kwargs):
         ERROR('', exc_info=True)
         ERROR('执行 %s.%s 时出错，%s', func.__module__, func.__name__, e)
 
-class QQBot(object):
+class QQBot(TermBot):
     def __init__(self) -> None:
         self.scheduler = BackgroundScheduler(daemon=True)
         self.schedTable = defaultdict(list)
@@ -77,6 +79,7 @@ class QQBot(object):
 
         StartDaemonThread(self.pollForever)
         StartDaemonThread(self.intervalForever)
+        StartDaemonThread(QTermServer(self.conf.termServerPort, self.onTermCommand).Run)
         self.scheduler.start()
         Put(self.Update)
 
@@ -113,7 +116,6 @@ class QQBot(object):
 
     def MessageAnalyst(self, Message):
         if 'SyncMessage' in Message.type:
-            print(Message)
             Type = Message.type.replace('SyncMessage','')
             subject = Message.subject
             Sender = ('Group'==Type and self.MemberInfo('get',subject.id, self.conf.qq)) or ('Friend'==Type and subject)
@@ -258,7 +260,7 @@ class QQBot(object):
 def runBot(argv=None):
     if sys.argv[-1] == '--subprocessCall':
         sys.argv.pop()
-        bot = QQBot._bot
+        bot = QQBot.bot
         bot.init(argv)
         bot.Run()
     else:
@@ -301,8 +303,8 @@ def RunBot():
     except KeyboardInterrupt:
         sys.exit(1)
 
-_bot = QQBot()
-QQBot._bot = _bot
-QQBotSlot = _bot.AddSlot
-QQBotSched = _bot.AddSched
+bot = QQBot()
+QQBot.bot = bot
+QQBotSlot = bot.AddSlot
+QQBotSched = bot.AddSched
 QQBot.__init__ = None

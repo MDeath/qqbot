@@ -18,11 +18,15 @@ sampleConfStr = '''
     # 用户 somebody 的配置
     "默认配置" : {
 
-        # Mirai http api 的端口
-        "port" : 8080,
+        # QQBot-term （HTTP-API） 服务器端口号（该服务器监听 IP 为 127.0.0.1 ）
+        # 设置为 0 则不会开启本服务器（此时 qq 命令和 HTTP-API 接口都无法使用）。
+        "termServerPort" : 8188,
 
         # Mirai http 服务器地址，请设置为公网地址或localhost
         "host" : "localhost",
+
+        # Mirai http api 的端口
+        "port" : 8080,
 
         # 登录的 QQ 号
         "qq" : 0,
@@ -49,8 +53,9 @@ sampleConfStr = '''
 
     # 可以在 默认配置 中配置所有用户都通用的设置
     "somebody" : {
-        "port" : 8080,
+        "termServerPort" : 8188,
         "host" : "localhost",
+        "port" : 8080,
         "qq" : 0,
         "verifyKey" : "VerifyKey",
         "debug" : False,
@@ -61,8 +66,9 @@ sampleConfStr = '''
 
     # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
     # "根配置" : {
-    #     "port" : 8080,
+    #     "termServerPort" : 8188,
     #     "host" : "localhost",
+    #     "port" : 8080,
     #     "qq" : 0,
     #     "debug" : False,
     #     "restartOnOffline" : False,
@@ -75,8 +81,9 @@ sampleConfStr = '''
 '''
 
 rootConf = {
-    "port" : 8080,
+    "termServerPort" : 8188,
     "host" : "localhost",
+    "port" : 8080,
     "qq" : 0,
     "verifyKey" : "VerifyKey",
     "debug" : False,
@@ -95,8 +102,8 @@ usage = '''\
 QQBot 机器人
 
 用法: {PROGNAME} [-h] [-d] [-nd] [-u USER] [-q QQ]
-          [-p PORT] [-ip HOST] [-r] [-nr]
-          [-fi FETCHINTERVAL]
+          [-p TERMSERVERPORT] [-ip HOST] [-hp PORT]
+          [-r] [-nr] [-fi FETCHINTERVAL]
 
 选项:
   通用:
@@ -117,19 +124,20 @@ QQBot 机器人
     -u USER, --user USER    指定一个配置文件项目以导入设定。
                             USER 指的是配置文件项目的名称。
                             注意: 所有从命令行中指定的参数设定的优先级都会高于
-                                  从配置文件中获取的设定。
+                            从配置文件中获取的设定。
     -q QQ, --qq QQ          指定本次启动时使用的QQ号。
                             如果指定的QQ号的自动登陆信息存在，那么将会使用自动
-                              登陆信息进行快速登陆。
+                            登陆信息进行快速登陆。
 
-  Mirai http api 服务器端口:
-    -p PORT, --port PORT
-                            更改Mirai控制台的监听端口到 PORT 。
-                              默认的监听端口是 8080 (TCP)。
+  QTerm本地控制台服务:
+    -p TERMSERVERPORT, --termServerPort TERMSERVERPORT
+                            更改QTerm控制台的监听端口到 TERMSERVERPORT 。
+                            默认的监听端口是 8188 (TCP)。
 
   Mirai http api 服务器设置:
-    -ip HOST, --host HOST
-                            指定HTTP服务在哪个IP地址上。
+    -ip HOST, --host HOST   指定HTTP服务在哪个IP地址上。
+    -hp PORT, --port PORT   更改Mirai控制台的监听端口到 PORT 。
+                            默认的监听端口是 8080 (TCP)。
 
   掉线重新启动:
     -r, --restartOnOffline  在掉线时自动重新启动。
@@ -177,9 +185,11 @@ class QConf(object):
 
         parser.add_argument('-b', '--bench')
 
-        parser.add_argument('-p', '--port', type=int)
+        parser.add_argument('-p', '--termServerPort', type=int)
 
         parser.add_argument('-ip', '--host')      
+
+        parser.add_argument('-hp', '--port', type=int)
 
         parser.add_argument('-d', '--debug', action='store_true', default=None)        
 
@@ -341,9 +351,10 @@ class QConf(object):
         INFO('工作目录：%s', self.benchstr)
         INFO('配置文件：%s', SYSTEMSTR2STR(self.ConfPath()))
         INFO('用户名：%s', self.user or '无')
-        INFO('登录方式：%s', self.qq and ('自动（qq=%d）' % self.qq) or '手动')  
-        INFO('服务器端口号：%s', self.port or '8080')
+        INFO('登录方式：%s', self.qq and ('自动（qq=%d）' % self.qq) or '手动')
+        INFO('命令行服务器端口号：%s', self.termServerPort or '无')
         INFO('服务器 ip ：%s', self.host or 'localhost')
+        INFO('服务器端口号：%s', self.port or '8080')
         INFO('调试模式：%s', self.debug and '开启' or '关闭')
         INFO('掉线后自动重启：%s', self.restartOnOffline and '是' or '否')
         INFO('后台模式（daemon 模式）：%s', self.daemon and '是' or '否')
