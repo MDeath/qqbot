@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from common import parse_json
+from common import parse_json,StartDaemonThread
 from utf8logger import INFO, ERROR, WARNING
-import json, requests
+import base64, cloudscraper, json, requests,traceback
 
 def Get(*args, **kwargs):
         while True:
@@ -21,6 +21,35 @@ def Post(*args, **kwargs):
                 ERROR('无法连接倒Mirai，请检查服务、地址、端口。')
             except:
                 raise RequestError
+
+def Base64(msg,n:list):
+    if type(msg['base64']) is dict:
+        url = msg['base64']['url']
+        class base(str):
+            def __repr__(self) -> str:
+                return f'Base64编码 {url}'
+        r = cloudscraper.create_scraper()
+        r = r.get(**msg['base64'])
+        msg['base64'] = base(str(base64.b64encode(r.content), 'utf-8'))
+    else:
+        class base(str):
+            def __repr__(self) -> str:
+                return f'Base64编码'
+        if type(msg['base64']) is bytes:
+            msg['base64'] = base(str(msg['base64'], 'utf-8'))
+        elif type(msg['base64']) is str:
+            msg['base64'] = base(msg['base64'])
+    n.append(msg)
+
+def ForMessage(Message, l:list):
+    for msg in Message:
+        if msg['type'] == 'Forward':
+            for node in msg['nodeList']:
+                ForMessage(node['messageChain'], l)
+
+        elif msg['type'] == 'Image'or msg['type'] == 'FlashImage'or msg['type'] == 'Voice':
+            if 'base64' in msg:
+                l.append(msg)
 
 class RequestError(Exception):
     pass
@@ -129,8 +158,14 @@ class MiraiApi():
         payload['messageChain'] = [msg for msg in message]
         if id:
             payload['quote'] = id
-        INFO(f'发到 {Type} {target}:{(id and "回复消息 "+str(id)+" ") or " "}{message}')
+        l = []
+        ForMessage(message, l)
+        n = []
+        for msg in l:
+            StartDaemonThread(Base64,msg,n)
+        while len(l) != len(n):pass
         Quote = self.basicsession(Post, f'send{Type}Message', data=json.dumps(payload))
+        INFO(f'发到 {Type} {target}({Quote}):{(id and "回复消息 "+str(id)+" ") or " "}{message}')
         return Quote
 
     def Nudge(self, type:str, target:int, id:int) -> None: # 戳一戳
@@ -331,7 +366,20 @@ class MiraiApi():
         return self.basicsession(Post, 'upload{mode}', data=json.dumps(payload), files=files)
 
 if __name__ == '__main__':
+    import soup
     from qconf import QConf
     qconf = QConf()
-    q = MiraiApi(qconf.qq, qconf.verifyKey)
-    print(q.started)
+    bot = MiraiApi(qconf.qq, qconf.verifyKey)
+    print(qconf.qq, bot.started)
+    while True:
+        try:
+            commad = input('>')
+            if not commad:pass
+            elif commad.lower() in ['?','help']:
+                [print(f) for f in dir(bot) if not f.startswith('_')]
+            else:
+                print(eval(commad))
+        except KeyboardInterrupt:
+            exit()
+        except:
+            traceback.print_exc()
