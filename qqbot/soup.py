@@ -9,7 +9,7 @@ def Source(id,t=None):
     params["time"] = t or int(time())
     return JsonDict(params)
 
-def Quote(sender,target,*message:dict,id=None):
+def Quote(sender:int,target:int,*message:dict,id:int=None):
     '''\
 sender  | Long   | 被引用回复的原消息的发送者的QQ号
 target  | Long   | 被引用回复的原消息的接收者者的QQ号（或群号）
@@ -44,44 +44,44 @@ def Plain(s:str) -> dict:
 text | String | 文字消息'''
     return JsonDict({"type": "Plain","text": str(s)})
 
-def Image(url=None, path=None, base64=None, id=None) -> dict:
+def Image(url:str=None, path:str=None, base64:str|bytes|dict=None, id=None) -> dict:
     '''\
 url    | String | 图片的URL，发送时可作网络图片的链接；接收时为腾讯图片服务器的链接，可用于图片下载
 path   | String | 图片的路径，发送本地图片，路径相对于 JVM 工作路径（默认是当前路径，可通过 `-Duser.dir=...`指定），也可传入绝对路径
-base64 | String | 图片的 Base64 编码
+base64 | String | 图片的 Base64 编码，或者图片的URL
 id     | String | 图片的id，群图片与好友图片格式不同。不为空时将忽略url属性'''
     params = {"type": "Image"}
     if url:params["url"] = url
     if path:params["path"] = path
-    if base64:params["base64"] = base64
     if id:params["imageId"] = id
+    if base64:params["base64"] = base64
     return JsonDict(params)
 
-def FlashImage(url=None, path=None, base64=None, id=None) -> dict:
+def FlashImage(url:str=None, path:str=None, base64:str|bytes|dict=None, id=None) -> dict:
     '''\
 url    | String | 图片的URL，发送时可作网络图片的链接；接收时为腾讯图片服务器的链接，可用于图片下载
 path   | String | 图片的路径，发送本地图片，路径相对于 JVM 工作路径（默认是当前路径，可通过 `-Duser.dir=...`指定），也可传入绝对路径
-base64 | String | 图片的 Base64 编码
+base64 | String | 图片的 Base64 编码，或者图片的URL
 id     | String | 图片的id，群图片与好友图片格式不同。不为空时将忽略url属性'''
     params = {"type": "FlashImage"}
-    if id:params["imageId"] = id
     if url:params["url"] = url
     if path:params["path"] = path
+    if id:params["imageId"] = id
     if base64:params["base64"] = base64
     return JsonDict(params)
 
-def Voice(url=None, path=None, base64=None, id=None) -> dict:
+def Voice(url:str=None, path:str=None, base64:str|bytes|dict=None, id=None) -> dict:
     '''\
 url    | String | 语音的URL，发送时可作网络语音的链接；接收时为腾讯语音服务器的链接，可用于语音下载
 path   | String | 语音的路径，发送本地语音，路径相对于 JVM 工作路径（默认是当前路径，可通过 `-Duser.dir=...`指定），也可传入绝对路径。
-base64 | String | 语音的 Base64 编码
+base64 | String | 语音的 Base64 编码，或者语音的URL
 id     | String | 语音的id，不为空时将忽略url属性
 
 #> 参数任选其一，出现多个参数时，按照id > url > path > base64的优先级'''
     params = {"type": "Voice"}
-    if id:params["voiceId"] = id
     if url:params["url"] = url
     if path:params["path"] = path
+    if id:params["voiceId"] = id
     if base64:params["base64"] = base64
     return JsonDict(params)
 
