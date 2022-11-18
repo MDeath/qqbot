@@ -56,7 +56,7 @@ def illust_node(illust,bot,Type,target,sender=2854196310, name='QQ管家',Source
     if 'R-18' in Plain and Type == 'Group':
         souptype = lambda url:soup.Node(sender,name,imgurltoqr(url.replace('i.pximg.net',hosts)))
     else:
-        souptype = lambda url:soup.Node(sender,name,soup.Image(base64={'url':url,'headers':{'Accept-Language': 'zh-cn',"Referer": "https://app-api.pixiv.net/"}, 'stream':True}))
+        souptype = lambda url:soup.Node(sender,name,soup.Image(url.replace('i.pximg.net',hosts)))
     if illust.page_count > 1:
         for page in illust.meta_pages:
             node += souptype(page.image_urls.original),
@@ -81,7 +81,7 @@ def illusts_node(illusts, sender=2854196310, name='QQ管家', Group=True):
         if 'R-18' in Plain and Group:
             souptype = lambda url:imgurltoqr(url.replace('i.pximg.net',hosts))
         else:
-            souptype = lambda url:soup.Image(base64={'url':url,'headers':{'Accept-Language': 'zh-cn',"Referer": "https://app-api.pixiv.net/"}, 'stream':True})
+            souptype = lambda url:soup.Image(url.replace('i.pximg.net',hosts))
         if i.page_count > 1:
             for page in i.meta_pages:
                 message.append(souptype(page.image_urls.original))
@@ -271,7 +271,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if 'error' in user:
             [bot.SendMessage(Type, target, soup.Plain(f'{k}:{v}'+'\n')) for k,v in user.error.items() if v]
             return
-        message = soup.Image(base64={'url':user.user.profile_image_urls.medium,'headers':{'Accept-Language': 'zh-cn',"Referer": "https://app-api.pixiv.net/"}, 'stream':True}),
+        message = soup.Image(user.user.profile_image_urls.medium.replace('i.pximg.net',hosts)),
         message += soup.Plain(f"Uid:{user.user.id} 名字:{user.user.name}\n 插画:{user.profile.total_illusts} 漫画:{user.profile.total_manga} 小说:{user.profile.total_novels}"),
         node.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*message))
         illusts = bot.pixiv.user_illusts(user.user.id).illusts[:10]
