@@ -2,15 +2,17 @@
 
 import os,json,psutil,random,time,traceback
 
-from qqbotcls import QQBotSched,_bot
+from qqbotcls import QQBotSched,bot
+from utf8logger import INFO
 from mainloop import Put
+from common import JsonDict
 import soup
 
 @property
 def battery():return f'{psutil.sensors_battery().percent}%'
     
 def admin_ID(user=False):
-    return [f.id for f in _bot.Friend if(f.remark=='Admin'and f.nickname!='Admin')or(f.remark=='User'and f.nickname!='User'and user)]
+    return [f.id for f in bot.Friend if(f.remark=='Admin'and f.nickname!='Admin')or(f.remark=='User'and f.nickname!='User'and user)]
 
 def trans(s:str):
     for k,v in [
@@ -108,6 +110,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     更新联系人
     插件列表
     说明(可附带插件名)
+    whoisyourdaddy
     -=# 管理员权限 #=-
     加载插件《插件名》
     卸载插件《插件名》
@@ -147,12 +150,17 @@ def onQQMessage(bot, Type, Sender, Source, Message):
 
     reply = lambda *msg:bot.SendMessage(Type,target,*msg)
 
-    if Plain.startswith(('$', '￥'))and Sender.id in admin_ID(True):
+    if Plain == 'whoisyourdaddy':reply(soup.Plain(f'is @1064393873'))
+
+    if Plain.startswith(('$', '￥', '#'))and Sender.id in admin_ID(True):
         try:
             rt = eval(Plain[1:])
         except:
             rt = traceback.format_exc()
-        reply(soup.Plain(rt))
+        if Plain.startswith('#'):
+            INFO(rt)
+        else:
+            reply(soup.Plain(rt))
         return
     
     if FlashImage:
@@ -295,7 +303,12 @@ def onQQEvent(bot, Message):
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.group.name}({Message.group.id}) {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] {(Message.current and "开启了邀请入群")or "关闭了邀请入群"}'))
             elif Message.type == 'MemberJoinEvent': # 新人入群的事件
                 bot.SendMessage('Friend',f,soup.Plain(f'新人 {Message.member.memberName}({Message.member.id}) 加入了 {Message.member.group.name}({Message.member.group.id}) 群'))
-                if first:bot.SendMessage('Group',Message.member.group.id,soup.Plain('欢迎新人'),soup.Face(13))
+                words = [
+                    [soup.Plain('欢迎新人'),soup.Face(13)],
+                    [soup.Plain('少年轻狂，步我后尘， 衣冠胜雪，入群则殇'),soup.Face(101)],
+                    [soup.Plain('此群处处艺能人'),soup.Face(108)],
+                ]
+                if first:bot.SendMessage('Group',Message.member.group.id,*words[random.randint(0,len(words)-1)])
             elif Message.type == 'MemberLeaveEventKick': # 成员被踢出群（该成员不是Bot）
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.operator.group.name}({Message.operator.group.id}) 成员 {Message.member.memberName}({Message.member.id}) 被 {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] 踢了'))
                 if first:bot.SendMessage('Group',Message.member.group.id,soup.Face(13))
@@ -322,9 +335,7 @@ def onQQEvent(bot, Message):
                 bot.SendMessage('Friend',f,soup.Plain(f'{Message.client.platform} 客户端下线'))
             elif Message.type == 'CommandExecutedEvent': # 命令被执行
                 pass
-            else:
-                print(Message)
-                bot.SendMessage('Friend',f,soup.Plain(trans(Message)))
+            else:raise
         except:
             bot.SendMessage('Friend',f,soup.Plain(trans(Message)))
             bot.SendMessage('Friend',f,soup.Plain(traceback.format_exc()))
