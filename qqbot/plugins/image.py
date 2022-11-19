@@ -28,7 +28,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         target = Sender.group.id
     else:
         target = Sender.id
-    quote = Source.id
     Plain = ''
     Image = []
     for msg in Message:
@@ -39,7 +38,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             if msg != '5':
                 Message += [msg for msg in msg.messageChain if msg.type in ['Image','FlashImage']]
             else:
-                for n in range(quote-1,quote-11,-1):
+                for n in range(Source.id-1,Source.id-11,-1):
                     msg = bot.MessageFromId(n)
                     if type(msg) is not str:
                         Message += [msg for msg in msg.messageChain if msg.type in ['Image','FlashImage']]
@@ -55,10 +54,10 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             except UnknownApiError:
                 WARNING('搜图失败，请稍后尝试')
             except LongLimitReachedError:
-                bot.SendMessage(Type, target, soup.Plain('今日已达上限，请到明日尝试'), id=quote)
+                bot.SendMessage(Type, target, soup.Plain('今日已达上限，请到明日尝试'), id=Source.id)
                 return
             except ShortLimitReachedError:
-                bot.SendMessage(Type, target, soup.Plain('搜图进入CD，请30秒后尝试'), id=quote)
+                bot.SendMessage(Type, target, soup.Plain('搜图进入CD，请30秒后尝试'), id=Source.id)
                 return
             else:
                 break
@@ -95,7 +94,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                             else:break
             message.append(soup.Plain(s))
         if max([r.similarity for r in results]) < 60:message.append(soup.Plain('\n匹配度较低，图片可能被裁切或者有拼接'))
-        bot.SendMessage(Type, target, *message, id=quote)
+        bot.SendMessage(Type, target, *message, id=Source.id)
         if pid:
             bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{pid}')])
 
