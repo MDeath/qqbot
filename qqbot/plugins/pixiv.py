@@ -147,9 +147,9 @@ def week_clear_pid(bot):
             start_date=None, 
             end_date=None, 
             timezone=None)
-def day_ranking(bot,target=None,Type='Group'):
+def day_ranking(bot,target=None,Type='Group',date=None):
     if not hasattr(bot, 'pixiv'):onPlug(bot)
-    illusts = bot.pixiv.illust_ranking(mode='day')
+    illusts = bot.pixiv.illust_ranking('day',date=date)
     node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv {time.strftime("%Y-%m-%d",time.localtime(time.time()-86400))} 日榜单'))]
     node += illusts_node(illusts.illusts[:10], Group='Group'==Type)
     if target:
@@ -175,9 +175,9 @@ def day_ranking(bot,target=None,Type='Group'):
             start_date=None, 
             end_date=None, 
             timezone=None)
-def day_r18_ranking(bot,target=None,Type='Group'):
+def day_r18_ranking(bot,target=None,Type='Group',date=None):
     if not hasattr(bot, 'pixiv'):onPlug(bot)
-    illusts = bot.pixiv.illust_ranking('day_r18')
+    illusts = bot.pixiv.illust_ranking('day_r18',date=date)
     node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv R18榜单'))]
     node += illusts_node(illusts.illusts[:10], Group=Type=="Group")
     if target:
@@ -248,9 +248,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     if Plain.lower().startswith('pid'):
         try:pid = re.search(r'\d+',Plain)[0]
         except:
-            bot.SendMessage(Type,target,soup.Plain('例:PID12345678'))
+            bot.SendMessage(Type, target, soup.Plain('例:PID12345678'), id=Source.id)
             return
-        bot.SendMessage(Type,target,soup.Plain('PixivID获取中'))
+        bot.SendMessage(Type, target, soup.Plain('PixivID获取中'), id=Source.id)
         illust = bot.pixiv.illust_detail(pid)
         if 'error' in illust:
             [bot.SendMessage(Type, target, soup.Plain(f'{k}:{v}'+'\n')) for k,v in illust.error.items() if v]
@@ -264,9 +264,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     elif Plain.lower().startswith('uid'):
         try:uid = re.search(r'\d+',Plain)[0]
         except:
-            bot.SendMessage(Type,target,soup.Plain('例:UID12345678'))
+            bot.SendMessage(Type, target, soup.Plain('例:UID12345678'), id=Source.id)
             return
-        bot.SendMessage(Type,target,soup.Plain('UserID获取中'))
+        bot.SendMessage(Type, target, soup.Plain('UserID获取中'), id=Source.id)
         user = bot.pixiv.user_detail(uid)
         if 'error' in user:
             [bot.SendMessage(Type, target, soup.Plain(f'{k}:{v}'+'\n')) for k,v in user.error.items() if v]
@@ -277,7 +277,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         illusts = bot.pixiv.user_illusts(user.user.id).illusts[:10]
 
     elif Plain.lower().startswith(keyward) or Plain.lower().endswith(keyward) or (bot.conf.qq in At and any(kw for kw in keyward if kw in Plain.lower())):
-        bot.SendMessage(Type,target,soup.Plain('获取中'))
+        bot.SendMessage(Type, target, soup.Plain('获取中'), id=Source.id)
         for kw in keyward:Plain = Plain.replace(kw,'').strip()
         Rtag = False
         for kw in ('r-18', 'r18', 'r-15', 'r15'):
@@ -312,7 +312,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     else:return
 
     if not illusts:
-        bot.SendMessage(Type,target,soup.Plain(f'没有 "{Plain}" 的相关结果'))
+        bot.SendMessage(Type, target, soup.Plain(f'没有 "{Plain}" 的相关结果'), id=Source.id)
         return
     node += illusts_node(illusts,Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname, Group)
     error_number = 0
