@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
+import soup
 from utf8logger import ERROR
 from mainloop import Put
-from common import Unquote, STR2BYTES, JsonDumps, BYTES2STR
+from common import Unquote, STR2BYTES, JsonDict, JsonDumps, BYTES2STR
 
 cmdFuncs, usage = {}, {}
 
