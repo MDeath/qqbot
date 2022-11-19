@@ -158,6 +158,7 @@ class QQBot(TermBot):
         while True:
             time.sleep(300)
             Put(self.onInterval)
+            Put(self.Update)
 
     def Command(self):
         while True:pass
