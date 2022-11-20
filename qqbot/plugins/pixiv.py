@@ -45,10 +45,6 @@ class Pixiv(AppPixivAPI):
                     continue
             return r
     
-    def auth(self, **kwavgs):
-        kwavgs['refresh_token'] = self.refresh_token or config['REFRESH_TOKEN']
-        return super().auth(**kwavgs)
-
 def illust_node(illust,bot,Type,target,sender=2854196310, name='QQ管家',Source=None):
     Plain = f'标题:{illust.title} Pid:{illust.id}\n作者:{illust.user.name} Uid:{illust.user.id}\n时间:{illust.create_date}\n类型:{illust.type} 收藏:{illust.total_bookmarks} 标签:'
     for tag in illust.tags:Plain += f'\n{tag.name}:{tag.translated_name}'
@@ -150,7 +146,7 @@ def week_clear_pid(bot):
 def day_ranking(bot,target=None,Type='Group',date=None):
     if not hasattr(bot, 'pixiv'):onPlug(bot)
     illusts = bot.pixiv.illust_ranking('day',date=date)
-    node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv {time.strftime("%Y-%m-%d",time.localtime(time.time()-86400))} 日榜单'))]
+    node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv {date or time.strftime("%Y-%m-%d",time.localtime(time.time()-86400))} 日榜单'))]
     node += illusts_node(illusts.illusts[:10], Group='Group'==Type)
     if target:
         while node:
@@ -178,7 +174,7 @@ def day_ranking(bot,target=None,Type='Group',date=None):
 def day_r18_ranking(bot,target=None,Type='Group',date=None):
     if not hasattr(bot, 'pixiv'):onPlug(bot)
     illusts = bot.pixiv.illust_ranking('day_r18',date=date)
-    node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv R18榜单'))]
+    node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv {date or time.strftime("%Y-%m-%d",time.localtime(time.time()-86400))} R18榜单'))]
     node += illusts_node(illusts.illusts[:10], Group=Type=="Group")
     if target:
         while node:
