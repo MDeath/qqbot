@@ -46,6 +46,26 @@ else:
     else:
         utf8Stdout = sys.stdout
 
+# 此处修改颜色
+FMTDCIT = {
+    'ERROR'   : "\033[31mERROR\033[0m",
+    'INFO'    : "\033[32mINFO\033[0m",
+    'DEBUG'   : "\033[1mDEBUG\033[0m",
+    'WARN'    : "\033[33mWARN\033[0m",
+    'WARNING' : "\033[33mWARNING\033[0m",
+    'CRITICAL': "\033[35mCRITICAL\033[0m",
+}
+
+class Filter(logging.Filter):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.levelname = FMTDCIT.get(record.levelname)
+        return True
+
+filter = Filter()
+
 #class _utf8Stdout(object):
 #
 #    @classmethod
@@ -62,6 +82,7 @@ def Utf8Logger(name):
     if not logger.handlers:
         logger.setLevel(logging.INFO)
         ch = logging.StreamHandler(utf8Stdout)
+        ch.addFilter(filter)
         fmt = '[%(asctime)s] [%(levelname)s] %(message)s'
         datefmt = '%Y-%m-%d %H:%M:%S'
         ch.setFormatter(logging.Formatter(fmt, datefmt))

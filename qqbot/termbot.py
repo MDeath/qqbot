@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import traceback
+
 import soup
 from utf8logger import ERROR
 from mainloop import Put
@@ -35,7 +37,7 @@ class TermBot(object):
             try:
                 result, err = eval(command), None
             except:
-                result, err = None, 'QQBot 命令格式错误'
+                result, err = None, traceback.format_exc()
         
         if http:
             rep = {'result':result, 'err': err}
