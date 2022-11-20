@@ -93,7 +93,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                             if 'error' in bot.pixiv.illust_detail(pid):pid = False
                             else:break
             message.append(soup.Plain(s))
-        if max([r.similarity for r in results]) < 60:message.append(soup.Plain('\n匹配度较低，图片可能被裁切或者有拼接'))
+        if max([r.similarity for r in results]) < 60:message.append(soup.Plain('\n匹配度较低，可能被裁切、拼接，或是 AI 作图'))
         bot.SendMessage(Type, target, *message, id=Source.id)
         if pid:
             bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{pid}')])
