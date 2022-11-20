@@ -308,7 +308,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     else:return
 
     if not illusts:
-        bot.SendMessage(Type, target, soup.Plain(f'没有 "{Plain}" 的相关结果'), id=Source.id)
+        bot.SendMessage(Type, target, soup.Plain(f'没有"{Plain}"的相关结果,请考虑使用空格分割关键字'), id=Source.id)
         return
     node += illusts_node(illusts,Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname, Group)
     error_number = 0
