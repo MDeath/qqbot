@@ -7,7 +7,7 @@ from collections import defaultdict
 
 from mainloop import MainLoop, Put
 from miraiapi import MiraiApi, RequestError
-from common import Import, StartDaemonThread
+from common import Import, JsonDict, StartDaemonThread
 from qconf import QConf
 from utf8logger import INFO, CRITICAL, ERROR, PRINT, WARNING
 from qterm import QTermServer
@@ -182,14 +182,27 @@ class QQBot(TermBot):
             return func
         return wrapper
 
-    def Update(self):
-        self.Friend = self.List('Friend')
-        self.Group = self.List('Group')
-        self.Member = {}
-        for g in self.Group:
-            self.Member[g.id] = self.List('Member',g.id)
-            for m in self.Member[g.id]:
-                delattr(m,'group')
+    def Update(self, Type=None, target=None):
+        if not Type:
+            self.Friend = self.List('Friend')
+            self.Group = self.List('Group')
+            self.Member = JsonDict()
+            for g in self.Group:
+                setattr(self.Member, str(g.id), self.List('Member',g.id))
+                for m in self.Member[str(g.id)]:
+                    delattr(m,'group')
+        elif Type in ['Friend', 'Group']:
+            setattr(self, Type, self.List(Type))
+        elif Type == 'Member':
+            if target:
+                setattr(self.Member, str(target), self.List('Member',target))
+                for m in self.Member[target]:
+                    delattr(m,'group')
+            else:
+                for g in self.Group:
+                    setattr(self.Member, str(g.id), self.List('Member',g.id))
+                    for m in self.Member[str(g.id)]:
+                        delattr(m,'group')
 
     def unplug(self, moduleName, removeJob=True):
         for slots in self.slotsTable.values():
