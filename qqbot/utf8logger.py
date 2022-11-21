@@ -84,7 +84,8 @@ def Utf8Logger(name):
         ch = logging.StreamHandler(utf8Stdout)
         ch.addFilter(filter)
         fmt = '[%(asctime)s] [%(levelname)s] %(message)s'
-        datefmt = '%Y-%m-%d %H:%M:%S'
+        datefmt = '%Y-%m-%d %H:%M:%S' # 普通输出
+        datefmt = '\033[4;31m%Y\033[0;4m-\033[4;33m%m\033[0;4m-\033[4;32m%d\033[0;4m \033[4;36m%H\033[0;4m:\033[4;34m%M\033[0;4m:\033[4;35m%S\033[0m' # 彩色输出
         ch.setFormatter(logging.Formatter(fmt, datefmt))
         logger.addHandler(ch)
     return logger

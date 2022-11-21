@@ -122,10 +122,9 @@ class QQBot(TermBot):
             Message = Message.messageChain
             Source = Message.pop(0)
             if 'Group' == Type:
-                INFO(f'同步群 {subject.name}({subject.id}) 的消息({Source.id}):')
+                INFO(f'同步群 {subject.name}({subject.id}) 的消息({Source.id}):\n{str(Message)}')
             else:
-                INFO(f'同步好友 {subject.nickname}[{subject.remark}({subject.id})] 的消息({Source.id}):')
-            INFO(str(Message))
+                INFO(f'同步好友 {subject.nickname}[{subject.remark}({subject.id})] 的消息({Source.id}):\n{str(Message)}')
             self.onQQMessage(Type, Sender, Source, Message)
         elif 'Message' in Message.type:
             Type = Message.type.replace('Message','')
@@ -133,10 +132,9 @@ class QQBot(TermBot):
             Message = Message.messageChain
             Source = Message.pop(0)
             if hasattr(Sender, 'group'):
-                INFO(f'来自群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的消息({Source.id}):')
+                INFO(f'来自群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的消息({Source.id}):\n{str(Message)}')
             else:
-                INFO(f'来自好友 {Sender.nickname}[{Sender.remark}({Sender.id})] 的消息({Source.id}):')
-            INFO(str(Message))
+                INFO(f'来自好友 {Sender.nickname}[{Sender.remark}({Sender.id})] 的消息({Source.id}):\n{str(Message)}')
             self.onQQMessage(Type, Sender, Source, Message)
         elif 'RequestEvent' in Message.type:
             if hasattr(self, 'onQQRequestEvent'):

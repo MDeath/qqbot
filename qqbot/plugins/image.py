@@ -5,7 +5,7 @@ import time
 from __saucenao_api import SauceNao
 from __saucenao_api.errors import UnknownApiError,LongLimitReachedError,ShortLimitReachedError
 import soup
-from utf8logger import INFO, WARNING
+from utf8logger import INFO, WARNING, ERROR
 from admin import admin_ID
 
 api_key = [
@@ -46,7 +46,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     if not Image:
         bot.SendMessage(Type, target, soup.Plain('没有关联图片，请尝试直接和图片一起发送'), id=Source.id)
         return
-    bot.SendMessage(Type, target, soup.Plain('正在搜图'), id=Source.id)
     for img in Image:
         while True:
             try:
@@ -59,6 +58,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             except ShortLimitReachedError:
                 bot.SendMessage(Type, target, soup.Plain('搜图进入CD，请30秒后尝试'), id=Source.id)
                 return
+            except Exception as e:ERROR(e)
             else:
                 break
 
@@ -66,6 +66,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         message = []
         if results:
             message.append(soup.Plain(f'有 {len(results)} 个结果'))
+            bot.SendMessage(Type, target, soup.Plain('正在搜图'), id=Source.id)
             INFO(results)
         else:
             bot.SendMessage(Type, target, soup.Plain('搜图失败，请稍后尝试'))

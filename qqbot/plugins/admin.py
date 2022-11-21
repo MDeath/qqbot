@@ -3,7 +3,7 @@
 import os,json,psutil,random,time,traceback
 
 from qqbotcls import QQBotSched,bot
-from utf8logger import INFO
+from utf8logger import INFO, ERROR
 from mainloop import Put
 from common import JsonDict
 import soup
@@ -154,13 +154,16 @@ def onQQMessage(bot, Type, Sender, Source, Message):
 
     if Plain.startswith(('$', '￥', '#'))and Sender.id in admin_ID(True):
         try:
-            rt = eval(Plain[1:])
+            rt, err = eval(Plain[1:]), None
         except:
-            rt = traceback.format_exc()
+            rt, err = None, traceback.format_exc()
         if Plain.startswith('#'):
-            INFO(rt)
+            if rt:
+                INFO(f'\n{rt}')
+            else:
+                ERROR(f'\n{err}')
         else:
-            reply(soup.Plain(rt))
+            reply(soup.Plain(rt or err))
         return
     
     if FlashImage:

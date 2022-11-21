@@ -3,7 +3,7 @@
 import traceback
 
 import soup
-from utf8logger import ERROR
+from utf8logger import ERROR, INFO
 from mainloop import Put
 from common import Unquote, STR2BYTES, JsonDict, JsonDumps, BYTES2STR
 
@@ -26,7 +26,6 @@ class TermBot(object):
         else:
             http = False
             argv = command.strip().split(None, 3)
-    
         if argv and argv[0] in cmdFuncs:
             try:
                 result, err = cmdFuncs[argv[0]](bot, argv[1:], http)
@@ -39,6 +38,11 @@ class TermBot(object):
             except:
                 result, err = None, traceback.format_exc()
         
+        if not err:
+            INFO(f'\nQQBot-Term Command:{command}\033[32mResult:\033[0m\n{result}')
+        else:
+            ERROR(f'\nQQBot-Term Command:{command}\033[31mResult:\033[0m\n{err}')
+
         if http:
             rep = {'result':result, 'err': err}
             rep = STR2BYTES(JsonDumps(rep, ensure_ascii=False, indent=4))
