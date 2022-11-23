@@ -58,7 +58,7 @@ def illust_node(illust,bot,Type,target,sender=2854196310, name='QQ管家',Source
         for page in illust.meta_pages:
             node += souptype(page.image_urls.original,page.image_urls.medium),
     else:
-        node += souptype(illust.meta_single_page.original_image_url,illust.meta_single_page.medium),
+        node += souptype(illust.meta_single_page.original_image_url,illust.image_urls.medium),
     error_number = 0
 
     for n in range(0,len(node),50):
@@ -88,7 +88,7 @@ def illusts_node(illusts, sender=2854196310, name='QQ管家', Group=True): # 多
             for page in i.meta_pages:
                 message.append(souptype(page.image_urls.original,page.image_urls.medium))
         else:
-            message.append(souptype(i.meta_single_page.original_image_url,i.meta_single_page.medium))
+            message.append(souptype(i.meta_single_page.original_image_url,i.image_urls.medium))
 
         node.append(soup.Node(sender,name,*message))
     return node
