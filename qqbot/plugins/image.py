@@ -72,7 +72,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             bot.SendMessage(Type, target, soup.Plain('搜图失败，请稍后尝试'))
             continue
         for r in results:
-            urls = ('source' in r.raw['data'] and '\n'+r.raw['data']['source']) or '\n'+'\n'.join(r.urls)
+            urls = ('source' in r.raw['data'] and '\n'+r.raw['data']['source']) or ''
+            urls+= '\n'+'\n'.join(r.urls)
             for k,v in {':':'：','.':'。'}.items():
                 urls = urls.replace(k,v)
             if r.similarity < 60:
@@ -83,7 +84,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 if not pid and 'source' in r.raw['data']:
                     if 'fanbox' not in r.raw['data']['source'] and 'pixiv' in bot.plugins and ('https://www.pixiv.net' in r.raw['data']['source'] or 'https://i.pximg.net' in r.raw['data']['source']):
                         pid = r.raw['data']['source'].split('/')[-1].split('=')[-1].split('_')[0]
-                        if 'error' in bot.pixiv.illust_detail(pid):pid = False
+                        illust = bot.pixiv.illust_detail(pid)
+                        if 'error' in illust or not (illust.illust.title or illust.illust.user.name):pid = False
                     elif r.raw['data']['source'].startswith('http'):
                         for f in admin_ID():
                             bot.SendMessage('Friend', f, soup.Plain(r.raw))
@@ -91,7 +93,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                     for url in r.urls:
                         if 'fanbox' not in url and 'pixiv' in bot.plugins and ('https://www.pixiv.net' in url or 'https://i.pximg.net' in url):
                             pid = url.split('/')[-1].split('=')[-1].split('_')[0]
-                            if 'error' in bot.pixiv.illust_detail(pid):pid = False
+                            illust = bot.pixiv.illust_detail(pid)
+                            if 'error' in illust or not (illust.illust.title or illust.illust.user.name):pid = False
                             else:break
             message.append(soup.Plain(s))
         if max([r.similarity for r in results]) < 60:message.append(soup.Plain('\n匹配度较低，可能被裁切、拼接，或是 AI 作图'))
