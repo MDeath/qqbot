@@ -15,6 +15,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         return
 
     for msg in Message:
+        if msg.type == 'Plain' and msg.text.startswith('你的QQ暂不支持查看'):return
         if msg.type == 'AtAll':return
         if msg.type == 'FlashImage':return
         if msg.type == 'Voice':return
