@@ -165,7 +165,7 @@ class MiraiApi():
             StartDaemonThread(Base64,msg,n)
         while len(l) != len(n):pass
         Quote = self.basicsession(Post, f'send{Type}Message', data=json.dumps(payload))
-        INFO(f'发到 {Type} {target}({Quote}):{(id and "回复消息 "+str(id)+" ") or " "}{message}')
+        INFO(f'发到 {Type} {target}({Quote}){(id and "回复消息("+str(id)+")") or ""}:\n{message}')
         return Quote
 
     def Nudge(self, type:str, target:int, id:int) -> None: # 戳一戳
