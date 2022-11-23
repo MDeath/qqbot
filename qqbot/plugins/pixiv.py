@@ -117,15 +117,6 @@ def onPlug(bot):
     except:
         with open(bot.conf.Config('pixiv.json'),'w', encoding='utf-8') as f:json.dump(config, f, ensure_ascii=False, indent=4)
 
-    if not hasattr(bot.pixiv,'PID'):
-        try:
-            if os.path.exists(bot.conf.Config('PID.json')):
-                with open(bot.conf.Config('PID.json'), 'r', encoding='utf-8') as f:bot.pixiv.PID = json.load(f)
-            else:raise
-        except:
-            bot.pixiv.PID = []
-            with open(bot.conf.Config('PID.json'),'w', encoding='utf-8') as f:json.dump(bot.pixiv.PID,f)
-
     bot.pixiv = Pixiv()
     try:
         if config['REFRESH_TOKEN']:
@@ -136,6 +127,15 @@ def onPlug(bot):
     except:
         WARNING('Pixiv 登陆失败,需要重启')
         Put(bot.Restart)
+
+    if not hasattr(bot.pixiv,'PID'):
+        try:
+            if os.path.exists(bot.conf.Config('PID.json')):
+                with open(bot.conf.Config('PID.json'), 'r', encoding='utf-8') as f:bot.pixiv.PID = json.load(f)
+            else:raise
+        except:
+            bot.pixiv.PID = []
+            with open(bot.conf.Config('PID.json'),'w', encoding='utf-8') as f:json.dump(bot.pixiv.PID,f)
 
 def onUnplug(bot):
     del bot.pixiv
