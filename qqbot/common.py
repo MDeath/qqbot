@@ -21,9 +21,9 @@ class JsonDict(dict):
 def parse_json(json_str):
     return json.loads(json_str, object_hook=JsonDict)
 
-JsonLoad = lambda *avgs, **kwavgs: JsonDict(json.load(*avgs, **kwavgs))
+JsonLoad = lambda *args, **kwargs: JsonDict(json.load(*args, **kwargs))
 JsonDump = json.dump
-JsonLoads = lambda *avgs, **kwavgs: JsonDict(json.loads(*avgs, **kwavgs))
+JsonLoads = lambda *args, **kwargs: JsonDict(json.loads(*args, **kwargs))
 JsonDumps = json.dumps
 
 _PASS = lambda s: s
