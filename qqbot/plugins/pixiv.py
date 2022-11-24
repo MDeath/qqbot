@@ -52,7 +52,7 @@ def illust_node(illust,bot,Type,target,sender=2854196310, name='QQ管家',Source
     if any(kw in Plain.lower() for kw in ('r-18', 'r18', 'r-15', 'r15')) and Type == 'Group':
         souptype = lambda word,url:soup.Node(sender,name,imgurl2qr(word.replace('i.pximg.net',hosts),url.replace('i.pximg.net',hosts)))
     else:
-        souptype = lambda word,url:soup.Node(sender,name,soup.Image(url.replace('i.pximg.net',hosts)))
+        souptype = lambda word,url:soup.Node(sender,name,soup.Image(word.replace('i.pximg.net',hosts)))
 
     if illust.page_count > 1:
         for page in illust.meta_pages:
@@ -82,7 +82,7 @@ def illusts_node(illusts, sender=2854196310, name='QQ管家', Group=True): # 多
         if any(kw in Plain.lower() for kw in ('r-18', 'r18', 'r-15', 'r15')) and Group:
             souptype = lambda word,url:imgurl2qr(word.replace('i.pximg.net',hosts),url.replace('i.pximg.net',hosts))
         else:
-            souptype = lambda word,url:soup.Image(url.replace('i.pximg.net',hosts))
+            souptype = lambda word,url:soup.Image(word.replace('i.pximg.net',hosts))
 
         if i.page_count > 1:
             for page in i.meta_pages:
