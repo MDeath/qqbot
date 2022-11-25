@@ -26,12 +26,16 @@ qqbot 是一个用 python 实现的、基于 Mirai-Http 协议的 QQ 机器人
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '回复消息回复 解析 返回消息 类型和结构'
-    if Type not in ['Friend', 'Group']: # 消息来源 
+    if Type not in ['Friend', 'Group', 'Temp']: # 消息来源
         return
-    if hasattr(Sender, 'group'): # 消息来源id
+        
+    if Type == 'Group': # 消息来源id
         target = Sender.group.id
+    if Type == 'Temp':
+        target = Sender.id, Sender.group.id
     else:
         target = Sender.id
+    
     At = []
     AtAll = False
     Plain = ''
@@ -39,7 +43,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     Xml = []
     Json = []
     for msg in Message: # 消息链解析
-        if msg.type == 'Quote':Quote = msg
+        if msg.type == 'Quote':Quote = msg # 回复的内容
         if msg.type == 'At':At.append(msg.target)
         if msg.type == 'AtAll':AtAll = True
         if msg.type == 'Face':pass

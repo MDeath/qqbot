@@ -164,8 +164,16 @@ def main(bot,reply,twentyone:TwentyOne):
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     if not hasattr(bot,'player'):return
-    if Type not in ['Friend', 'Group']:
+    if Type not in ['Friend', 'Group', 'Temp']:
         return
+
+    if Type == 'Friend':
+        target = Sender.id
+    elif Type == 'Group':
+        target = Sender.group.id
+    elif Type == 'Temp':
+        target = Sender.id, Sender.group.id
+
     message = []
     if hasattr(Sender, 'group'):
         target = Sender.group.id

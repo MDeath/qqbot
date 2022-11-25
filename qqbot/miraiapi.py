@@ -139,10 +139,10 @@ class MiraiApi():
         payload = {'sessionKey':self.session,'id':messageID}
         return self.basicsession(Get, 'messageFromId', params=payload)
 
-    def SendMessage(self, Type:str, target:int, *message:dict, id:int=None) -> int: # 发给好友、群、临时消息，返回消息ID
+    def SendMessage(self, Type:str, target:int|tuple|list, *message:dict, id:int=None) -> int: # 发给好友、群、临时消息，返回消息ID
         r'''form = Friend, Group, Temp
-        Group and Friend: target = target
-        Temp: qq = qqID, or group = groupID
+        Group and Friend: target = qq or group
+        Temp: target = qq, group
 
         quote is messageID
         message is messagelist
@@ -153,8 +153,7 @@ class MiraiApi():
         if Type != 'Temp':
             payload['target'] = target
         elif Type == 'Temp':
-            payload['qq'] = target
-            payload['group'] = target
+            payload['qq'], payload['group'] = target
         payload['messageChain'] = [msg for msg in message]
         if id:
             payload['quote'] = id

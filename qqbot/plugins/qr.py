@@ -57,10 +57,16 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     生成该图临时QR码
     发送 'qr' 加上 文本 并附带回复 图片
     生成艺术QR码'''
-    if Type not in ['Friend','Group']:return
-    Group = hasattr(Sender, 'group')
-    if Group:target = Sender.group.id
-    else:target = Sender.id
+    if Type not in ['Friend', 'Group', 'Temp']:
+        return
+
+    if Type == 'Friend':
+        target = Sender.id
+    elif Type == 'Group':
+        target = Sender.group.id
+    elif Type == 'Temp':
+        target = Sender.id, Sender.group.id
+
     quote = Source.id
     Plain = ''
     Image = []

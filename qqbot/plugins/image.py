@@ -22,12 +22,16 @@ def onUnplug(bot):
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
     回复图片发送 '搜图' 可图片溯源'''
-    if Type not in ['Friend','Group']:
+    if Type not in ['Friend', 'Group', 'Temp']:
         return
-    if hasattr(Sender, 'group'):
-        target = Sender.group.id
-    else:
+
+    if Type == 'Friend':
         target = Sender.id
+    elif Type == 'Group':
+        target = Sender.group.id
+    elif Type == 'Temp':
+        target = Sender.id, Sender.group.id
+
     Plain = ''
     Image = []
     for msg in Message:

@@ -258,10 +258,16 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     'Pid' 或 'Uid' 查询插画和作者
     !!!群消息有概率被吞!!!'''
     if not hasattr(bot, 'pixiv'):onPlug(bot)
-    if Type not in ['Friend','Group']:return
-    Group = hasattr(Sender, 'group')
-    if Group:target = Sender.group.id
-    else:target = Sender.id
+    if Type not in ['Friend', 'Group', 'Temp']:
+        return
+
+    if Type == 'Friend':
+        target = Sender.id
+    elif Type == 'Group':
+        target = Sender.group.id
+    elif Type == 'Temp':
+        target = Sender.id, Sender.group.id
+
     Plain = ''
     At = []
     for msg in Message:

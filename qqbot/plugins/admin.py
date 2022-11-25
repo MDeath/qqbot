@@ -117,8 +117,16 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     -=# 超级权限 #=-
     关机 重启 
     命令行前置符 ￥ 或 $'''
-    if Type not in ['Friend', 'Group']:
+    if Type not in ['Friend', 'Group', 'Temp']:
         return
+
+    if Type == 'Friend':
+        target = Sender.id
+    elif Type == 'Group':
+        target = Sender.group.id
+    elif Type == 'Temp':
+        target = Sender.id, Sender.group.id
+
     At = []
     AtAll = False
     Plain = ''
@@ -142,11 +150,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if msg.type == 'MusicShare':MusicShare = msg
         if msg.type == 'ForwardMessage':pass 
         if msg.type == 'File':pass
-
-    if hasattr(Sender, 'group'):
-        target = Sender.group.id
-    else:
-        target = Sender.id
 
     reply = lambda *msg:bot.SendMessage(Type,target,*msg)
 

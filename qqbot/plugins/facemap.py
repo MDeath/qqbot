@@ -37,13 +37,16 @@ def onInterval(bot):
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
     自动触发表情包'''
-    if not hasattr(bot,'facemap'):return
-    if Type not in ['Friend', 'Group']:
+    if Type not in ['Friend', 'Group', 'Temp']:
         return
-    if hasattr(Sender, 'group'):
-        target = Sender.group.id
-    else:
+
+    if Type == 'Friend':
         target = Sender.id
+    elif Type == 'Group':
+        target = Sender.group.id
+    elif Type == 'Temp':
+        target = Sender.id, Sender.group.id
+
     for msg in Message:
         if msg.type == 'Quote':
             quote = msg.id

@@ -21,12 +21,16 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
     回复 xml卡片 xml 返回 xml源码
     发送 xml源码 返回 xml卡片'''
-    if Type not in ['Friend', 'Group']:
+    if Type not in ['Friend', 'Group', 'Temp']:
         return
-    if hasattr(Sender, 'group'):
-        target = Sender.group.id
-    else:
+
+    if Type == 'Friend':
         target = Sender.id
+    elif Type == 'Group':
+        target = Sender.group.id
+    elif Type == 'Temp':
+        target = Sender.id, Sender.group.id
+
     for msg in Message:
         if msg.type == 'Quote':
             quote = msg.id
