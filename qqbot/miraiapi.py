@@ -232,14 +232,14 @@ class MiraiApi():
         un = (un and 'un') or ''
         return self.basicsession(Post, f'{un}mute', data=json.dumps(payload))
 
-    def kick(self, target:int, memberID:int, msg:str=''): # 移除成员
+    def Kick(self, target:int, memberID:int, msg:str=''): # 移除成员
         payload = {'sessionKey':self.session}
         payload['target'] = target
         payload['memberId'] = memberID
         payload['msg'] = msg
         return self.basicsession(Post, 'kick', data=json.dumps(payload))
 
-    def quit(self, target:int): # 退群
+    def Quit(self, target:int): # 退群
         payload = {'sessionKey':self.session}
         payload['target'] = target
         return self.basicsession(Post, 'quit', data=json.dumps(payload))
