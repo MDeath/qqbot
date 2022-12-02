@@ -118,23 +118,27 @@ class QQBot(TermBot):
         if 'SyncMessage' in Message.type:
             Type = Message.type.replace('SyncMessage','')
             subject = Message.subject
-            Sender = ('Group'==Type and self.MemberInfo('get',subject.id, self.conf.qq)) or ('Friend'==Type and subject)
+            Sender = ('Group'==Type and self.MemberInfo('get',subject.id, self.conf.qq)) or subject
             Message = Message.messageChain
             Source = Message.pop(0)
-            if 'Group' == Type:
-                INFO(f'同步群 {subject.name}({subject.id}) 的消息({Source.id}):\n{str(Message)}')
-            else:
+            if Type == 'Friend':
                 INFO(f'同步好友 {subject.nickname}[{subject.remark}({subject.id})] 的消息({Source.id}):\n{str(Message)}')
+            if Type == 'Group':
+                INFO(f'同步群 {subject.name}({subject.id}) 的消息({Source.id}):\n{str(Message)}')
+            elif Type == 'Temp':
+                INFO(f'同步群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的临时消息({Source.id}):\n{str(Message)}')
             self.onQQMessage(Type, Sender, Source, Message)
         elif 'Message' in Message.type:
             Type = Message.type.replace('Message','')
             Sender = Message.sender
             Message = Message.messageChain
             Source = Message.pop(0)
-            if hasattr(Sender, 'group'):
-                INFO(f'来自群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的消息({Source.id}):\n{str(Message)}')
-            else:
+            if Type == 'Friend':
                 INFO(f'来自好友 {Sender.nickname}[{Sender.remark}({Sender.id})] 的消息({Source.id}):\n{str(Message)}')
+            elif Type == 'Group':
+                INFO(f'来自群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的消息({Source.id}):\n{str(Message)}')
+            elif Type == 'Temp':
+                INFO(f'来自群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的临时消息({Source.id}):\n{str(Message)}')
             self.onQQMessage(Type, Sender, Source, Message)
         elif 'RequestEvent' in Message.type:
             if hasattr(self, 'onQQRequestEvent'):
