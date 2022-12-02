@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import json, os, time, re
+import json, os, time, random, re
 from pixivpy3 import AppPixivAPI
+from pixivpy3.utils import PixivError
 
 import soup
 from mainloop import Put
 from qr import imgurl2qr
 from admin import admin_ID
-from utf8logger import WARNING
+from utf8logger import ERROR,INFO,WARNING
 from qqbotcls import QQBotSched
 
 # 图片代理
@@ -30,19 +31,32 @@ class Pixiv(AppPixivAPI):
         super().__init__(**requests_kwargs)
         self.set_accept_language('zh-cn')
 
+    def require_auth(self) -> None:
+        if self.access_token is None:
+            self.auth()
+
     def no_auth_requests_call(self, *args, **kwargs):
         while True:
-            r = super().no_auth_requests_call(*args, **kwargs)
-            if r.ok:return r
-            jsondict = self.parse_json(r.text)
-            if hasattr(jsondict.error,'message') and jsondict.error.message:
-                if 'Rate Limit' in jsondict.error.message:
-                    time.sleep(10)
-                    continue
-                elif 'Error occurred at the OAuth process.' in jsondict.error.message:
-                    self.auth(refresh_token=self.refresh_token or config['REFRESH_TOKEN'])
-                    continue
-            return r
+            try:
+                r = super().no_auth_requests_call(*args, **kwargs)
+                if r.ok:return r
+                jsondict = self.parse_json(r.text)
+                if hasattr(jsondict.error,'message') and jsondict.error.message:
+                    if 'Rate Limit' in jsondict.error.message:
+                        time.sleep(10)
+                        continue
+                    elif 'Error occurred at the OAuth process.' in jsondict.error.message:
+                        self.auth(refresh_token=self.refresh_token or config['REFRESH_TOKEN'])
+                        continue
+                return r
+            except PixivError as e:
+                if str(e).startswith('[ERROR] auth() failed! check refresh_token.'):self.auth()
+                elif str(e).startswith('Authentication required! Call login() or set_auth() first!'):self.auth()
+                else:raise PixivError(e)
+
+
+    def get_tags(self,number=40):
+        return "\n".join([f"{tag.tag}:{tag.translated_name}" for tag in self.trending_tags_illust().trend_tags][:number])
     
 def illust_node(illust,bot,Type,target,sender=2854196310, name='QQ管家',Source=None): # 单插画消息链
     Plain = f'标题:{illust.title} Pid:{illust.id}\n作者:{illust.user.name} Uid:{illust.user.id}\n时间:{illust.create_date}\n类型:{illust.type} 收藏:{illust.total_bookmarks} 标签:'
@@ -69,6 +83,7 @@ def illust_node(illust,bot,Type,target,sender=2854196310, name='QQ管家',Source
             error_number += 1
             if code == -1:img2qr(node)
             elif type(code) is int:break
+            elif code == '500':break
 
 def illusts_node(illusts, sender=2854196310, name='QQ管家', Group=True): # 多插画消息链
     node = []
@@ -141,10 +156,15 @@ def onUnplug(bot):
     del bot.pixiv
 
 def onInterval(bot): # 刷新令牌和保存PID记录
-    bot.pixiv.auth(refresh_token=bot.pixiv.refresh_token or config['REFRESH_TOKEN'])
+    while True:
+        try:
+            bot.pixiv.auth(refresh_token=bot.pixiv.refresh_token or config['REFRESH_TOKEN'])
+            break
+        except PixivError as e:
+            ERROR(e)
     with open(bot.conf.Config('PID.json'),'w', encoding='utf-8') as f:json.dump(bot.pixiv.PID,f)
 
-@QQBotSched(day_of_week=1) # 清空PID记录
+@QQBotSched(month=1) # 清空PID记录
 def week_clear_pid(bot):
     bot.pixiv.PID = []
 
@@ -178,6 +198,7 @@ def day_ranking(
             if code == -1:img2qr(node)
             elif type(code) is int:break
             elif code == '30':fold_node(node)
+        time.sleep(30)
             
 # Pixiv R-18日榜
 @QQBotSched(year=None, 
@@ -216,7 +237,8 @@ def day_r18_ranking(
         while admin_node:
             code = bot.SendMessage('Friend',f, soup.Forward(*admin_node))
             if type(code) is int:break
-            if code == '30':fold_node(admin_node)
+            elif code == '30':fold_node(admin_node)
+        time.sleep(30)
 
 # Pixiv每日动态
 @QQBotSched(year=None, 
@@ -256,11 +278,13 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     最后指定数量（最多发10幅）
     返回pixiv插画推荐
     'Pid' 或 'Uid' 查询插画和作者
+    '推荐关键字' 获取 趋势标签
     !!!群消息有概率被吞!!!'''
     if not hasattr(bot, 'pixiv'):onPlug(bot)
     if Type not in ['Friend', 'Group', 'Temp']:
         return
 
+    Group = hasattr(Sender,'group')
     if Type == 'Friend':
         target = Sender.id
     elif Type == 'Group':
@@ -278,7 +302,11 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     admin_node = []
     keyward = ('setu','色图','涩图','瑟图')
 
-    if Plain.lower().startswith('pid'): # 通过PID获取插图
+    if Plain == '推荐关键字' or Plain == '关键字推荐':
+        bot.SendMessage(Type, target, soup.Plain(bot.pixiv.get_tags()))
+        return
+
+    elif Plain.lower().startswith('pid'): # 通过PID获取插图
         try:pid = re.search(r'\d+',Plain)[0]
         except:
             bot.SendMessage(Type, target, soup.Plain('例:PID12345678'), id=Source.id)
@@ -328,14 +356,18 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         else:
             number = 1
         illusts = []
-        bookmarks = [100000,90000,80000,70000,60000,50000,40000,30000,20000,10000,5000,1000,500,250,100]
+        bookmarks = [100000,90000,80000,70000,60000,50000,40000,30000,20000,10000,5000,1000,500,250,100,0]
         for bookmark in bookmarks:
-            next_url = {'word':f'{Plain} {bookmark}users入り'}
+            next_url = {'word':f'{Plain}{(bookmark and f" {bookmark}users入り") or ""}'}
+            loopnum = 0
             while next_url:
                 p = bot.pixiv.search_illust(**next_url)
                 next_url = bot.pixiv.parse_qs(p.next_url)
                 for i in p.illusts:
-                    if (i.total_bookmarks >= bookmark or i.total_bookmarks >= 500) and i.id not in bot.pixiv.PID:
+                    if (i.total_bookmarks >= bookmark >=50 or 250 >= bookmark >= i.total_bookmarks >= 50) and \
+                        ((i.type == 'manga' and random.randint(0,1)) or i.type != 'manga') and \
+                        i.id not in bot.pixiv.PID and \
+                        i.page_count<=50:
                         for tag in i.tags:
                             if tag.name.lower() in ('r-18', 'r18', 'r-15', 'r15') and not Rtag:
                                 break
@@ -343,13 +375,16 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                             illusts.append(i)
                             bot.pixiv.PID.append(i.id)
                     if len(illusts) == number or len(illusts) == 10:break
-                if len(illusts) == number or len(illusts) == 10:break
+                if len(illusts) == number or len(illusts) == 10 or loopnum >= 50:break
+                loopnum += 1
+                time.sleep(5)
             if len(illusts) == number or len(illusts) == 10:break
+            time.sleep(5)
 
     else:return
 
     if not illusts:
-        bot.SendMessage(Type, target, soup.Plain(f'没有"{Plain}"的相关结果,请考虑使用空格分割关键字'), id=Source.id)
+        bot.SendMessage(Type, target, soup.Plain(f'没有"{Plain}"的相关结果,请考虑使用空格分割关键字,或使用推荐关键字:\n'+bot.pixiv.get_tags(20)), id=Source.id)
         return
     node += illusts_node(illusts,Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname, Group)
     error_number = 0
@@ -364,10 +399,11 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             #     bot.SendMessage('Friend', f, soup.Forward(*node))
             # return
         elif code == '30':fold_node(node)
-    admin_node += illusts_node(illusts,Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname, Group)
+    admin_node += illusts_node(illusts,Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname, False)
     for f in admin_ID():
         while admin_node:
             if Sender.id == f:continue
             code = bot.SendMessage('Friend',f, soup.Forward(*admin_node))
             if type(code) is int:break
-            if code == '30':fold_node(admin_node)
+            elif code == '30':fold_node(admin_node)
+            elif code == '500':break
