@@ -51,9 +51,11 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         bot.SendMessage(Type, target, soup.Plain('没有关联图片，请尝试直接和图片一起发送'), id=Source.id)
         return
     for img in Image:
+        error_nember = 0
         while True:
             try:
                 results = bot.sauce.from_url(img.url) # or from_file()
+                break
             except UnknownApiError:
                 WARNING('搜图失败，请稍后尝试')
             except LongLimitReachedError:
@@ -62,9 +64,10 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             except ShortLimitReachedError:
                 bot.SendMessage(Type, target, soup.Plain('搜图进入CD，请30秒后尝试'), id=Source.id)
                 return
-            except Exception as e:ERROR(e)
-            else:
-                break
+            except Exception as e:
+                ERROR(f"Count:{error_nember} ERROR:{e}")
+                if error_nember == 5:bot.SendMessage(Type, target, soup.Plain('暂时无法连到服务器，请联系管理员'), id=Source.id)
+            error_nember += 1
 
         pid = False
         message = []
