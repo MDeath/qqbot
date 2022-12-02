@@ -5,13 +5,15 @@ from MyQR import myqr
 import soup
 
 def basename(s:str):
-    s = os.path.basename(s)
+    if s.startswith('http://gchat.qpic.cn/'):
+        s = s.split('/')[-2]
+    else:s = os.path.basename(s)
     for c in ['\\','/',':','*','?','"','<','>','|']:
         s = s.replace(c,'_')
     return s
 
 def imgurl2qr(
-        word=None,
+        word:str=None,
         picture:str=None,
         **kwargs
     ) -> soup.Image:
@@ -25,19 +27,24 @@ def imgurl2qr(
     if not os.path.exists(tempdir):
         os.makedirs(tempdir)
 
+    if not word and picture:word = picture
+
     if picture and picture.startswith('http'):
         resp = requests.get(picture,**kwargs).content
+
         picture = os.path.join(tempdir, basename(picture))
+
         if picture[-4:] not in ('.jpg','.png','.bmp','.gif'):
             if resp[6:10] in (b'JFIF', b'Exif'):picture+='.jpg'
             elif resp.startswith(b'\211PNG\r\n\032\n'):picture+='.png'
             elif resp[:6] in (b'GIF87a', b'GIF89a'):picture+='.gif'
             elif resp.startswith(b'BM'):picture+='.bmp'
             else:picture+='.png'
+
         with open(picture, "wb") as out_file:out_file.write(resp)
 
     version, level, qr_name = myqr.run(
-        word or picture,
+        word,
         version = 1,
         level = 'H',
         picture = picture,
