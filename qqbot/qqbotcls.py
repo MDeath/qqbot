@@ -55,8 +55,8 @@ class QQBot(TermBot):
         self.Profile = self.Mirai.Profile
         self.DeleteFriend = self.Mirai.DeleteFriend
         self.Mute = self.Mirai.Mute
-        self.kick = self.Mirai.kick
-        self.quit = self.Mirai.quit
+        self.kick = self.Mirai.Kick
+        self.quit = self.Mirai.Quit
         self.MuteAll = self.Mirai.MuteAll
         self.SetEssence = self.Mirai.SetEssence
         self.GroupConfig = self.Mirai.GroupConfig
