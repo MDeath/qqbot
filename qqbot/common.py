@@ -18,8 +18,10 @@ class JsonDict(dict):
         except KeyError:
             raise AttributeError(r"'JsonDict' object has no attribute '%s'" % attr)
 
-def parse_json(json_str):
-    return json.loads(json_str, object_hook=JsonDict)
+def parse_json(ojb:dict|list|str) -> JsonDict:
+    if type(ojb) is dict or type(ojb) is list:
+        ojb = JsonDumps(ojb)
+    return JsonLoads(ojb, object_hook=JsonDict)
 
 JsonLoad = lambda *args, **kwargs: JsonDict(json.load(*args, **kwargs))
 JsonDump = json.dump
