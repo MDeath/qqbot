@@ -5,7 +5,7 @@ import traceback
 import soup
 from utf8logger import ERROR, INFO
 from mainloop import Put
-from common import Unquote, STR2BYTES, JsonDict, JsonDumps, BYTES2STR
+from common import Unquote, STR2BYTES, parse_json, BYTES2STR
 
 cmdFuncs, usage = {}, {}
 
