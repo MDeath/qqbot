@@ -284,7 +284,7 @@ def onQQEvent(bot, Message):
             elif Message.type == 'BotGroupPermissionChangeEvent': # Bot在群里的权限被改变. 操作人一定是群主
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.group.name}({Message.group.id}) 权限由 {Message.origin} 改为 {Message.current}'))
             elif Message.type == 'BotMuteEvent': # Bot被禁言
-                bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.operator.group.name}({Message.operator.group.id}) 被 {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] 禁言 {time.strftime("%j天%H时%M分",time.gmtime(Message.durationSeconds))}'))
+                bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.operator.group.name}({Message.operator.group.id}) 被 {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] 禁言 {secs2hours(Message.durationSeconds)}'))
             elif Message.type == 'BotUnmuteEvent': # Bot被取消禁言
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.operator.group.name}({Message.operator.group.id}) 被 {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] 解禁'))
             elif Message.type == 'BotJoinGroupEvent': # Bot加入了一个新群
@@ -296,10 +296,10 @@ def onQQEvent(bot, Message):
             elif Message.type == 'BotLeaveEventDisband': # Bot因群主解散群而退出群, 操作人一定是群主
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.group.name}({Message.group.id}) 被解散'))
             elif Message.type == 'GroupRecallEvent': # 群消息撤回
-                bot.SendMessage('Friend',f,soup.Forward(soup.Node(id=Message.messageId)))
+                bot.SendMessage('Friend',f,soup.Forward(soup.Node([Message.group.id,Message.messageId])))
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.group.name}({Message.group.id}) {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] 撤回了 {Message.authorId} 的消息ID {Message.messageId}'))
             elif Message.type == 'FriendRecallEvent': # 好友消息撤回
-                bot.SendMessage('Friend',f,soup.Forward(soup.Node(id=Message.messageId)))
+                bot.SendMessage('Friend',f,soup.Forward(soup.Node([Message.authorId,Message.messageId])))
                 bot.SendMessage('Friend',f,soup.Plain(f'好友 {Message.authorId} 撤回了消息ID {Message.messageId}'))
             elif Message.type == 'NudgeEvent': # 戳一戳事件
                 if Message.target==bot.conf.qq:bot.SendMessage('Friend',f,soup.Plain(f'{(Message.subject.kind=="Group" and "群") or "好友"}({Message.fromId}) 戳了戳 {Message.target} 的脸'))
