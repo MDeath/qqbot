@@ -114,11 +114,11 @@ def Query(host, port, req):
 
 if __name__ == '__main__':
     import sys    
-    from qqbot.common import SYSTEMSTR2BYTES
+    from qqbot.common import STR2BYTES
     data = ' '.join(sys.argv[1:]).strip()
     if data:
         host, port = '127.0.0.1', 8191
         if data == '-s':
             MySocketServer(host, port).Run()
         else:
-            print(Query(host, port, SYSTEMSTR2BYTES(data)))
+            print(Query(host, port, STR2BYTES(data)))

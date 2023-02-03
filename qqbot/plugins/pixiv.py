@@ -12,13 +12,18 @@ from utf8logger import ERROR,INFO,WARNING
 from qqbotcls import QQBotSched
 
 # 图片代理
-hosts = {
-    'cat' : 'i.pixiv.cat',
-    're' : 'i.pixiv.re',
-    'nl' : 'i.pixiv.nl',
-    'lolisuki' : 'pixiv.lolisuki.cn'
-}
-hosts = hosts['nl']
+hosts = [
+    # 'pixiv.lolisuki.cn',
+    'a.jitsu.top',
+    'b.jitsu.top',
+    'c.jitsu.top',
+    'd.jitsu.top',
+    # 'i.pixiv.cat',
+    'i.pixiv.re',
+    'i.pixiv.nl',
+]
+host = lambda:hosts[0]
+
 # pixiv配置
 config = {
     'REFRESH_TOKEN':'',
@@ -40,7 +45,7 @@ class Pixiv(AppPixivAPI):
             try:
                 r = super().no_auth_requests_call(*args, **kwargs)
                 if r.ok:return r
-                jsondict = self.parse_json(r.text)
+                jsondict = self.DotDict(r.text)
                 if hasattr(jsondict.error,'message') and jsondict.error.message:
                     if 'Rate Limit' in jsondict.error.message:
                         time.sleep(10)
@@ -59,45 +64,47 @@ class Pixiv(AppPixivAPI):
         return "\n".join([f"{tag.tag}:{tag.translated_name}" for tag in self.trending_tags_illust().trend_tags][:number])
     
 def illust_node(illust,bot,Type,target,sender=2854196310, name='QQ管家',Source=None): # 单插画消息链
-    Plain = f'标题:{illust.title} Pid:{illust.id}\n作者:{illust.user.name} Uid:{illust.user.id}\n时间:{illust.create_date}\n类型:{illust.type} 收藏:{illust.total_bookmarks} 标签:'
+    Plain = f'标题:{illust.title} Pid:{illust.id}\n作者:{illust.user.name} Uid:{illust.user.id} {illust.user.is_followed}\n时间:{illust.create_date[:-6]}\n类型:{illust.type} 收藏:{illust.total_bookmarks} 标签:'
     for tag in illust.tags:Plain += f'\n{tag.name}:{tag.translated_name}'
     node = soup.Node(sender,name,soup.Plain(Plain)),
 
     if any(kw in Plain.lower() for kw in ('r-18', 'r18', 'r-15', 'r15')) and Type == 'Group':
-        souptype = lambda word,url:soup.Node(sender,name,imgurl2qr(word.replace('i.pximg.net',hosts),url.replace('i.pximg.net',hosts)))
+        souptype = lambda word,url:soup.Node(sender,name,imgurl2qr(word.replace('i.pximg.net',host()),url.replace('i.pximg.net',host())))
     else:
-        souptype = lambda word,url:soup.Node(sender,name,soup.Image(word.replace('i.pximg.net',hosts)))
+        souptype = lambda word,url:soup.Node(sender,name,soup.Image(word.replace('i.pximg.net',host())))
 
     if illust.page_count > 1:
         for page in illust.meta_pages:
             node += souptype(page.image_urls.original,page.image_urls.medium),
     else:
         node += souptype(illust.meta_single_page.original_image_url,illust.image_urls.medium),
-    error_number = 0
 
     for n in range(0,len(node),50):
+        error_number = 0
         while node:
-            code = bot.SendMessage(Type, target, soup.Forward(*node[n:n+50]))
+            code, msgid = bot.SendMessage(Type, target, soup.Forward(*node[n:n+50]))
             if error_number == 5:
-                bot.SendMessage(Type, target, soup.Plain('图床超时请等待'),id=Source)
+                bot.SendMessage(Type, target, soup.Plain('⚠️图床超时请等待⚠️'),id=Source)
             error_number += 1
             if code == -1:img2qr(node)
-            elif type(code) is int:break
-            elif code == '500':break
+            elif not code:break
+            elif code == 500:
+                hosts.insert(0,hosts.pop())
+                if error_number == 10:break
 
 def illusts_node(illusts, sender=2854196310, name='QQ管家', Group=True): # 多插画消息链
     node = []
     
     for i in illusts:
         if i.type == 'ugoira':continue
-        Plain = f'标题:{i.title} Pid:{i.id}\n作者:{i.user.name} Uid:{i.user.id}\n时间:{i.create_date}\n类型:{i.type} 收藏:{i.total_bookmarks} 标签:\n'
+        Plain = f'标题:{i.title} Pid:{i.id}\n作者:{i.user.name} Uid:{i.user.id} {i.user.is_followed}\n时间:{i.create_date[:-6]}\n类型:{i.type} 收藏:{i.total_bookmarks} 标签:\n'
         for tag in i.tags:Plain += f'{tag.name}:{tag.translated_name}\n'
         message = [soup.Plain(Plain)]
 
         if any(kw in Plain.lower() for kw in ('r-18', 'r18', 'r-15', 'r15')) and Group:
-            souptype = lambda word,url:imgurl2qr(word.replace('i.pximg.net',hosts),url.replace('i.pximg.net',hosts))
+            souptype = lambda word,url:imgurl2qr(word.replace('i.pximg.net',host()),url.replace('i.pximg.net',host()))
         else:
-            souptype = lambda word,url:soup.Image(word.replace('i.pximg.net',hosts))
+            souptype = lambda word,url:soup.Image(word.replace('i.pximg.net',host()))
 
         if i.page_count > 1:
             for page in i.meta_pages:
@@ -203,12 +210,16 @@ def day_ranking(
     if target and type(target) is not list:target = [target]
     else:target = [g.id for g in bot.Group]
     for tg in target:
+        error_number = 0
         while node:
-            code = bot.SendMessage(Type, tg, soup.Forward(*node))
+            code, msgid = bot.SendMessage(Type, tg, soup.Forward(*node))
+            error_number += 1
             if code == -1:img2qr(node)
-            elif type(code) is int:break
-            elif code == '30':fold_node(node)
-            elif code == '500':break
+            elif not code:break
+            elif code == 30:fold_node(node)
+            elif code == 500:
+                hosts.insert(0,hosts.pop())
+                if error_number == 10:break
         time.sleep(30)
             
 # Pixiv R-18日榜
@@ -246,21 +257,29 @@ def day_r18_ranking(
     if target and type(target) is not list:target = [target]
     else:target = [g.id for g in bot.Group]
     for tg in target:
+        error_number = 0
         while node:
-            code = bot.SendMessage(Type, tg, soup.Forward(*node))
+            code, msgid = bot.SendMessage(Type, tg, soup.Forward(*node))
+            error_number += 1
             if code == -1:img2qr(node)
-            elif type(code) is int:break
-            elif code == '30':fold_node(node)
-            elif code == '500':break
+            elif not code:break
+            elif code == 30:fold_node(node)
+            elif code == 500:
+                hosts.insert(0,hosts.pop())
+                if error_number == 10:break
     admin_node = [soup.Node(2854196310,'QQ管家',soup.Plain(f'Pixiv {date or time.strftime("%Y-%m-%d",time.localtime(time.time()-86400))} R18榜单'))]
     admin_node += illusts_node(illusts, Group=False)
     for f in admin_ID():
+        error_number =0 
         if f in target:continue
         while admin_node:
-            code = bot.SendMessage('Friend',f, soup.Forward(*admin_node))
-            if type(code) is int:break
-            elif code == '30':fold_node(admin_node)
-            elif code == '500':break
+            code, msgid = bot.SendMessage('Friend',f, soup.Forward(*admin_node))
+            error_number += 1
+            if not code:break
+            elif code == 30:fold_node(admin_node)
+            elif code == 500:
+                hosts.insert(0,hosts.pop())
+                if error_number == 10:break
         time.sleep(30)
 
 # Pixiv每日动态
@@ -269,22 +288,23 @@ def day_r18_ranking(
             day=None, 
             week=None, 
             day_of_week=None, 
-            hour=0, 
+            hour=23, 
             minute=None, 
             second=None, 
             start_date=None, 
             end_date=None, 
             timezone=None)
-def illust_follow(bot):
+def illust_follow(bot,date=None):
+    if date is None:date = time.strftime("%Y-%m-%d",time.localtime(time.time()))
     next_url = {'restrict':'all'}
     illust_new = []
     while next_url:
         illusts = bot.pixiv.illust_follow(**next_url)
         for illust in illusts.illusts:
-            if illust.create_date[:10] > time.strftime("%Y-%m-%d",time.localtime(time.time()-86400)):
-                continue
-            if illust.create_date[:10] == time.strftime("%Y-%m-%d",time.localtime(time.time()-86400)):
+            if illust.create_date[:10] == date:
                 illust_new.append(illust)
+            elif illust.create_date[:10] > date:
+                continue
             else:
                 next_url = None
                 break
@@ -329,18 +349,25 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         bot.SendMessage(Type, target, soup.Plain(bot.pixiv.get_tags()))
         return
 
-    elif Plain.lower().startswith('pid'): # 通过PID获取插图
-        try:pid = re.search(r'\d+',Plain)[0]
-        except:
-            bot.SendMessage(Type, target, soup.Plain('例:PID12345678'), id=Source.id)
-            return
-        bot.SendMessage(Type, target, soup.Plain('PixivID获取中'), id=Source.id)
+    elif Plain.lower().startswith('pid') or 'https://www.pixiv.net/member_illust.php?' in Plain or 'https://www.pixiv.net/artworks/' in Plain: # 通过PID获取插图
+        if Plain.lower().startswith('pid'):
+            try:pid = re.search(r'\d+',Plain)[0]
+            except:
+                bot.SendMessage(Type, target, soup.Plain('⚠️例:PID12345678'), id=Source.id)
+                return
+        elif 'https://www.pixiv.net/member_illust.php?' in Plain:
+            try:pid = re.search(r'illust_id=\d+',Plain)[0].replace('illust_id=','')
+            except:return
+        elif 'https://www.pixiv.net/artworks/' in Plain:
+            try:pid = re.search(r'https://www.pixiv.net/artworks/\d+',Plain)[0].replace('https://www.pixiv.net/artworks/','')
+            except:return
+        bot.SendMessage(Type, target, soup.Plain(f'PixivID:{pid} 获取中♾️'), id=Source.id)
         illust = bot.pixiv.illust_detail(pid)
         if 'error' in illust:
-            [bot.SendMessage(Type, target, soup.Plain(f'{k}:{v}'+'\n'), id=Source.id) for k,v in illust.error.items() if v]
+            [bot.SendMessage(Type, target, soup.Plain(f'⚠️{k}:{v}'+'\n'), id=Source.id) for k,v in illust.error.items() if v]
             return
         if not (illust.illust.title or illust.illust.user.name):
-            bot.SendMessage(Type, target, soup.Plain(f'{Plain}已删除或非公开'), id=Source.id)
+            bot.SendMessage(Type, target, soup.Plain(f'⚠️{Plain}已删除或非公开'), id=Source.id)
             return
         illust_node(illust.illust,bot,Type,target,Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,Source.id)
         for f in admin_ID():
@@ -348,61 +375,60 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             illust_node(illust.illust,bot,'Friend',f,Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,Source.id)
         return
 
-    elif Plain.lower().startswith('uid'): # 通过UID获取用户作品
-        try:uid = re.search(r'\d+',Plain)[0]
-        except:
-            bot.SendMessage(Type, target, soup.Plain('例:UID12345678'), id=Source.id)
-            return
-        bot.SendMessage(Type, target, soup.Plain('UserID获取中'), id=Source.id)
+    elif Plain.lower().startswith('uid') or 'https://www.pixiv.net/member.php?' in Plain or 'https://www.pixiv.net/users/' in Plain: # 通过UID获取用户作品
+        if Plain.lower().startswith('uid'):
+            try:uid = re.search(r'\d+',Plain)[0]
+            except:
+                bot.SendMessage(Type, target, soup.Plain('⚠️例:UID12345678'), id=Source.id)
+                return
+        elif 'https://www.pixiv.net/member.php?' in Plain:
+            try:uid = re.search(r'id=\d+',Plain)[0].replace('id=','')
+            except:return
+        elif 'https://www.pixiv.net/users/' in Plain:
+            try:uid = re.search(r'https://www.pixiv.net/users/\d+',Plain)[0].replace('https://www.pixiv.net/users/','')
+            except:return
+        bot.SendMessage(Type, target, soup.Plain(f'UserID:{uid} 获取中♾️'), id=Source.id)
         user = bot.pixiv.user_detail(uid)
         if 'error' in user:
-            [bot.SendMessage(Type, target, soup.Plain(f'{k}:{v}'+'\n')) for k,v in user.error.items() if v]
+            [bot.SendMessage(Type, target, soup.Plain(f'⚠️{k}:{v}'+'\n')) for k,v in user.error.items() if v]
             return
-        message = soup.Image(user.user.profile_image_urls.medium.replace('i.pximg.net',hosts)) if 'i.pximg.net' in user.user.profile_image_urls.medium else soup.Image(base64={'url':user.user.profile_image_urls.medium,'headers':{'Referer':'https://www.pixiv.net/'}}),
+        message = soup.Image(user.user.profile_image_urls.medium.replace('i.pximg.net',host())) if 'i.pximg.net' in user.user.profile_image_urls.medium else soup.Image(base64={'url':user.user.profile_image_urls.medium,'headers':{'Referer':'https://www.pixiv.net/'}}),
         message += soup.Plain(f"\nUid:{user.user.id}\n名字:{user.user.name}\n插画:{user.profile.total_illusts} 漫画:{user.profile.total_manga} 小说:{user.profile.total_novels}"),
         node.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*message))
         admin_node.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*message))
         illusts = bot.pixiv.user_illusts(user.user.id).illusts[:10]
 
-    elif Plain.lower().startswith(keyward) or Plain.lower().endswith(keyward) or (bot.conf.qq in At and any(kw for kw in keyward if kw in Plain.lower())): # 随机色图和搜索
-        bot.SendMessage(Type, target, soup.Plain('获取中'), id=Source.id)
+    elif Plain.lower().startswith(keyward) or (bot.conf.qq in At and any(kw for kw in keyward if kw in Plain.lower())): # 随机色图和搜索
         for kw in keyward:Plain = Plain.replace(kw,'').strip()
-        Rtag = False
-        for kw in ('r-18', 'r18', 'r-15', 'r15'):
-            if kw in Plain.lower():
-                Rtag = True
-                break
         number = re.findall(r'\d+',Plain)
         if number and Plain.endswith(number[-1]) and not Plain.lower().endswith(('r-18', 'r18', 'r-15', 'r15')):
             Plain = Plain[:-len(number[-1])].strip()
             number = int(number[-1])
         else:
             number = 1
+        bot.SendMessage(Type, target, soup.Plain(f'关键字：{Plain} 获取中♾️'), id=Source.id)
         illusts = []
         bookmarks = [100000,90000,80000,70000,60000,50000,40000,30000,20000,10000,5000,1000,500,250,100,0]
         for bookmark in bookmarks:
-            next_url = {'word':f'{Plain}{(bookmark and f" {bookmark}users入り") or ""}'}
+            next_url = {'word':f'{Plain}{f" {bookmark}users入り"if bookmark else ""}'}
             loopnum = 0
             while next_url:
                 p = bot.pixiv.search_illust(**next_url)
                 next_url = bot.pixiv.parse_qs(p.next_url)
+                if next_url:p.illusts.sort(key=lambda i:i.total_bookmarks,reverse=True)
+                else:break
                 for i in p.illusts:
-                    if (i.total_bookmarks >= bookmark >=50 or 250 >= bookmark >= i.total_bookmarks >= 50) and \
+                    if (i.total_bookmarks >= bookmark/2 >=50 or (250 >= bookmark and i.total_bookmarks >= 50)) and \
                         ((i.type == 'manga' and random.randint(0,1)) or i.type != 'manga') and \
                         i.id not in bot.pixiv.PID and \
                         i.page_count<=50:
-                        for tag in i.tags:
-                            if tag.name.lower() in ('r-18', 'r18', 'r-15', 'r15') and not Rtag:
-                                break
-                        else:
-                            illusts.append(i)
-                            bot.pixiv.PID.append(i.id)
+                        illusts.append(i)
+                        bot.pixiv.PID.append(i.id)
+                    else:print(bookmark,i.total_bookmarks)
                     if len(illusts) == number or len(illusts) == 10:break
                 if len(illusts) == number or len(illusts) == 10 or loopnum >= 50:break
                 loopnum += 1
-                time.sleep(5)
             if len(illusts) == number or len(illusts) == 10:break
-            time.sleep(5)
 
     else:return
 
@@ -412,22 +438,22 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     node += illusts_node(illusts,Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname, Group)
     error_number = 0
     while node:
-        code = bot.SendMessage(Type, target, soup.Forward(*node))
-        if error_number == 5:bot.SendMessage(Type, target, soup.Plain('图床超时请等待'),id=Source.id)
+        code, msgid = bot.SendMessage(Type, target, soup.Forward(*node))
+        if error_number == 5:bot.SendMessage(Type, target, soup.Plain('⚠️图床超时请等待⚠️'),id=Source.id)
         error_number += 1
         if code == -1:img2qr(node)
-        elif type(code) is int:break
-            # for f in admin_ID():
-            #     if Sender.id == f:continue
-            #     bot.SendMessage('Friend', f, soup.Forward(*node))
-            # return
-        elif code == '30':fold_node(node)
-        elif code == '500':break
+        elif not code:break
+        elif code == 30:fold_node(node)
+        elif code == 500:
+            hosts.insert(0,hosts.pop())
+            if error_number == 10:break
     admin_node += illusts_node(illusts,Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname, False)
     for f in admin_ID():
         while admin_node:
             if Sender.id == f:continue
-            code = bot.SendMessage('Friend',f, soup.Forward(*admin_node))
-            if type(code) is int:break
-            elif code == '30':fold_node(admin_node)
-            elif code == '500':break
+            code, msgid = bot.SendMessage('Friend',f, soup.Forward(*admin_node))
+            if not code:break
+            elif code == 30:fold_node(admin_node)
+            elif code == 500:
+                hosts.insert(0,hosts.pop())
+                if error_number == 10:break

@@ -50,8 +50,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     for msg in Message:
         if msg.type == 'Quote':
             quote = msg.id
-            Quote = bot.MessageFromId(quote)
-            if not Quote:return
+            code, Quote = bot.MessageId(target,quote)
+            if code:return
             Message = Quote.messageChain + Message
             break
     message = ''

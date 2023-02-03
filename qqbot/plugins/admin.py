@@ -5,14 +5,11 @@ import os,json,psutil,random,time,traceback
 from qqbotcls import QQBotSched,bot
 from utf8logger import INFO, ERROR
 from mainloop import Put
-from common import JsonDict
+from common import JsonDict, secs2hours, B2GB
 import soup
-
-@property
-def battery():return f'{psutil.sensors_battery().percent}%'
-    
+ 
 def admin_ID(user=False):
-    return [f.id for f in bot.Friend if(f.remark=='Admin'and f.nickname!='Admin')or(f.remark=='User'and f.nickname!='User'and user)]
+    return [f.id for f in bot.Friend if(f.remark.lower()=='admin'and f.nickname.lower()!='admin') or (f.remark.lower()=='user'and f.nickname.lower()!='user'and user)]
 
 def trans(s:str):
     for k,v in [
@@ -65,6 +62,16 @@ def trans(s:str):
         s = str(s).lower().replace(k,v)
     return s
 
+def system_status():
+    m = psutil.virtual_memory()
+    b = psutil.sensors_battery()
+    l = [
+        f'CPU:{psutil.cpu_percent()}%',
+        f'内存:{m.percent}% ，{B2GB(m.used)}/{B2GB(m.total)}'
+    ]
+    if b:l.append(f'电源:{b.percent}% {f"，充电中🔋" if b.power_plugged else f"{secs2hours(b.secsleft)}"}')
+    return '\n'.join(l)
+
 @QQBotSched(year=None, 
             month=None, 
             day=None, 
@@ -89,18 +96,18 @@ def onUnplug(bot):
     bot.Plug(__name__)
 
 def onInterval(bot):
-    battery = psutil.sensors_battery().percent
-    if bot.battery != battery:
+    battery = psutil.sensors_battery()
+    if bot.battery != battery.percent:
         for f in admin_ID():
-            if 100 > battery > bot.battery >= 90:
-                bot.SendMessage('Friend',f,soup.Plain(f'电池电量已到达 {battery} %，请停止充电'))
-            elif 20 > bot.battery > battery > 0:
-                bot.SendMessage('Friend',f,soup.Plain(f'电池电量已不足 {battery} %，请接上电源'))
-            elif battery == 0:
-                bot.SendMessage('Friend',f,soup.Plain(f'电池电量已不足 {battery} %，即将要关机'))
-            elif battery - bot.battery > 5 or bot.battery - battery > 5:
-                bot.SendMessage('Friend',f,soup.Plain(f'电池电量{battery} %'))
-        bot.battery = battery
+            if 100 > battery.percent > bot.battery >= 90:
+                bot.SendMessage('Friend',f,soup.Plain(f'电池电量已到达 {battery.percent} %，请停止充电🔋'))
+            elif 20 > bot.battery > battery.percent > 0:
+                bot.SendMessage('Friend',f,soup.Plain(f'电池电量已不足 {battery.percent} %，请接上电源⚡'))
+            elif battery.percent == 0:
+                bot.SendMessage('Friend',f,soup.Plain(f'电池电量已不足 {battery.percent} %，即将要关机🆘'))
+            elif battery.percent - bot.battery > 5 or bot.battery - battery.percent > 5:
+                bot.SendMessage('Friend',f,soup.Plain(f'电池电量{battery.percent} %{f"，充电中🔋" if battery.power_plugged else f"{secs2hours(battery.secsleft)}"}'))
+        bot.battery = battery.percent
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
@@ -155,9 +162,10 @@ def onQQMessage(bot, Type, Sender, Source, Message):
 
     if Plain == 'whoisyourdaddy':reply(soup.Plain(f'is @1064393873'))
 
-    if Plain.startswith(('$', '￥', '#'))and Sender.id in admin_ID(True):
+    if Plain.startswith(('$', '￥', '#')):
         try:
-            rt, err = eval(Plain[1:]), None
+            if Sender.id in admin_ID(True) and Plain[1:]:rt, err = eval(Plain[1:]), None
+            else:rt, err = system_status(), None
         except:
             rt, err = None, traceback.format_exc()
         if Plain.startswith('#'):
@@ -236,7 +244,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             return
         if Plain == '解析'and Quote:
             quote = Quote.id
-            Quote = bot.MessageFromId(Quote.id)
+            code, Quote = bot.MessageId(target,Quote.id)
             message = json.dumps(Quote.messageChain, ensure_ascii=False, indent=4)
             message = message.replace('\\\\', '\\')
             message = message.replace('\\\'','\'')
@@ -244,12 +252,12 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             bot.SendMessage(Type, target, soup.Plain(message), id=quote)
 
     if Sender.id in admin_ID():
-        if '重启' == Plain:
+        if Plain in ['重启','reboot','restart','reset']:
             reply(soup.Plain('bot正在重启'))
             Put(bot.Restart)
             return
 
-        elif '关机' == Plain:
+        elif Plain in ['关机','stop','exit','quit']:
             reply(soup.Plain('bot以关闭'))
             Put(bot.Stop)
 
@@ -365,7 +373,7 @@ def onQQRequestEvent(bot, Message):
             2	忽略请求
             3	拒绝入群并添加黑名单，不再接收该用户的入群申请
             4	忽略入群并添加黑名单，不再接收该用户的入群申请'''
-            bot.SendMessage('Friend',f,soup.Plain(f'{Message.nick}({Message.fromId}) 申请加入 {[g.name for g in bot.Group if g.id==Message.groupId][0]}({Message.groupId})'))
+            bot.SendMessage('Friend',f,soup.Plain(f'{f"{Message.nick}({Message.fromId}) 申请加入" if Message.invitorId else f"{Message.invitorId} 邀请 {Message.nick}({Message.fromId}) 加入"} {[g.name for g in bot.Group if g.id==Message.groupId][0]}({Message.groupId})'))
             return 0, '欢迎'
         elif Message.type == 'BotInvitedJoinGroupRequestEvent': # Bot被邀请入群申请
             '''

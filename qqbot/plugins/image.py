@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import time
+import time,traceback
 
+from PicImageSearch.sync import Ascii2D as Ascii2DSync
 from __saucenao_api import SauceNao
 from __saucenao_api.errors import UnknownApiError,LongLimitReachedError,ShortLimitReachedError
 import soup
@@ -15,9 +16,11 @@ api_key = [
 
 def onPlug(bot):
     bot.sauce = SauceNao(api_key)
+    bot.ascii = Ascii2DSync()
 
 def onUnplug(bot):
     del bot.sauce
+    del bot.ascii
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
@@ -36,19 +39,25 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     Image = []
     for msg in Message:
         if msg.type == 'Plain':Plain += msg.text
-        elif msg.type == 'Image':Image.append(msg)
+    if Plain.strip()!='搜图':return
+    Image = []
+    for msg in Message:
+        if msg.type == 'Image':Image.append(msg)
         elif msg.type == 'Quote':
-            msg = bot.MessageFromId(msg.id)
-            if msg != '5':
+            code, msg = bot.MessageId(target,msg.id)
+            if not code:
                 Message += [msg for msg in msg.messageChain if msg.type in ['Image','FlashImage']]
             else:
                 for n in range(Source.id-1,Source.id-11,-1):
-                    msg = bot.MessageFromId(n)
-                    if type(msg) is not str:
+                    code, msg = bot.MessageId(target,n)
+                    if not code:
                         Message += [msg for msg in msg.messageChain if msg.type in ['Image','FlashImage']]
-    if Plain.strip()!='搜图':return
+                        break
+                else:
+                    bot.SendMessage(Type, target, soup.Plain('⚠️关联图片失败，请尝试直接和图片一起发送⚠️'), id=Source.id)
+                    return
     if not Image:
-        bot.SendMessage(Type, target, soup.Plain('没有关联图片，请尝试直接和图片一起发送'), id=Source.id)
+        bot.SendMessage(Type, target, soup.Plain('⚠️没有关联图片，请尝试直接和图片一起发送⚠️'), id=Source.id)
         return
     for img in Image:
         error_nember = 0
@@ -59,24 +68,24 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             except UnknownApiError:
                 WARNING('搜图失败，请稍后尝试')
             except LongLimitReachedError:
-                bot.SendMessage(Type, target, soup.Plain('今日已达上限，请到明日尝试'), id=Source.id)
+                bot.SendMessage(Type, target, soup.Plain('🚫今日已达上限，请到明日尝试🚫'), id=Source.id)
                 return
             except ShortLimitReachedError:
-                bot.SendMessage(Type, target, soup.Plain('搜图进入CD，请30秒后尝试'), id=Source.id)
-                return
+                bot.SendMessage(Type, target, soup.Plain('⛔搜图进入CD，请等候30秒⛔'), id=Source.id)
+                time.sleep(30)
             except Exception as e:
                 ERROR(f"Count:{error_nember} ERROR:{e}")
-                if error_nember == 5:bot.SendMessage(Type, target, soup.Plain('暂时无法连到服务器，请联系管理员'), id=Source.id)
+                if error_nember == 5:bot.SendMessage(Type, target, soup.Plain('🆘暂时无法连到服务器，请联系管理员🆘'), id=Source.id)
             error_nember += 1
 
         pid = False
         message = []
         if results:
             message.append(soup.Plain(f'有 {len(results)} 个结果'))
-            bot.SendMessage(Type, target, soup.Plain('正在搜图'), id=Source.id)
+            bot.SendMessage(Type, target, soup.Plain('正在搜图♾️'), id=Source.id)
             INFO(results)
         else:
-            bot.SendMessage(Type, target, soup.Plain('搜图失败，请稍后尝试'))
+            bot.SendMessage(Type, target, soup.Plain('⚠️搜图失败，请稍后尝试⚠️'))
             continue
         for r in results:
             urls = ('source' in r.raw['data'] and '\n'+r.raw['data']['source']) or ''
@@ -104,7 +113,33 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                             if 'error' in illust or not (illust.illust.title or illust.illust.user.name):pid = False
                             else:break
             message.append(soup.Plain(s))
-        if max([r.similarity for r in results]) < 60:message.append(soup.Plain('\n匹配度较低，可能被裁切、拼接，或是 AI 作图'))
+        if max([r.similarity for r in results]) < 60:
+            try:
+                resp = bot.ascii.search(img.url) # 色相
+                for r in resp:
+                    if r.title or r.url_list:
+                        message.append(soup.Plain('色相搜索：'))
+                        if r.title:
+                            message.append(f'\ntitle:{r.title}')
+                        message.append(soup.Image(r.thumbnail))
+                        if r.url_list:
+                            message.append(soup.Plain('\n'.join([f'{v}:{k}' for k,v in r.url_list])))
+                        break
+                
+                resp = bot.ascii.search(img.url, bovw=True) # 特征
+                for r in resp:
+                    if r.title or r.url_list:
+                        message.append(soup.Plain('特征搜索：'))
+                        if r.title:
+                            message.append(f'\ntitle:{r.title}')
+                        message.append(soup.Image(r.thumbnail))
+                        if r.url_list:
+                            message.append(soup.Plain('\n'.join([f'{v}:{k}' for k,v in r.url_list])))
+                        break
+            except:
+                traceback.print_exc()
+            message.append(soup.Plain('\n⚠️⚠️⚠️匹配度较低，可能被裁切、拼接，或是 AI 作图⚠️⚠️⚠️'))
+            
         bot.SendMessage(Type, target, *message, id=Source.id)
         if pid:
             bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{pid}')])

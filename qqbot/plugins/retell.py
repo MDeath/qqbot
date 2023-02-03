@@ -32,7 +32,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     bot.retell[target].append({'id':Sender.id,'msg':str(Message)})
     bot.retell[target] = bot.retell[target][-10:]
 
-    # if random.randint(1,100) == 1:
+    # if random.randint(1,100) == 1: # 1% 概率自动复读
     #     bot.SendMessage(Type, target, *Message)
     #     bot.retell[target] = []
     #     return

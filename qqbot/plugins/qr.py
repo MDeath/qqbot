@@ -81,13 +81,13 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if msg.type == 'Plain':Plain += msg.text
         if msg.type == 'Image':Image.append(msg)
         if msg.type == 'Quote':
-            msg = bot.MessageFromId(msg.id)
-            if msg != '5':
+            code, msg = bot.MessageId(target,msg.id)
+            if not code:
                 Message += [msg for msg in msg.messageChain if msg.type in ['Image','FlashImage']]
             else:
                 for n in range(quote-1,quote-11,-1):
-                    msg = bot.MessageFromId(n)
-                    if type(msg) is not str:
+                    code, msg = bot.MessageId(target,n)
+                    if not code:
                         Message += [msg for msg in msg.messageChain if msg.type in ['Image','FlashImage']]
     if not Plain.lower().strip().startswith('qr'):return
     words = Plain.strip()[2:]

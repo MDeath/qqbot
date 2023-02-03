@@ -7,13 +7,14 @@ if p not in sys.path:
 
 import traceback
 
-from common import StartDaemonThread, Queue
+from common import StartDaemonThread
+import queue
 
 def workAt(taskQueue):
     while True:
         try:
             func, args, kwargs = taskQueue.get(timeout=0.5)
-        except Queue.Empty:pass
+        except queue.Empty:pass
         except:traceback.print_exc()
         else:
             # func(*args, **kwargs)
@@ -24,7 +25,7 @@ def workAt(taskQueue):
 
 class TaskLoop(object):
     def __init__(self):
-        self.mainQueue = Queue.Queue()
+        self.mainQueue = queue.Queue()
         self.childQueues = {}    
 
     # Put a task into `mainQueue`, it will be executed in the main thread.
@@ -55,7 +56,7 @@ class TaskLoop(object):
         if queueLabel in self.childQueues:
             self.childQueues[queueLabel].put((func, args, kwargs))
         else:
-            self.childQueues[queueLabel] = Queue.Queue()
+            self.childQueues[queueLabel] = queue.Queue()
             self.childQueues[queueLabel].put((func, args, kwargs))
             StartDaemonThread(workAt, self.childQueues[queueLabel])
 
@@ -64,7 +65,7 @@ class TaskLoop(object):
 
     def addWorkerTo(self, queueLabel, n):
         if queueLabel not in self.childQueues:
-            self.childQueues[queueLabel] = Queue.Queue()
+            self.childQueues[queueLabel] = queue.Queue()
         for i in range(n):
             StartDaemonThread(workAt, self.childQueues[queueLabel])
 

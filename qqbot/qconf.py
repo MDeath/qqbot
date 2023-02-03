@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v0.1'
+version = 'v1.0'
 
 sampleConfStr = '''
 {
@@ -156,7 +156,7 @@ QQBot 机器人
 import os, sys, ast, argparse, platform, time, pkgutil
 
 from utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT, ERROR
-from common import STR2BYTES, BYTES2STR, SYSTEMSTR2STR, STR2SYSTEMSTR
+from common import STR2BYTES, BYTES2STR
 from common import daemonize, daemonable
 
 class ConfError(Exception):
@@ -235,23 +235,19 @@ class QConf(object):
 
         opts.bench = os.path.abspath(opts.bench)
         sys.path.insert(0, opts.bench)
-        opts.benchstr = SYSTEMSTR2STR(opts.bench)
 
         if not os.path.exists(opts.bench):
             try:
                 os.mkdir(opts.bench)
             except Exception as e:
-                PRINT('无法创建工作目录 %s ， %s' % (opts.benchstr, e))
+                PRINT('无法创建工作目录 %s ， %s' % (opts.bench, e))
                 sys.exit(1)
         elif not os.path.isdir(opts.bench):
-            PRINT('无法创建工作目录 %s ' % opts.benchstr)
+            PRINT('无法创建工作目录 %s ' % opts.bench)
             sys.exit(1)
 
         if opts.plugins:
-            opts.plugins = SYSTEMSTR2STR(opts.plugins).split(',')
-
-        if opts.pluginPath:
-            opts.pluginPath = SYSTEMSTR2STR(opts.pluginPath)
+            opts.plugins = opts.plugins.split(',')
 
         for k, v in list(opts.__dict__.items()):
             if getattr(self, k, None) is None:
@@ -259,7 +255,6 @@ class QConf(object):
 
     def readConfFile(self):
         confPath = self.ConfPath()
-        strConfPath = SYSTEMSTR2STR(confPath)
         conf = rootConf.copy()
 
         if os.path.exists(confPath):
@@ -294,18 +289,18 @@ class QConf(object):
                             conf[k] = v
 
             except (IOError, SyntaxError, ValueError, ConfError) as e:
-                PRINT('配置文件 %s 错误: %s\n' % (strConfPath, e), end='')
+                PRINT('配置文件 %s 错误: %s\n' % (confPath, e), end='')
                 sys.exit(1)
 
         else:
-            PRINT('未找到配置文件“%s”，将使用默认配置' % strConfPath)
+            PRINT('未找到配置文件“%s”，将使用默认配置' % confPath)
             try:
                 with open(confPath, 'wb') as f:
                     f.write(STR2BYTES(sampleConfStr))
             except IOError:
                 pass
             else:
-                PRINT('已创建一个默认配置文件“%s”' % strConfPath)
+                PRINT('已创建一个默认配置文件“%s”' % confPath)
             
             if self.user is not None:
                 PRINT('用户 %s 不存在\n' % self.user, end='')
@@ -315,9 +310,9 @@ class QConf(object):
             if getattr(self, k, None) is None:
                 setattr(self, k, v)
 
-        if self.pluginPath and not os.path.isdir(STR2SYSTEMSTR(self.pluginPath)):
+        if self.pluginPath and not os.path.isdir(self.pluginPath):
             PRINT('配置文件 %s 错误: 插件目录 “%s” 不存在\n' % \
-                  (strConfPath, self.pluginPath), end='')
+                  (confPath, self.pluginPath), end='')
             sys.exit(1)
 
     def Config(self, fn):
@@ -328,7 +323,7 @@ class QConf(object):
         if not os.path.exists(c):
             os.mkdir(c)
         if os.path.isdir(c):
-            self.config = SYSTEMSTR2STR(c)
+            self.config = c
         else:
             self.config = None
 
@@ -339,7 +334,7 @@ class QConf(object):
         if os.path.isdir(p):
             if p not in sys.path:
                 sys.path.insert(0, p)
-            self.pluginPath = SYSTEMSTR2STR(p)
+            self.pluginPath = p
         else:
             self.pluginPath = None
 
@@ -348,8 +343,8 @@ class QConf(object):
     def Display(self):
         INFO('QQBot-%s', self.version)
         INFO('Python %s', platform.python_version())
-        INFO('工作目录：%s', self.benchstr)
-        INFO('配置文件：%s', SYSTEMSTR2STR(self.ConfPath()))
+        INFO('工作目录：%s', self.bench)
+        INFO('配置文件：%s', self.ConfPath())
         INFO('用户名：%s', self.user or '无')
         INFO('登录方式：%s', self.qq and ('自动（qq=%d）' % self.qq) or '手动')
         INFO('命令行服务器端口号：%s', self.termServerPort or '无')

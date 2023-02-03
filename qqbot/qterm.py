@@ -6,7 +6,7 @@ if p not in sys.path:
     sys.path.insert(0, p)
 
 from utf8logger import INFO, ERROR, PRINT
-from common import BYTES2STR, SYSTEMSTR2BYTES
+from common import BYTES2STR, STR2BYTES
 from mysocketserver import MySocketServer, Query
 from mainloop import Put
 
@@ -42,7 +42,7 @@ def QTerm():
         command = ' '.join(sys.argv[1:]).strip()
 
     if command:
-        resp = BYTES2STR(Query(HOST, port, SYSTEMSTR2BYTES(command)))
+        resp = BYTES2STR(Query(HOST, port, STR2BYTES(command)))
         if not resp:
             PRINT('无法连接 QQBot-Term 服务器')
         elif not resp.strip():

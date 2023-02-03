@@ -47,13 +47,13 @@ class QQBot(TermBot):
         self.Mirai = MiraiApi(self.conf.qq, self.conf.verifyKey, self.conf.host, self.conf.port)
         while not self.Mirai.started:pass
 
-        self.MessageFromId = self.Mirai.MessageFromId
+        self.MessageId = self.Mirai.MessageId
         self.SendMessage = self.Mirai.SendMessage
         self.Nudge = self.Mirai.Nudge
         self.Recall = self.Mirai.Recall
         self.List = self.Mirai.List
         self.Profile = self.Mirai.Profile
-        self.DeleteFriend = self.Mirai.DeleteFriend
+        self.DelFriend = self.Mirai.DelFriend
         self.Mute = self.Mirai.Mute
         self.kick = self.Mirai.Kick
         self.quit = self.Mirai.Quit
@@ -64,7 +64,7 @@ class QQBot(TermBot):
         self.FileList = self.Mirai.FileList
         self.FileInfo = self.Mirai.FileInfo
         self.FileMkdir = self.Mirai.FileMkdir
-        self.FileDelete = self.Mirai.FileDelete
+        self.FileDel = self.Mirai.FileDel
         self.FileMove = self.Mirai.FileMove
         self.FilereName = self.Mirai.FilereName
         self.FileUpload = self.Mirai.FileUpload
@@ -85,6 +85,8 @@ class QQBot(TermBot):
 
         try:
             MainLoop()
+        except KeyboardInterrupt as e:
+            pass
         except SystemExit as e:
             raise
         except Exception as e:
@@ -103,7 +105,7 @@ class QQBot(TermBot):
     def pollForever(self):
         while self.Mirai.started:
             try:
-                result = self.Mirai.GetMessage()
+                code, result = self.Mirai.GetMessage()
             except RequestError:
                 Put(sys.exit)
                 break
@@ -143,7 +145,8 @@ class QQBot(TermBot):
         elif 'RequestEvent' in Message.type:
             if hasattr(self, 'onQQRequestEvent'):
                 operate, msg = self.onQQRequestEvent(Message)
-                self.Mirai.Event_response(Message, operate, msg)
+                self.Mirai.event_response(Message, operate, msg)
+            bot.Update()
         elif 'Event' in Message.type:
             self.onQQEvent(Message)
 
@@ -186,11 +189,11 @@ class QQBot(TermBot):
 
     def Update(self, Type=None, target=None):
         if not Type:
-            self.Friend = self.List('Friend')
-            self.Group = self.List('Group')
+            code, self.Friend = self.List('Friend')
+            code, self.Group = self.List('Group')
             self.Member = JsonDict()
             for g in self.Group:
-                setattr(self.Member, str(g.id), self.List('Member',g.id))
+                setattr(self.Member, str(g.id), self.List('Member',g.id)[1])
                 for m in self.Member[str(g.id)]:
                     delattr(m,'group')
         elif Type in ['Friend', 'Group']:

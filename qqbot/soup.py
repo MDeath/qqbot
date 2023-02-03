@@ -3,6 +3,8 @@
 from time import time
 from common import JsonDict
 
+class ParamError(BaseException):pass
+
 def Source(id,t=None):
     params = {"type": "Source"}
     params["id"] = id
@@ -143,20 +145,32 @@ nodeList | object | 消息节点'''
         "nodeList": list(node)
     })
 
-def Node(sender:int=None,name:str=None,*message:dict,t:int=None,id:int=None) -> dict:
+def Node(sender:int=None,name:str=None,*message:dict,t:int=None,target:int=None,id:int=None,ref:dict|list|tuple=None) -> dict:
     '''\
-senderid   | Long   | 发送人QQ号
-time       | Int    | 发送时间
-senderName | String | 显示名称
-message    | Array  | 消息数组
-id         | Int    | 可以只使用消息id，从缓存中读取一条消息作为节点'''
+senderid   | Long            | 发送人QQ号
+time       | Int             | 发送时间
+senderName | String          | 显示名称
+message    | Array           | 消息数组
+id         | Int             | 可以只使用消息id，从缓存中读取一条消息作为节点
+target     | Int             | 引用的上下文目标，群号、好友账号
+ref        | dict|list|tuple | {'id' or 'messageId':Int,'target':Int} 或者 [target:Int,messageId:Int]'''
     params = {}
     if sender:params['senderId'] = sender
     if not name:name = str(sender)
     if name:params['senderName'] = name
     params['messageChain'] = list(message)
-    if t:params['time'] = t or (int(time())if not id else None)
-    if id:params['messageId'] = id
+    params['time'] = t or (int(time())if not id else None)
+
+    if ref:
+        if type(ref) in [list,tuple]:params['messageRef'] = {'target':ref[0],'messageId':ref[1]}
+        else:
+            if 'messageId' in ref and 'target' in ref:params['messageRef'] = ref
+            elif 'id' in ref and 'target' in ref:params['messageRef'] = {'target':ref['target'],'messageId':ref['id']}
+            else:raise ParamError('Error:The key of ref is only (id or messageId) and target')
+    elif target:
+        if not id:raise ParamError('Error:id is None')
+        else:params['messageRef'] = {'messageId':id,'target':target}
+    elif id:params['messageId'] = id
     return JsonDict(params)
 
 def File(id=None,name=None,size=None):

@@ -5,7 +5,7 @@ import traceback
 import soup
 from utf8logger import ERROR, INFO
 from mainloop import Put
-from common import Unquote, STR2BYTES, parse_json, BYTES2STR
+from common import Unquote, STR2BYTES, BYTES2STR, JsonDumps, DotDict, StartDaemonThread
 
 cmdFuncs, usage = {}, {}
 
@@ -32,6 +32,8 @@ class TermBot(object):
             except Exception as e:
                 result, err = None, '运行命令过程中出错：' + str(type(e)) + str(e)
                 ERROR(err, exc_info=True)
+        elif http:
+            result, err = None, 'QQBot 命令格式错误'
         else:
             try:
                 result, err = eval(command), None

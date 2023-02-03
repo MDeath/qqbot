@@ -18,7 +18,7 @@ class JsonDict(dict):
         except KeyError:
             raise AttributeError(r"'JsonDict' object has no attribute '%s'" % attr)
 
-def parse_json(ojb:dict|list|str) -> JsonDict:
+def DotDict(ojb:dict|list|str) -> JsonDict:
     if type(ojb) is dict or type(ojb) is list:
         ojb = JsonDumps(ojb)
     return JsonLoads(ojb, object_hook=JsonDict)
@@ -28,38 +28,19 @@ JsonDump = json.dump
 JsonLoads = lambda *args, **kwargs: JsonDict(json.loads(*args, **kwargs))
 JsonDumps = json.dumps
 
-_PASS = lambda s: s
+STR2BYTES = lambda s: s.encode('utf8')
+BYTES2STR = lambda s: s.decode('utf8')
 
-if PY3:
-    STR2UNICODE = _PASS
-    UNICODE2STR = _PASS
+def secs2hours(secs):
+    M, S = divmod(secs, 60)
+    H, M =divmod(M, 60)
+    return "%d:%02d:%02d" % (H, M, S)
 
-    STR2BYTES = lambda s: s.encode('utf8')
-    BYTES2STR = lambda s: s.decode('utf8')
-
-    STR2SYSTEMSTR = _PASS
-    SYSTEMSTR2STR = _PASS
-
-    SYSTEMSTR2BYTES = STR2BYTES
-    BYTES2SYSTEMSTR = BYTES2STR
-
-else:
-    STR2UNICODE = lambda s: s.decode('utf8')
-    UNICODE2STR = lambda s: s.encode('utf8')
-
-    STR2BYTES = _PASS
-    BYTES2STR = _PASS
-
-    _SYSENCODING = sys.getfilesystemencoding() or 'utf8'
-    if _SYSENCODING.lower() in ('utf8', 'utf_8', 'utf-8'):
-        STR2SYSTEMSTR = _PASS
-        SYSTEMSTR2STR = _PASS
-    else:
-        STR2SYSTEMSTR = lambda s: s.decode('utf8').encode(_SYSENCODING)
-        SYSTEMSTR2STR = lambda s: s.decode(_SYSENCODING).encode('utf8')
-
-    BYTES2SYSTEMSTR = STR2SYSTEMSTR
-    SYSTEMSTR2BYTES = SYSTEMSTR2STR
+def B2GB(B):
+    KB,B = divmod(B,1024)
+    MB,KB = divmod(KB,1024)
+    GB,MB = divmod(MB,1024)
+    return "%dGB,%dMB,%dKB" % (GB,MB,KB)
 
 if not PY3:
     def encJson(obj):
@@ -112,9 +93,7 @@ def StartThread(target, *args, **kwargs):
     threading.Thread(target=target, args=args, kwargs=kwargs).start()
 
 def StartDaemonThread(target, *args, **kwargs):
-    t = threading.Thread(target=target, args=args, kwargs=kwargs)
-    t.daemon = True
-    t.start()
+    threading.Thread(target=target, args=args, kwargs=kwargs, daemon=True).start()
 
 class LockedValue(object):
     def __init__(self, initialVal=None):
@@ -161,15 +140,6 @@ def CallInNewConsole(args=None):
     else:
         return 1
         # return subprocess.Popen(list(args) + ['&'])
-
-if PY3:
-    import queue as Queue
-else:
-    import Queue
-
-class DotDict(object):
-    def __init__(self, **kw):
-        self.__dict__.update(**kw)
 
 Pass = lambda *arg, **kwargs: None
 
