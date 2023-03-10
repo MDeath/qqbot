@@ -68,6 +68,15 @@ class TaskLoop(object):
             self.childQueues[queueLabel] = queue.Queue()
         for i in range(n):
             StartDaemonThread(workAt, self.childQueues[queueLabel])
+            
+    def RemoveWorkerTo(self, queueLabel, n):
+        self.Put(self.removeWorkerTo, queueLabel, n)
+
+    def removeWorkerTo(self, queueLabel, n):
+        if queueLabel not in self.ChildQueues:
+            return
+        for i in range(n):
+            self.putTo(queueLabel, exit)
 
     def Run(self):
         workAt(self.mainQueue)
@@ -77,3 +86,4 @@ MainLoop = mainLoop.Run
 Put = mainLoop.Put
 PutTo = mainLoop.PutTo
 AddWorkerTo = mainLoop.AddWorkerTo
+RemoveWorkerTo = mainLoop.RemoveWorkerTo
