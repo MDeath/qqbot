@@ -33,36 +33,21 @@ def GetBase64(Message, l:list): # 从消息链中获取 Base64
             if 'base64' in msg:
                 l.append(msg)
 
-def Get(*args, **kwargs):
-        while True:
-            try:
-                return requests.get(*args, **kwargs)
-            except requests.exceptions.ConnectionError:
-                ERROR('无法连接倒Mirai，请检查服务、地址、端口。')
-            except:
-                raise RequestError
-
-def Post(*args, **kwargs):
-        while True:
-            try:
-                return requests.post(*args, **kwargs)
-            except requests.exceptions.ConnectionError:
-                ERROR('无法连接倒Mirai，请检查服务、地址、端口。')
-            except:
-                raise RequestError
-
 class RequestError(Exception):
+    pass
+
+class Timeout(requests.exceptions.ReadTimeout):
     pass
 
 class MiraiApi():
     def __init__(self, qq, verifyKey, host='localhost', port=8080, session=None) -> None:
         self.started = False
-        self.host=host
-        self.port=port
+        self.host = host
+        self.port = port
         self.qq = qq
         self.verifyKey = verifyKey
-        if session:self.session = session
-        else:self.verify()
+        self.session = session
+        if not self.session:self.verify()
 
     def ErrorCode(self, code) -> None:
         if code == 1:
@@ -89,9 +74,20 @@ class MiraiApi():
             WARNING('消息过长')
         elif code == 400:
             WARNING('错误的访问，如参数错误等')
+        elif code == 500:
+            WARNING('MCL内部错误，或其他原因')
 
     def basicsession(self, mode, url, **kwargs):
-        r = DotDict(mode(f'http://{self.host}:{self.port}/{url}', **kwargs).text)
+        if mode == 'get':mode = requests.get
+        if mode == 'post':mode = requests.post
+        while True:
+            try:
+                r = DotDict(mode(f'http://{self.host}:{self.port}/{url}', **kwargs).text)
+                break
+            except requests.exceptions.ConnectionError:
+                ERROR('无法连接倒Mirai，请检查服务、地址、端口。')
+            except:
+                raise RequestError
         if hasattr(r, 'code') and r.code:
             self.ErrorCode(r.code)
             return r.code, None
@@ -104,13 +100,13 @@ class MiraiApi():
         else:
             return r
 
-    def verify(self, verifyKey=None,) -> None:
+    def verify(self, verifyKey=None) -> None:
         '''认证
     verifyKey   创建Mirai-Http-Server时生成的key，可在启动时指定或随机生成
         '''
         self.started = False
         payload = {"verifyKey": verifyKey or self.verifyKey}
-        r = self.basicsession(Post, 'verify', json=payload)
+        r = self.basicsession('post', 'verify', json=payload)
         if r:
             self.session = r.session
             INFO('认证成功')
@@ -127,7 +123,7 @@ class MiraiApi():
             "sessionKey": session or self.session,
             "qq": qq or self.qq
         }
-        r = self.basicsession(Post, 'bind', json=payload)
+        r = self.basicsession('post', 'bind', json=payload)
         if r:
             INFO('绑定成功')
             self.started = True
@@ -135,23 +131,24 @@ class MiraiApi():
             self.bind()
     def botList(self) -> list:
         '获取登录账号'
-        return self.basicsession(Get, 'botList')
+        return self.basicsession('get', 'botList')
 
     def SessionInfo(self) -> DotDict:
         '获取会话信息'
-        return self.basicsession(Get, f'sessionInfo?sessionKey={self.session}').qq
+        return self.basicsession('get', f'sessionInfo?sessionKey={self.session}').qq
 
 ### 消息与事件 ###
 
     def countMessage(self) -> int:
         '查看队列大小'
-        return self.basicsession(Get, f'countMessage?sessionKey={self.session}')
+        return self.basicsession('get', f'countMessage?sessionKey={self.session}')
 
     def GetMessage(
         self, 
         count:int=1,
         last=True,
-        pop=True
+        pop=True,
+        timeout = None
     ) -> tuple([int, list]):
         '''获取或查看消息与事件
     count   获取(查看)消息和事件的数量
@@ -160,7 +157,7 @@ class MiraiApi():
         '''
         payload = {'sessionKey':self.session}
         payload['count'] = count
-        return self.basicsession(Get, f'{"fetch" if pop else "peek"}{"Latest" if last else ""}Message', params=payload)
+        return self.basicsession('get', f'{"fetch" if pop else "peek"}{"Latest" if last else ""}Message', params=payload, timeout=timeout)
 
     def MessageId(
         self, 
@@ -172,7 +169,7 @@ class MiraiApi():
     messageID   获取消息的messageId
         '''
         payload = {'sessionKey':self.session,'messageId':id, 'target':target}
-        return self.basicsession(Get, 'messageFromId', params=payload)
+        return self.basicsession('get', 'messageFromId', params=payload)
 
     def SendMessage(
         self, 
@@ -201,7 +198,7 @@ class MiraiApi():
         GetBase64(message, l)
         for msg in l:StartDaemonThread(Base64,msg,n)
         while len(l) != len(n):pass
-        code, msgid = self.basicsession(Post, f'send{type}Message', json=payload)
+        code, msgid = self.basicsession('post', f'send{type}Message', json=payload)
         INFO(f'发到 {type} {target}({msgid or code}){(id and "回复消息("+str(id)+")") or ""}:\n{message}')
         return code, msgid
 
@@ -222,7 +219,7 @@ class MiraiApi():
         payload['subject'] = target
         payload['target'] = id
         payload['kind'] = type
-        self.basicsession(Post, 'sendNudge', json=payload)
+        self.basicsession('post', 'sendNudge', json=payload)
 
     def Recall(
         self, 
@@ -231,12 +228,12 @@ class MiraiApi():
     ) -> tuple([int, str]):
         '''撤回消息
         target  好友id或群id
-        id      需要撤回的消息的messageId
+        id      需要撤回的messageId
         '''
         payload = {'sessionKey':self.session}
         payload['target'] = target
         payload['messageId'] = id
-        return self.basicsession(Post, '/recall', json=payload)
+        return self.basicsession('post', '/recall', json=payload)
 
     def Roaming(
         self, 
@@ -253,7 +250,7 @@ class MiraiApi():
         payload['target'] = target
         payload['start'] = start
         payload['end'] = end
-        return self.basicsession(Post, 'recall', json=payload)
+        return self.basicsession('post', 'recall', json=payload)
         
     def event_response(
         self, 
@@ -276,7 +273,7 @@ class MiraiApi():
         payload['operate'] = operate
         payload['message'] = msg
         type = even.type[0].lower() + even.type[1:]
-        self.basicsession(Post, f'resp/{type}', json=payload)
+        self.basicsession('post', f'resp/{type}', json=payload)
 
 ### 联系人操作 ###
 
@@ -293,7 +290,7 @@ class MiraiApi():
         if type not in ['friend', 'group', 'member']:raise RequestError
         payload = {'sessionKey':self.session}
         if type == 'member':payload['target'] = id
-        return self.basicsession(Get, f'{type}List', params=payload)
+        return self.basicsession('get', f'{type}List', params=payload)
 
     def Profile(
         self, 
@@ -313,52 +310,103 @@ class MiraiApi():
             payload['target'] = target
         if type == 'member':
             payload['memberId'] = memberID
-        return self.basicsession(Get, f'{type}Profile', params=payload)
+        return self.basicsession('get', f'{type}Profile', params=payload)
  # 删除好友
     def DelFriend(self, target:int) -> tuple([int, str]):
         payload = {'sessionKey':self.session}
         payload['target'] = target
-        return self.basicsession(Post, 'deleteFriend', json=payload)
+        return self.basicsession('post', 'deleteFriend', json=payload)
 
 ### 群管理 ###
  # 禁言
-    def Mute(self, target:int, memberID:int, time:int=0) -> tuple([int, str]):
+    def Mute(
+        self, 
+        target:int, 
+        memberID:int, 
+        time:int=0
+    ) -> tuple([int, str]):
+        r'''禁言
+    target  群号
+    member  群成员QQ号码
+    time    时长（秒）
+        '''
+        print(bool(time),time)
         payload = {'sessionKey':self.session}
         payload['target'] = target
         payload['memberId'] = memberID
         if time:payload['time'] = time
-        return self.basicsession(Post, f'{"un" if time else ""}mute', json=payload)
+        return self.basicsession('post', f'{"" if time else "un"}mute', json=payload)
  # 移除成员
-    def Kick(self, target:int, memberID:int, msg:str='您已被移出群聊') -> tuple([int, str]):
+    def Kick(
+        self, 
+        target:int, 
+        memberID:int, 
+        msg:str='您已被移出群聊'
+    ) -> tuple([int, str]):
+        r'''移除成员
+    target  群号
+    member  群成员QQ号码
+    msg     通知消息
+        '''
         payload = {'sessionKey':self.session}
         payload['target'] = target
         payload['memberId'] = memberID
         payload['msg'] = msg
-        return self.basicsession(Post, 'kick', json=payload)
+        return self.basicsession('post', 'kick', json=payload)
  # 退群
     def Quit(self, target:int) -> tuple([int, str]):
+        r'''退群
+    target  群号
+        '''
         payload = {'sessionKey':self.session}
         payload['target'] = target
-        return self.basicsession(Post, 'quit', json=payload)
+        return self.basicsession('post', 'quit', json=payload)
  # 全体禁言
-    def MuteAll(self, target:int, un:bool=False) -> tuple([int, str]):
+    def MuteAll(
+        self, 
+        target:int, 
+        mute:bool=True
+    ) -> tuple([int, str]):
+        r'''全体禁言
+    target  群号
+    mute    真（禁）/假（解）
+    '''
         payload = {'sessionKey':self.session}
         payload['target'] = target
-        return self.basicsession(Post, f'{"un" if un else ""}muteAll', json=payload)
+        return self.basicsession('post', f'{"" if mute else "un"}muteAll', json=payload)
  # 设置群精华消息
-    def SetEssence(self, target:int, messageID:int):
+    def SetEssence(
+        self, 
+        target:int, 
+        messageID:int
+    ):
+        r'''设置群精华消息
+    target  群号
+    id      需要加精消息的messageId
+        '''
         payload = {'sessionKey':self.session}
         payload['target'] = target
         payload['messageId'] = messageID
-        return self.basicsession(Post, 'setEssence', json=payload)
+        return self.basicsession('post', 'setEssence', json=payload)
  # 获取或修改群设置
-    def GroupConfig(self, mode, target:int, name:str=None, announcement:str=None, confessTalk:bool=False,
-    allowMemberInvite:bool=False, autoApprove:bool=False, anonymousChat:bool=False) -> DotDict or tuple([int,str]):
+    def GroupConfig(
+        self, 
+        mode, 
+        target:int, 
+        name:str=None, 
+        announcement:str=None, 
+        confessTalk:bool=False,
+        allowMemberInvite:bool=False, 
+        autoApprove:bool=False, 
+        anonymousChat:bool=False
+    ) -> DotDict or tuple([int,str]):
+        r'''获取或修改群设置
+        '''
         r'mode = get or set'
         payload = {'sessionKey':self.session}
         payload['target'] = target
         if mode == 'get':
-            return self.basicsession(Get, 'groupConfig', params=payload)
+            return self.basicsession('get', 'groupConfig', params=payload)
         elif mode == 'set':
             payload['config'] = {}
             if name:payload['config']['name'] = name                                           # 群名
@@ -367,7 +415,7 @@ class MiraiApi():
             if allowMemberInvite:payload['config']["allowMemberInvite"] = allowMemberInvite    # 群员邀请
             if autoApprove:payload['config']["autoApprove"] = autoApprove                      # 自动审批
             if anonymousChat:payload['config']["anonymousChat"] = anonymousChat                # 匿名
-            return self.basicsession(Post, 'groupConfig', json=payload)
+            return self.basicsession('post', 'groupConfig', json=payload)
         else:
             raise RequestError
  # 获取修改群员设置
@@ -377,25 +425,25 @@ class MiraiApi():
         payload['target'] = target
         payload['memberId'] = memberID
         if mode == 'get':
-            return self.basicsession(Get, 'memberInfo', params=payload)
+            return self.basicsession('get', 'memberInfo', params=payload)
         elif mode == 'set':
             payload['info'] = {}
             payload['info']['name'] = name              # 群名称
             payload['info']['specialTitle'] = special   # 群头衔
-            return self.basicsession(Post, 'memberInfo', json=payload)
+            return self.basicsession('post', 'memberInfo', json=payload)
  # 修改群员管理员
     def MemberAdmin(self, target:int, memberID:int) -> tuple([int, str]):
         payload = {'sessionKey':self.session}
         payload['target'] = target
         payload['memberId'] = memberID
         payload['assign'] = True if self.MemberInfo('get',target,memberID).permission == 'MEMBER' else False
-        return self.basicsession(Post, 'memberInfo', json=payload)
+        return self.basicsession('post', 'memberInfo', json=payload)
  # 获取群公告
     def AnnoList(self, target:int, offset:int=None, size:int=None):
         payload = {'id':target}
         if offset:payload['offset'] = offset
         if size:payload['size'] = size
-        return self.basicsession(Get, 'memberInfo', params=payload)
+        return self.basicsession('get', 'memberInfo', params=payload)
  # 发布群公告
     def AnnoPut(
         self, 
@@ -418,7 +466,7 @@ class MiraiApi():
         if confirm:payload['requireConfirmation'] = confirm
         if NewMember:payload['sendToNewMember'] = NewMember
         if EditCard:payload['showEditCard'] = EditCard
-        return self.basicsession(Post, 'memberInfo', json=payload)
+        return self.basicsession('post', 'memberInfo', json=payload)
  # 删除群公告
     def AnnoDel(
         self, 
@@ -427,11 +475,11 @@ class MiraiApi():
     ) -> tuple([int, str]):
         payload = {'id':target}
         payload['fid'] = fid
-        return self.basicsession(Post, 'memberInfo', json=payload)
+        return self.basicsession('post', 'memberInfo', json=payload)
 
 ### 多媒体内容上传 ###
  # 上传图片或语音
-    def Upload(self, f, mode:str='image', Type:str='group') -> DotDict:
+    def Upload(self, f, Type:str='friend', mode:str='image') -> DotDict:
         mode = mode.title()
         Type = Type.lower()
         if mode not in ['Image', 'Voice']:
@@ -443,16 +491,16 @@ class MiraiApi():
         payload = {'sessionKey':self.session}
         payload['type'] = Type
         files = {'img': open(f, 'rb') if type(f) is str else f}
-        return self.basicsession(Post, f'upload{mode}', data=payload, files=files)
+        return self.basicsession('post', f'upload{mode}', data=payload, files=files)
 
 ### 文件操作 目前支持群操作 ###
  # 文件接口
     def _file(self, mode, payload, *args, **kwargs):
         r'mode = list, info, mkdir, delete, move, rename, upload'
         if mode in ['list', 'info']:
-            return self.basicsession(Get, f'file/{mode}', params=json.dumps(payload), *args, **kwargs)
+            return self.basicsession('get', f'file/{mode}', params=json.dumps(payload), *args, **kwargs)
         elif mode in ['mkdir', 'delete', 'move', 'rename', 'upload']:
-            return self.basicsession(Post, f'file/{mode}', data=json.dumps(payload), *args, **kwargs)
+            return self.basicsession('post', f'file/{mode}', data=json.dumps(payload), *args, **kwargs)
         else:raise RequestError
  # 文件列表
     def FileList(self, target:int, path:str, DLinfo=False, offset=0, size=100):
