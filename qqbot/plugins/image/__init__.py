@@ -85,8 +85,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                     urls = ('source' in r.raw['data'] and '\n'+r.raw['data']['source']) or ''
                     urls+= '\n'+'\n'.join(r.urls)
                     urls = urls.replace(".",'。')
-                    s = f'相似度：{r.similarity}\n标题：{r.title}{urls}'
-                    message.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,soup.Plain(s)))
                     s = f'\n相似度：{r.similarity}\n标题：{r.title}\n作者：{r.author}{urls}'
                     if not pid and 'source' in r.raw['data']:
                         if 'fanbox' not in r.raw['data']['source'] and ('https://www.pixiv.net' in r.raw['data']['source'] or 'https://i.pximg.net' in r.raw['data']['source']):
