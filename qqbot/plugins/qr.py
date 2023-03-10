@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os, requests, time
 from MyQR import myqr
+from qqbotcls import bot
 
 import soup
 
@@ -11,6 +12,12 @@ def basename(s:str):
     for c in ['\\','/',':','*','?','"','<','>','|']:
         s = s.replace(c,'_')
     return s
+
+def fwimg2qr(node:soup.Node): # messageId=-1，全部图片转QRCode
+    for n in node:
+        if len(n.messageChain) == 2 and n.messageChain[0].type == 'Image' and n.messageChain[1].type == 'Plain':continue
+        for m in range(len(n.messageChain)):
+            if n.messageChain[m].type == 'Image':n.messageChain[m] = imgurl2qr(picture=bot.Upload(requests.get(n.messageChain[m].url).content).url)
 
 def imgurl2qr(
         word:str=None,
@@ -79,6 +86,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     Image = []
     for msg in Message:
         if msg.type == 'Plain':Plain += msg.text
+    if not Plain.lower().strip().startswith('qr'):return
+    for msg in Message:
         if msg.type == 'Image':Image.append(msg)
         if msg.type == 'Quote':
             code, msg = bot.MessageId(target,msg.id)
@@ -89,7 +98,6 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                     code, msg = bot.MessageId(target,n)
                     if not code:
                         Message += [msg for msg in msg.messageChain if msg.type in ['Image','FlashImage']]
-    if not Plain.lower().strip().startswith('qr'):return
     words = Plain.strip()[2:]
 
     if Image:
