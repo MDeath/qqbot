@@ -9,6 +9,8 @@ def onUnplug(bot):
     if hasattr(bot,'retell'):delattr(bot,'retell')
 
 def onQQMessage(bot, Type, Sender, Source, Message):
+    '''\
+    复读模块'''
     if hasattr(Sender, 'group'):
         target = Sender.group.id
     else:
