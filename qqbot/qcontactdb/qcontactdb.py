@@ -8,7 +8,7 @@ if p not in sys.path:
 from qqbot.qcontactdb.contactdb import ContactDB
 from qqbot.qcontactdb.display import DBDisplayer
 from qqbot.qcontactdb.fetch import Fetch
-from qqbot.utf8logger import INF
+from qqbot.utf8logger import INFO
 from qqbot.common import BYTES2STR
 
 import collections, time, re
@@ -16,7 +16,7 @@ import collections, time, re
 class QContactDB(DBDisplayer):
     def __init__(self, session):
         self.session = session.Copy()
-        dbname = session.dbname
+        dbname = BYTES2STR(session.dbname)
         self.db = ContactDB(dbname)
         INFO('联系人数据库文件：%s', dbname)
 
