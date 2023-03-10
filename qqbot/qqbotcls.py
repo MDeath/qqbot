@@ -6,8 +6,8 @@ from apscheduler.triggers.cron import CronTrigger
 from collections import defaultdict
 
 from mainloop import MainLoop, Put
-from miraiapi import MiraiApi, RequestError
-from common import Import, JsonDict, StartDaemonThread
+from miraiapi import MiraiApi, RequestError, Timeout
+from common import DotDict, Import, JsonDict, StartDaemonThread
 from qconf import QConf
 from utf8logger import INFO, CRITICAL, ERROR, PRINT, WARNING
 from qterm import QTermServer
@@ -109,6 +109,8 @@ class QQBot(TermBot):
             except RequestError:
                 Put(sys.exit)
                 break
+            except Timeout:
+                os.popen('taskkill /f /im java.exe').read()
             except:
                 ERROR('qsession.Poll 方法出错', exc_info=True)
             else:
@@ -117,6 +119,7 @@ class QQBot(TermBot):
                     Put(self.MessageAnalyst, r)
 
     def MessageAnalyst(self, Message):
+        if type(Message) is not JsonDict:Message = DotDict(Message)
         if 'SyncMessage' in Message.type:
             Type = Message.type.replace('SyncMessage','')
             subject = Message.subject
@@ -164,9 +167,6 @@ class QQBot(TermBot):
             time.sleep(300)
             Put(self.onInterval)
             Put(self.Update)
-
-    def Command(self):
-        while True:pass
 
     def wrap(self, slots):
         def func(*args, **kwargs):
