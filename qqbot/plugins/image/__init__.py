@@ -8,6 +8,7 @@ from .asc2d import Ascii2DSearch
 
 import time, traceback, requests
 import soup
+from qqbotcls import bot
 from utf8logger import INFO, WARNING, ERROR
 from admin import admin_ID
 from qr import fwimg2qr
@@ -29,6 +30,8 @@ def Resp2Msg(Type,Resp,pid):
             for k,v in r.url_list:
                 if not pid and 'fanbox' not in k and ('https://www.pixiv.net' in k or 'https://i.pximg.net' in k):
                     pid = k.split('/')[-1].split('=')[-1].split('_')[0]
+                    illust = bot.pixiv.illust_detail(pid)
+                    if 'error' in illust or not (illust.illust.title or illust.illust.user.name):pid = False
             msg[-1].append(soup.Plain('\n'.join([f'{v} : {k.replace(".","。")}' for k,v in r.url_list])))
         if r.title and r.url_list:return msg,pid
 
@@ -80,37 +83,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         while True:
             try:
                 results = bot.sauce.from_url(img.url) # or from_file()
-                for n in range(len(results)):
-                    r = results[n]
-                    urls = ('source' in r.raw['data'] and '\n'+r.raw['data']['source']) or ''
-                    urls+= '\n'+'\n'.join(r.urls)
-                    urls = urls.replace(".",'。')
-                    s = f'\n相似度：{r.similarity}\n标题：{r.title}\n作者：{r.author}{urls}'
-                    if not pid and 'source' in r.raw['data']:
-                        if 'fanbox' not in r.raw['data']['source'] and ('https://www.pixiv.net' in r.raw['data']['source'] or 'https://i.pximg.net' in r.raw['data']['source']):
-                            pid = r.raw['data']['source'].split('/')[-1].split('=')[-1].split('_')[0]
-                            illust = bot.pixiv.illust_detail(pid)
-                            if 'error' in illust or not (illust.illust.title or illust.illust.user.name):pid = False
-                    elif not pid:
-                        for url in r.urls:
-                            if 'fanbox' not in url and ('https://www.pixiv.net' in url or 'https://i.pximg.net' in url):
-                                pid = url.split('/')[-1].split('=')[-1].split('_')[0]
-                                illust = bot.pixiv.illust_detail(pid)
-                                if 'error' in illust or not (illust.illust.title or illust.illust.user.name):pid = False
-                                else:break
-                    message.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,soup.Image(r.thumbnail),soup.Plain(s)))
-                    
-                    if n == 0:
-                        if Type!="Friend":ColorResp, BovwResp = Ascii2DSearch(img.url) # 色相，特征
-                        else:ColorResp, BovwResp = Ascii2DSearch(img.url.replace(f'c2cpicdw.qpic.cn/offpic_new/{Sender.id}//',f'gchat.qpic.cn/gchatpic_new/0/').replace('c2cpicdw.qpic.cn/offpic_new/0//',f'gchat.qpic.cn/gchatpic_new/0/'))
-                        node, pid = Resp2Msg('色相',ColorResp,pid)
-                        for msg in node:message.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*msg))
-                        
-                        node, pid = Resp2Msg('特征',BovwResp,pid)
-                        for msg in node:message.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*msg))
-                    
-                if max([r.similarity for r in results]) < 60:
-                    message.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,soup.Plain('⚠️⚠️⚠️匹配度较低，可能被裁切、拼接，或是 AI 作图⚠️⚠️⚠️')))
+                if Type!="Friend":ColorResp, BovwResp = Ascii2DSearch(img.url) # 色相，特征
+                else:ColorResp, BovwResp = Ascii2DSearch(img.url.replace(f'c2cpicdw.qpic.cn/offpic_new/{Sender.id}//',f'gchat.qpic.cn/gchatpic_new/0/').replace('c2cpicdw.qpic.cn/offpic_new/0//',f'gchat.qpic.cn/gchatpic_new/0/'))
                 break
             except UnknownApiError:
                 WARNING('搜图失败，请稍后尝试')
@@ -122,9 +96,39 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 time.sleep(30)
             except Exception as e:
                 ERROR(f"Count:{error_nember} ERROR:{e}")
-                if error_nember == 5 and not message:bot.SendMessage(Type, target, soup.Plain('🆘暂时无法连到服务器，请联系管理员🆘'), id=Source.id)
+                if error_nember == 5 and not message:
+                    bot.SendMessage(Type, target, soup.Plain('🆘暂时无法连到服务器，请联系管理员🆘'), id=Source.id)
+                    return
             error_nember += 1
-        
+
+        for n in range(len(results)):
+            r = results[n]
+            if n == len([r.similarity for r in results if r.similarity >= 60]):
+                node, pid = Resp2Msg('特征',BovwResp,pid)
+                for msg in node:message.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*msg))
+                node, pid = Resp2Msg('色相',ColorResp,pid)
+                for msg in node:message.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*msg))
+            
+            urls = ('source' in r.raw['data'] and '\n'+r.raw['data']['source']) or ''
+            urls+= '\n'+'\n'.join(r.urls)
+            urls = urls.replace(".",'。')
+            s = f'\n相似度：{r.similarity}\n标题：{r.title}\n作者：{r.author}{urls}'
+            if not pid and 'source' in r.raw['data'] and r.similarity >= 60:
+                if 'fanbox' not in r.raw['data']['source'] and ('https://www.pixiv.net' in r.raw['data']['source'] or 'https://i.pximg.net' in r.raw['data']['source']):
+                    pid = r.raw['data']['source'].split('/')[-1].split('=')[-1].split('_')[0]
+                    illust = bot.pixiv.illust_detail(pid)
+                    if 'error' in illust or not (illust.illust.title or illust.illust.user.name):pid = False
+            elif not pid and r.similarity >= 60:
+                for url in r.urls:
+                    if 'fanbox' not in url and ('https://www.pixiv.net' in url or 'https://i.pximg.net' in url):
+                        pid = url.split('/')[-1].split('=')[-1].split('_')[0]
+                        illust = bot.pixiv.illust_detail(pid)
+                        if 'error' in illust or not (illust.illust.title or illust.illust.user.name):pid = False
+                        else:break
+            message.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,soup.Image(r.thumbnail),soup.Plain(s)))
+            
+        if max([r.similarity for r in results]) < 60:
+            message.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,soup.Plain('⚠️⚠️⚠️匹配度较低，可能被裁切、拼接，或是 AI 作图⚠️⚠️⚠️')))
 
         if not message:
             bot.SendMessage(Type, target, soup.Plain('⚠️搜图失败，请稍后尝试⚠️'), id=Source.id)
