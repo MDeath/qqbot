@@ -98,7 +98,7 @@ class MiraiApi():
         elif hasattr(r, 'msg'):
             return r.code, r.msg
         else:
-            return r
+            return None, r
 
     def verify(self, verifyKey=None) -> None:
         '''认证
@@ -106,7 +106,7 @@ class MiraiApi():
         '''
         self.started = False
         payload = {"verifyKey": verifyKey or self.verifyKey}
-        r = self.basicsession('post', 'verify', json=payload)
+        code, r = self.basicsession('post', 'verify', json=payload)
         if r:
             self.session = r.session
             INFO('认证成功')
