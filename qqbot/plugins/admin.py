@@ -231,7 +231,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         reply(soup.Plain('更新完毕'))
         return
 
-    if Sender.id in admin_ID(True):
+    if Sender.id in admin_ID(True,True):
         if Plain.strip().startswith('加载插件'):
             moduleName = Plain.replace('加载插件','')
             Modules = moduleName.split(' ')
