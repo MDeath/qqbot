@@ -44,15 +44,10 @@ class SauceNao:
         self.params = params
 
     def from_file(self, file: BinaryIO) -> SauceResponse:
-        self.params['api_key'] = self.params['api_key'][1:]+[self.params['api_key'][0]]
-        params = self.params.copy()
-        params['api_key'] = self.params['api_key'][0]
-        return self._search(params, {'file': file})
+        return self._search(self.params, {'file': file})
 
     def from_url(self, url: str) -> SauceResponse:
-        self.params['api_key'] = self.params['api_key'][1:]+[self.params['api_key'][0]]
         params = self.params.copy()
-        params['api_key'] = self.params['api_key'][0]
         params['url'] = url
         return self._search(params)
 
