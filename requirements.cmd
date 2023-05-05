@@ -12,4 +12,4 @@ pip install aiohttp
 pip install pixivpy3
 
 # qr
-pip install MyQR
+pip install amzqr

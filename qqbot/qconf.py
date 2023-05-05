@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v1.0'
+version = 'v2.9'
 
 sampleConfStr = '''
 {
@@ -155,7 +155,7 @@ QQBot 机器人
 
 import os, sys, ast, argparse, platform, time, pkgutil
 
-from utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT, ERROR
+from utf8logger import SetLogLevel, INFO, PRINT, ERROR
 from common import STR2BYTES, BYTES2STR
 from common import daemonize, daemonable
 

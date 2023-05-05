@@ -1,12 +1,17 @@
 # -*- coding: utf-8 -*-
-import os, requests, time
-from io import BytesIO
-from PIL import Image
+import cloudscraper, os, time
 from amzqr import amzqr
 
 from qqbotcls import bot
-from common import JsonDict
+from common import JsonDict, b64decode
+from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 import soup
+
+requests = cloudscraper.create_scraper()
+
+tempdir = os.path.join(os.getcwd(),'temp/qr').replace('\\','/')
+if not os.path.exists(tempdir):
+    os.makedirs(tempdir)
 
 # ===中文支持 UTF-8 转 UTF-16 需要去 amzqr 替换替换以下开头===
 def utf16to8(input_txt: str) -> str:
@@ -53,12 +58,12 @@ def fwimg2qr(node:soup.Node): # messageId=-1，全部图片转QRCode
                 elif 'path' in n.messageChain[m]:
                     content = n.messageChain[m].path
                 else:
-                    print(n.messageChain[m])
-                    raise 'only url and path'
+                    continue
                 url = bot.Upload(content).url
-                n.messageChain[m] = imgurl2qr(picture=url)
+                n.messageChain[m] = img2qr(picture=url)
+    return node
 
-def imgurl2qr(
+def img2qr(
         word:str=None,
         picture:str|JsonDict=None,
         **kwargs
@@ -70,13 +75,9 @@ def imgurl2qr(
     '''
     if not (word or picture):raise Exception('wrod or picture 不可同时为空')
     
-    tempdir = os.path.join(os.getcwd(),f'temp\\qr\\{time.strftime("%Y-%m-%d",time.localtime())}')
-    if not os.path.exists(tempdir):
-        os.makedirs(tempdir)
-
-    file_name = time.strftime("%H-%M-%S",time.localtime())
+    file_name, imgurl = time.strftime("%H-%M-%S",time.localtime()), False
     if isinstance(picture, JsonDict):
-        byte = requests.get(picture.url,**kwargs).content
+        imgurl = picture.url
         if not word and picture:
             word = picture.url
 
@@ -87,22 +88,27 @@ def imgurl2qr(
         elif picture.url.endswith(('.jpg','.png','.bmp','.gif')):
             file_name = picture.url
     elif isinstance(picture,str) and picture.startswith('http'):
-        byte = requests.get(picture,**kwargs).content
+        imgurl = picture
         if not word and picture:
             word = picture
 
         if picture.endswith(('.jpg','.png','.bmp','.gif')):
             file_name = picture
-
-    if not file_name.endswith(('.jpg','.png','.bmp','.gif')):
-        if byte[6:10] in (b'JFIF', b'Exif'):file_name+='.jpg'
-        elif byte.startswith(b'\211PNG\r\n\032\n'):file_name+='.png'
-        elif byte[:6] in (b'GIF87a', b'GIF89a'):file_name+='.gif'
-        elif byte.startswith(b'BM'):file_name+='.bmp'
-        else:file_name+='.png'
-    picture = os.path.join(tempdir, basename(file_name))
-    with open(picture, "wb") as f:f.write(byte)
-
+    
+    if imgurl:
+        try:
+            byte = requests.get(imgurl,**kwargs).content
+            if not file_name.endswith(('.jpg','.png','.bmp','.gif')):
+                if byte[6:10] in (b'JFIF', b'Exif'):file_name+='.jpg'
+                elif byte.startswith(b'\211PNG\r\n\032\n'):file_name+='.png'
+                elif byte[:6] in (b'GIF87a', b'GIF89a'):file_name+='.gif'
+                elif byte.startswith(b'BM'):file_name+='.bmp'
+                else:file_name+='.png'
+            picture = os.path.join(tempdir, basename(file_name))
+            with open(picture, "wb") as f:f.write(byte)
+        except:
+            picture = None
+        
     version, level, qr_name = amzqr.run(
         word,
         version = 1,
@@ -114,7 +120,8 @@ def imgurl2qr(
         save_name = None,
         save_dir = tempdir
     )
-    return soup.Image(path=qr_name)
+    with open(qr_name, 'rb') as f:
+        return soup.Image(base64=f.read())
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
@@ -157,4 +164,4 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         bot.SendMessage(Type, target, soup.Plain('没有包含文本，或者关联图片，请尝试直接和图片一起发送'), id=Source.id)
         return
 
-    bot.SendMessage(Type, target, imgurl2qr(words, Image), id=Source.id)
+    bot.SendMessage(Type, target, img2qr(words, Image), id=Source.id)

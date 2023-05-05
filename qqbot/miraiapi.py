@@ -1,96 +1,63 @@
 # -*- coding: utf-8 -*-
 
-from common import DotDict,LockedValue,StartDaemonThread
-from utf8logger import INFO, ERROR, WARNING
-import base64, cloudscraper, json, requests, time, traceback
-
-def Base64(msg,n:list): # Base64 处理
-    if type(msg['base64']) is dict: # 从 http 参数 Base64
-        url = msg['base64']['url']
-        class base(str):
-            def __repr__(self) -> str:
-                return f'Base64编码 {url}'
-        r = cloudscraper.create_scraper()
-        r = r.get(**msg['base64'])
-        msg['base64'] = base(str(base64.b64encode(r.content), 'utf-8'))
-    else:
-        class base(str): # 普通 Base64 打印处理
-            def __repr__(self) -> str:
-                return f'Base64编码'
-        if type(msg['base64']) is bytes:
-            msg['base64'] = base(str(msg['base64'], 'utf-8'))
-        elif type(msg['base64']) is str:
-            msg['base64'] = base(msg['base64'])
-    n.append(msg)
-
-def GetBase64(Message, l:list): # 从消息链中获取 Base64
-    for msg in Message:
-        if msg['type'] == 'Forward':
-            for node in msg['nodeList']:
-                GetBase64(node['messageChain'], l)
-
-        elif msg['type'] == 'Image'or msg['type'] == 'FlashImage'or msg['type'] == 'Voice':
-            if 'base64' in msg:
-                l.append(msg)
+from common import DotDict
+from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
+import json, os, requests, time, traceback
 
 class RequestError(Exception):
     pass
 
-class Timeout(requests.exceptions.ReadTimeout):
-    pass
-
 class MiraiApi():
-    def __init__(self, qq, verifyKey, host='localhost', port=8080, session=None) -> None:
+    def __init__(self, qq, verifyKey, host='localhost', port=8080, session=None, timeout=3) -> None:
         self.started = False
         self.host = host
         self.port = port
-        self.qq = qq
+        self.timeout = timeout
+        self.qq = int(qq)
         self.verifyKey = verifyKey
         self.session = session
         if not self.session:self.verify()
+    
+    ErrorCode = None
+    ErrorTime = None
 
-    def ErrorCode(self, code) -> None:
-        if code == 1:
-            ERROR('错误的verify key')
-            self.verifyKey = input('verifyKey:')
-        elif code == 2:
-            ERROR('指定的Bot不存在')
-            self.qq = int(input('qq:'))
-        elif code == 3:
-            WARNING('Session失效或不存在')
+    def ErrorAnalyst(self, r) -> None:
+        if self.ErrorCode != r.code or time.time()-self.ErrorTime > 60:
+            ERROR(f'Code:{r.code}, Msg:{r.msg}')
+        self.ErrorCode, self.ErrorTime = r.code, time.time()
+        if r.code == 1: # 错误的verify key
+            self.verifyKey = input('VerifyKey:')
+        elif r.code == 2:pass # 指定的Bot不存在
+        elif r.code == 3: # Session失效或不存在
             self.verify()
-        elif code == 4:
-            WARNING('Session未认证(未激活)')
+        elif r.code == 4: # Session未认证(未激活)
+            self.started = False
             self.bind()
-        elif code == 5:
-            WARNING('发送消息目标不存在(指定对象不存在)')
-        elif code == 6:
-            WARNING('指定文件不存在，出现于发送本地图片')
-        elif code == 10:
-            WARNING('无操作权限，指Bot没有对应操作的限权')
-        elif code == 20:
-            WARNING('Bot被禁言，指Bot当前无法向指定群发送消息')
-        elif code == 30:
-            WARNING('消息过长')
-        elif code == 400:
-            WARNING('错误的访问，如参数错误等')
-        elif code == 500:
-            WARNING('MCL内部错误，或其他原因')
+        elif r.code == 5:pass # 发送消息目标不存在(指定对象不存在)
+        elif r.code == 6:pass # 指定文件不存在，出现于发送本地图片
+        elif r.code == 10:pass # 无操作权限，指Bot没有对应操作的限权
+        elif r.code == 20:pass # Bot被禁言，指Bot当前无法向指定群发送消息
+        elif r.code == 30:pass # 消息过长
+        elif r.code == 400:pass # 错误的访问，如参数错误等
+        elif r.code == 500:pass # MCL内部错误，或其他原因
 
     def basicsession(self, mode, url, **kwargs):
-        if mode == 'get':mode = requests.get
-        if mode == 'post':mode = requests.post
+        if mode == 'get' and 'timeout' not in kwargs:kwargs['timeout'] = self.timeout
+        while not self.started and url not in ('verify','bind','botList'):pass
         while True:
             try:
-                r = DotDict(mode(f'http://{self.host}:{self.port}/{url}', **kwargs).text)
+                r = DotDict(getattr(requests, mode)(f'http://{self.host}:{self.port}/{url}', **kwargs).text)
                 break
             except requests.exceptions.ConnectionError:
                 ERROR('无法连接倒Mirai，请检查服务、地址、端口。')
-            except:
-                raise RequestError
+            except requests.exceptions.ReadTimeout:
+                os.popen('taskkill /f /im java.exe').read()
+                ERROR('Mirai失去意识，敲打中。')
+            except Exception as e:
+                raise RequestError(e)
         if hasattr(r, 'code') and r.code:
-            self.ErrorCode(r.code)
-            return r.code, None
+            self.ErrorAnalyst(r)
+            return r.code, f'Code:{r.code}, Msg:{r.msg}'
         if hasattr(r, 'data'):
             return r.code, r.data
         elif hasattr(r, 'messageId'):
@@ -98,46 +65,82 @@ class MiraiApi():
         elif hasattr(r, 'msg'):
             return r.code, r.msg
         else:
-            return None, r
+            return r
 
-    def verify(self, verifyKey=None) -> None:
+    def verify(self) -> None:
         '''认证
     verifyKey   创建Mirai-Http-Server时生成的key，可在启动时指定或随机生成
         '''
         self.started = False
-        payload = {"verifyKey": verifyKey or self.verifyKey}
-        code, r = self.basicsession('post', 'verify', json=payload)
-        if r:
-            self.session = r.session
-            INFO('认证成功')
-            self.bind()
-        else:
-            self.verify()
+        payload = {"verifyKey": self.verifyKey}
+        while not self.started:
+            r = self.basicsession('post', 'verify', json=payload)
+            if hasattr(r,'session'):
+                self.session = r.session
+                INFO('认证成功')
+                self.bind()
+                return
+            time.sleep(1)
 
-    def bind(self, qq=None, session=None) -> None:
+    def bind(self, qq=None) -> None:
         '''绑定
     qq      Session将要绑定的Bot的qq号
     session 你的session key
         '''
+        flag = True
+        while self.qq not in self.BotList()[1]:
+            time.sleep(5)
+            if self.qq in self.BotList()[1]:break
+            os.popen('taskkill /f /im java.exe').read()
+            if flag:
+                flag = WARNING(f'qq:{self.qq} 未登录')
         payload = {
-            "sessionKey": session or self.session,
+            "sessionKey": self.session,
             "qq": qq or self.qq
         }
-        r = self.basicsession('post', 'bind', json=payload)
-        if r:
+        code, r = self.basicsession('post', 'bind', json=payload)
+        if code == 0:
             INFO('绑定成功')
             self.started = True
-        else:
-            self.bind()
-    def botList(self) -> list:
+            return
+        time.sleep(1)
+
+    def BotList(self) -> list:
         '获取登录账号'
         return self.basicsession('get', 'botList')
 
     def SessionInfo(self) -> DotDict:
         '获取会话信息'
-        return self.basicsession('get', f'sessionInfo?sessionKey={self.session}').qq
+        return self.basicsession('get', f'sessionInfo?sessionKey={self.session}')
 
 ### 消息与事件 ###
+    def pollForever(self, MessageAnalyst): # http
+        while True:
+            try:
+                code, result = self.Mirai.GetMessage()
+            except:
+                ERROR('qsession.Poll 方法出错', exc_info=True)
+            else:
+                if not result:continue
+                for r in result:
+                    MessageAnalyst(r)
+                    
+    def pollForever(self, MessageAnalyst): # websocket
+        import websocket
+        while True:
+            try:
+                self.ws = websocket.create_connection(f'ws://{self.host}:{self.port}/all?verifyKey={self.verifyKey}&sessionKey={self.session}')
+            except:
+                self.verify()
+                time.sleep(1)
+                continue
+            recv = self.ws.recv()
+            while self.started:
+                try:
+                    MessageAnalyst(DotDict(self.ws.recv()).data)
+                except Exception as e:
+                    WARNING(e)
+                    break
 
     def countMessage(self) -> int:
         '查看队列大小'
@@ -147,8 +150,7 @@ class MiraiApi():
         self, 
         count:int=1,
         last=True,
-        pop=True,
-        timeout = None
+        pop=True
     ) -> tuple([int, list]):
         '''获取或查看消息与事件
     count   获取(查看)消息和事件的数量
@@ -157,7 +159,7 @@ class MiraiApi():
         '''
         payload = {'sessionKey':self.session}
         payload['count'] = count
-        return self.basicsession('get', f'{"fetch" if pop else "peek"}{"Latest" if last else ""}Message', params=payload, timeout=timeout)
+        return self.basicsession('get', f'{"fetch" if pop else "peek"}{"Latest" if last else ""}Message', params=payload)
 
     def MessageId(
         self, 
@@ -194,10 +196,6 @@ class MiraiApi():
         else:payload['group'], payload['qq'] = target
         payload['messageChain'] = message
         if id:payload['quote'] = id
-        l,n = [],[]
-        GetBase64(message, l)
-        for msg in l:StartDaemonThread(Base64,msg,n)
-        while len(l) != len(n):pass
         code, msgid = self.basicsession('post', f'send{type}Message', json=payload)
         INFO(f'发到 {type} {target}({msgid or code}){(id and "回复消息("+str(id)+")") or ""}:\n{message}')
         return code, msgid
@@ -250,7 +248,7 @@ class MiraiApi():
         payload['target'] = target
         payload['start'] = start
         payload['end'] = end
-        return self.basicsession('post', 'recall', json=payload)
+        return self.basicsession('post', 'roamingMessages', json=payload)
         
     def event_response(
         self, 
@@ -276,7 +274,6 @@ class MiraiApi():
         self.basicsession('post', f'resp/{type}', json=payload)
 
 ### 联系人操作 ###
-
     def List(
         self, 
         type:str, 
@@ -311,14 +308,16 @@ class MiraiApi():
         if type == 'member':
             payload['memberId'] = memberID
         return self.basicsession('get', f'{type}Profile', params=payload)
- # 删除好友
+
     def DelFriend(self, target:int) -> tuple([int, str]):
+        r'''删除好友
+    target  好友账号
+        '''
         payload = {'sessionKey':self.session}
         payload['target'] = target
         return self.basicsession('post', 'deleteFriend', json=payload)
 
 ### 群管理 ###
- # 禁言
     def Mute(
         self, 
         target:int, 

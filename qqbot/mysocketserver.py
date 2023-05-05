@@ -42,7 +42,7 @@ class MySocketServer(object):
     def onAccept(self, sock, addr):
         sock.settimeout(10.0)
         try:
-            data = sock.recv(8192)
+            data = sock.recv(65536)
         except socket.error as e:
             ERROR('%s 在接收来自 %s:%s 的数据时发送错误，%s', self.name, addr[0], addr[1], e)
             self.onRecvError(sock, addr, e)

@@ -108,5 +108,3 @@ def Ascii2DSearch(
             raise ValueError("url or file is required")
 
         return Ascii2DResponse(resp.text),Ascii2DResponse(client.get(resp.url.replace("/color/", "/bovw/")).text)
-
-if __name__=='__main__':Ascii2DSearch(file=r"C:\Users\10643\Documents\qqbot\c.jpg")

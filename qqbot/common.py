@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import json, subprocess, threading, sys, platform, os
-
-PY3 = sys.version_info[0] == 3
+import json, subprocess, threading, sys, platform, os, base64, io
 
 class JsonDict(dict):
     def __getattr__(self, attr):
@@ -18,18 +16,23 @@ class JsonDict(dict):
         except KeyError:
             raise AttributeError(r"'JsonDict' object has no attribute '%s'" % attr)
 
-def DotDict(ojb:dict|list|str) -> JsonDict:
-    if type(ojb) is dict or type(ojb) is list:
-        ojb = JsonDumps(ojb)
-    return JsonLoads(ojb, object_hook=JsonDict)
+def DotDict(ojb:dict|list|str|io.IOBase) -> JsonDict:
+    if isinstance(ojb, (dict, list)):
+        ojb = json.dumps(ojb)
+    if isinstance(ojb, io.IOBase):
+        ojb = ojb.read()
+    return json.loads(ojb, object_hook=JsonDict)
 
-JsonLoad = lambda *args, **kwargs: JsonDict(json.load(*args, **kwargs))
+JsonLoad = lambda *args, **kwargs: json.load(*args, **kwargs)
 JsonDump = json.dump
-JsonLoads = lambda *args, **kwargs: JsonDict(json.loads(*args, **kwargs))
+JsonLoads = lambda *args, **kwargs: json.loads(*args, **kwargs)
 JsonDumps = json.dumps
 
 STR2BYTES = lambda s: s.encode('utf8')
 BYTES2STR = lambda s: s.decode('utf8')
+
+b64encode = lambda s:base64.b64encode(s.encode()).decode().replace('=','') if isinstance(s,str) else base64.b64encode(s).decode().replace('=','')
+b64decode = lambda s:base64.b64decode((s+'='*(len(s)%4)).encode()).decode() if isinstance(s,str) else base64.b64decode((s.decode()+'='*(len(s)%4)).encode()).decode()
 
 def secs2hours(secs):
     M, S = divmod(secs, 60)
@@ -42,23 +45,11 @@ def B2GB(B):
     GB,MB = divmod(MB,1024)
     return "%dGB,%dMB,%dKB" % (GB,MB,KB)
 
-if not PY3:
-    def encJson(obj):
-        if hasattr(obj, 'encode'):
-            return obj.encode('utf8')
-        elif isinstance(obj, list):
-            return [encJson(e) for e in obj]
-        elif isinstance(obj, dict):
-            return dict((encJson(k), encJson(v)) for k,v in obj.items())
-        else:
-            return obj
-
 def isSpace(b):
     return b in [' ', '\t', '\n', '\r', 32, 9, 10, 13]
 
 def Partition(msg):
-    if PY3:
-        msg = msg.encode('utf8')
+    msg = msg.encode('utf8')
 
     n = 720
 
@@ -71,20 +62,14 @@ def Partition(msg):
                 break
         else:
             for i in range(n-1, n-301, -1):
-                if PY3:
-                    x = msg[i]
-                else:
-                    x = ord(msg[i])
+                x = msg[i]
                 if (x >> 6) != 2:
                     f, b = msg[:i], msg[i:]
                     break
             else:
                 f, b = msg[:n], msg[n:]
 
-    if PY3:
-        return f.decode('utf8'), b.decode('utf8')
-    else:
-        return f, b
+    return f.decode('utf8'), b.decode('utf8')
 
 def HasCommand(procName):
     return subprocess.call(['which', procName], stdout=subprocess.PIPE) == 0
@@ -161,18 +146,14 @@ def AutoTest():
                 print('>>> '+line)
                 os.system(line)
                 sys.stdout.write('\npress enter to continue...')
-                if PY3:
-                    input()
-                else:
-                    raw_input()
+                input()
                 sys.stdout.write('\n')
 
 def IsMainThread():
     return threading.current_thread().name == 'MainThread'
 
-if PY3:
-    import importlib
-    reload = importlib.reload
+import importlib
+reload = importlib.reload
 
 # import module / import package.module
 # Import('module') / Import('package.module')
@@ -183,46 +164,16 @@ def Import(moduleName):
         __import__(moduleName)
     return sys.modules[moduleName]
 
-if not PY3:
-    import urllib
-    Unquote = urllib.unquote
-else:
-    import urllib.parse
-    Unquote = urllib.parse.unquote
+
+import urllib.parse
+Unquote = urllib.parse.unquote
 
 def mydump(fn, d):
     with open(fn, 'wb') as f:
         json.dump(d, f, ensure_ascii=False, indent=4)
 
-if PY3:
-    def UniIter(s):
-        return zip(map(ord, s), s)
-else:
-    # s: utf8 byte-string
-    def UniIter(s):
-        if not s:
-            return
-
-        x, uchar = ord(s[0]), s[0]
-        for ch in s[1:]:
-            c = ord(ch)
-            if c >> 6 == 0b10:
-                x = (x << 6) | (c & 0b111111)
-                uchar += ch
-            else:
-                yield x, uchar
-                uchar = ch
-                if c >> 7 == 0:
-                    x = c
-                elif c >> 5 == 0b110:
-                    x = c & 0b11111
-                elif c >> 4 == 0b1110:
-                    x = c & 0b1111
-                elif c >> 3 == 0b11110:
-                    x = c & 0b111
-                else:
-                    raise Exception('illegal utf8 string')
-        yield x, uchar
+def UniIter(s):
+    return zip(map(ord, s), s)
 
 # http://pydev.blogspot.com/2013/01/python-get-parent-process-id-pid-in.html
 # Python: get parent process id (pid) in windows
@@ -235,7 +186,7 @@ import os
 if not hasattr(os, 'getppid'):
     import ctypes
 
-    TH32CS_SNAPPROCESS = long(0x02) if not PY3 else int(0x02)
+    TH32CS_SNAPPROCESS = int(0x02)
     CreateToolhelp32Snapshot = ctypes.windll.kernel32.CreateToolhelp32Snapshot
     GetCurrentProcessId = ctypes.windll.kernel32.GetCurrentProcessId
 

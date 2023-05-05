@@ -3,7 +3,7 @@
 import traceback
 
 import soup
-from utf8logger import ERROR, INFO
+from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 from mainloop import Put
 from common import Unquote, STR2BYTES, BYTES2STR, JsonDumps, DotDict, StartDaemonThread
 

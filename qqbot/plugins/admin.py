@@ -3,13 +3,16 @@
 import os,json,psutil,random,time,traceback
 
 from qqbotcls import QQBotSched,bot
-from utf8logger import INFO, ERROR
+from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 from mainloop import Put
-from common import JsonDict, secs2hours, B2GB
+from common import DotDict, secs2hours, B2GB, b64decode, b64encode
 import soup
 
 def admin_ID(user=False,self=False):
-    return [f.id for f in bot.Friend if(f.remark.lower()=='admin'and f.nickname.lower()!='admin') or (f.remark.lower()=='user'and f.nickname.lower()!='user'and user)] + [bot.conf.qq] if self else [f.id for f in bot.Friend if(f.remark.lower()=='admin'and f.nickname.lower()!='admin') or (f.remark.lower()=='user'and f.nickname.lower()!='user'and user)]
+    return [f.id for f in bot.List('Friend')[1] if(f.remark.lower()=='admin'and f.nickname.lower()!='admin') or (f.remark.lower()=='user'and f.nickname.lower()!='user'and user)] + [bot.conf.qq] if self else [f.id for f in bot.List('Friend')[1] if(f.remark.lower()=='admin'and f.nickname.lower()!='admin') or (f.remark.lower()=='user'and f.nickname.lower()!='user'and user)]
+
+b64enc = b64encode
+b64dec = b64decode
 
 def trans(s:str):
     for k,v in [
@@ -78,15 +81,15 @@ def system_status():
             day=None, 
             week=None, 
             day_of_week=None, 
-            hour=None, 
-            minute=None, 
-            second=0, 
+            hour=3, 
+            minute=30, 
+            second=None, 
             start_date=None, 
             end_date=None, 
             timezone=None)
-def heartbeat(bot):
+def restart_mirai(bot):
     '定时任务心跳'
-    bot.heart = time.strftime("HeartBeat\n%Y-%m-%d\n%H:%M:%S\n%z\n%a-%A\n%b-%B\n%c\n%I %p",time.localtime())
+    os.popen('start taskkill /f /im java.exe')
 
 def onPlug(bot):
     bot.battery = psutil.sensors_battery().percent
@@ -199,6 +202,13 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if moduleName != '' and moduleName in bot.Plugins():
             message = moduleName+' 说明'
             modules = [bot.plugins[moduleName]]
+        if moduleName != '' and moduleName not in bot.Plugins():
+            message = moduleName+' 说明(未加载)'
+            try:
+                modules = [__import__(moduleName)]
+            except:
+                reply(soup.Plain(f'❌未找到 {moduleName}'))
+                return
         elif moduleName == '':
             message = '已加载模块说明'
             modules = bot.plugins.values()
@@ -217,12 +227,12 @@ def onQQMessage(bot, Type, Sender, Source, Message):
 
     elif '插件列表' == Plain:
         for p in plug:
-            if '__' in p:
+            if p.startswith('_'):
                 continue
             elif p in bot.Plugins():
-                Plain += f'\n已加载 {p}'
+                Plain += f'\n🔳已加载 {p}'
             else:
-                Plain += f'\n未加载 {p}'
+                Plain += f'\n⬜未加载 {p}'
         reply(soup.Plain(Plain))
         return
 
@@ -256,34 +266,57 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             message = message.replace('\\\\', '\\')
             message = message.replace('\\\'','\'')
             message = message.replace('\\\"','\"')
-            bot.SendMessage(Type, target, soup.Plain(message), id=quote)
+            if len(message) <= 5000:
+                bot.SendMessage(Type, target, soup.Plain(message), id=quote)
+            else:
+                bot.SendMessage(Type, target, soup.Plain(DotDict(message)), id=quote)
 
-    if Sender.id in admin_ID():
-        if Plain.lower() in ['重启','rebot','reboot','restart','reset']:
+    if Sender.id in admin_ID(True,True):
+        if Plain.strip().lower() in ['激活']:
+            for m in bot.conf.plugins:
+                if m == __name__:continue
+                bot.Plug(m)
+            reply(soup.Plain('bot正在激活'))
+            return
+        
+        if Plain.strip().lower() in ['休眠']:
+            for m in bot.Plugins():
+                if m == __name__:continue
+                bot.Unplug(m)
+            reply(soup.Plain('bot已休眠'))
+            return
+        
+        if Plain.strip().lower() in ['重启','rebot','reboot','restart','reset']:
             reply(soup.Plain('bot正在重启'))
             Put(bot.Restart)
             return
 
-        elif Plain.lower() in ['关机','stop','exit','quit']:
+        if Plain.strip().lower() in ['关机','stop','exit','quit']:
             reply(soup.Plain('bot以关闭'))
             Put(bot.Stop)
+            return
 
 def onQQEvent(bot, Message):
     '''\
     事件处理'''
     first = True
+    t = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
     for f in admin_ID():
         try:
             if Message.type == 'BotOnlineEvent': # Bot登录成功
-                bot.SendMessage('Friend',f,soup.Plain(f'{Message.qq} 登陆成功'))
+                bot.SendMessage('Friend',f,soup.Plain(f'{t} {Message.qq} 登陆成功'))
             elif Message.type == 'BotOfflineEventActive': # Bot主动离线
-                bot.SendMessage('Friend',f,soup.Plain(f'{Message.qq} 主动离线'))
+                bot.Mirai.bind()
+                bot.SendMessage('Friend',f,soup.Plain(f'{t} {Message.qq} 主动离线'))
             elif Message.type == 'BotOfflineEventForce': # Bot被挤下线
-                bot.SendMessage('Friend',f,soup.Plain(f'{Message.qq} 被挤下线'))
+                bot.Mirai.bind()
+                bot.SendMessage('Friend',f,soup.Plain(f'{t} {Message.qq} 被挤下线'))
             elif Message.type == 'BotOfflineEventDropped': # Bot被服务器断开或因网络问题而掉线
-                bot.SendMessage('Friend',f,soup.Plain(f'{Message.qq} 被服务器断开或因网络问题而掉线'))
+                bot.Mirai.bind()
+                bot.SendMessage('Friend',f,soup.Plain(f'{t} {Message.qq} 被服务器断开或因网络问题而掉线'))
             elif Message.type == 'BotReloginEvent': # Bot主动重新登录
-                bot.SendMessage('Friend',f,soup.Plain(f'{Message.qq} 主动重新登录'))
+                bot.Mirai.bind()
+                bot.SendMessage('Friend',f,soup.Plain(f'{t} {Message.qq} 主动重新登录'))
             elif Message.type == 'FriendInputStatusChangedEvent': # 好友输入状态改变
                 pass # bot.SendMessage('Friend',f,soup.Plain(f'好友 {Message.friend.nickname}[{Message.friend.remark}({Message.friend.id})] {((Message.inputting and "正在输入") or "取消输入")}'))
             elif Message.type == 'FriendNickChangedEvent': # 好友昵称改变

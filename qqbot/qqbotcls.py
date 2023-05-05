@@ -6,10 +6,10 @@ from apscheduler.triggers.cron import CronTrigger
 from collections import defaultdict
 
 from mainloop import MainLoop, Put
-from miraiapi import MiraiApi, RequestError, Timeout
+from miraiapi import MiraiApi, RequestError
 from common import DotDict, Import, JsonDict, StartDaemonThread
 from qconf import QConf
-from utf8logger import INFO, CRITICAL, ERROR, PRINT, WARNING
+from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 from qterm import QTermServer
 from termbot import TermBot
 
@@ -77,7 +77,9 @@ class QQBot(TermBot):
         self.onStartupComplete()
         self.onPlug()
 
-        StartDaemonThread(self.pollForever)
+        # child thread 1
+        StartDaemonThread(self.Mirai.pollForever, self.MessageAnalyst)
+        # child thread 2
         StartDaemonThread(self.intervalForever)
         StartDaemonThread(QTermServer(self.conf.termServerPort, self.onTermCommand).Run)
         self.scheduler.start()
@@ -101,49 +103,33 @@ class QQBot(TermBot):
     def Restart(self):
         sys.exit(RESTART)
 
-    # child thread 1
-    def pollForever(self):
-        while self.Mirai.started:
-            try:
-                code, result = self.Mirai.GetMessage()
-            except RequestError:
-                Put(sys.exit)
-                break
-            except Timeout:
-                os.popen('taskkill /f /im java.exe').read()
-            except:
-                ERROR('qsession.Poll 方法出错', exc_info=True)
-            else:
-                if not result:continue
-                for r in result:
-                    Put(self.MessageAnalyst, r)
-
     def MessageAnalyst(self, Message):
         if type(Message) is not JsonDict:Message = DotDict(Message)
-        if 'SyncMessage' in Message.type:
-            Type = Message.type.replace('SyncMessage','')
-            subject = Message.subject
-            Sender = ('Group'==Type and self.MemberInfo('get',subject.id, self.conf.qq)) or subject
-            Message = Message.messageChain
-            Source = Message.pop(0)
-            if Type == 'Friend':
-                INFO(f'同步好友 {subject.nickname}[{subject.remark}({subject.id})] 的消息({Source.id}):\n{str(Message)}')
-            if Type == 'Group':
-                INFO(f'同步群 {subject.name}({subject.id}) 的消息({Source.id}):\n{str(Message)}')
-            elif Type == 'Temp':
-                INFO(f'同步群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的临时消息({Source.id}):\n{str(Message)}')
-            self.onQQMessage(Type, Sender, Source, Message)
-        elif 'Message' in Message.type:
-            Type = Message.type.replace('Message','')
-            Sender = Message.sender
-            Message = Message.messageChain
-            Source = Message.pop(0)
-            if Type == 'Friend':
-                INFO(f'来自好友 {Sender.nickname}[{Sender.remark}({Sender.id})] 的消息({Source.id}):\n{str(Message)}')
-            elif Type == 'Group':
-                INFO(f'来自群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的消息({Source.id}):\n{str(Message)}')
-            elif Type == 'Temp':
-                INFO(f'来自群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的临时消息({Source.id}):\n{str(Message)}')
+        if 'Message' in Message.type:
+            if 'SyncMessage' in Message.type:
+                Type = Message.type.replace('SyncMessage','')
+                subject = Message.subject
+                Sender = ('Group'==Type and self.MemberInfo('get',subject.id, self.conf.qq)) or subject
+                Message = Message.messageChain
+                Source = Message.pop(0)
+                if Type == 'Friend':
+                    INFO(f'同步好友 {subject.nickname}[{subject.remark}({subject.id})] 的消息({Source.id}):\n{str(Message)}')
+                if Type == 'Group':
+                    INFO(f'同步群 {subject.name}({subject.id}) 的消息({Source.id}):\n{str(Message)}')
+                elif Type == 'Temp':
+                    INFO(f'同步群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的临时消息({Source.id}):\n{str(Message)}')
+            else:
+                Type = Message.type.replace('Message','')
+                Sender = Message.sender
+                Message = Message.messageChain
+                Source = Message.pop(0)
+                if Type == 'Friend':
+                    INFO(f'来自好友 {Sender.nickname}[{Sender.remark}({Sender.id})] 的消息({Source.id}):\n{str(Message)}')
+                elif Type == 'Group':
+                    INFO(f'来自群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的消息({Source.id}):\n{str(Message)}')
+                elif Type == 'Temp':
+                    INFO(f'来自群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的临时消息({Source.id}):\n{str(Message)}')
+            # if Sender.id in self.BlackList:return
             self.onQQMessage(Type, Sender, Source, Message)
         elif 'RequestEvent' in Message.type:
             if hasattr(self, 'onQQRequestEvent'):
@@ -161,12 +147,11 @@ class QQBot(TermBot):
         else:
             return operate, msg
 
-    # child thread 2
     def intervalForever(self):
         while True:
             time.sleep(300)
-            Put(self.onInterval)
-            Put(self.Update)
+            StartDaemonThread(self.onInterval)
+            StartDaemonThread(self.Update)
 
     def wrap(self, slots):
         def func(*args, **kwargs):

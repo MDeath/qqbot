@@ -73,10 +73,10 @@ class TaskLoop(object):
         self.Put(self.removeWorkerTo, queueLabel, n)
 
     def removeWorkerTo(self, queueLabel, n):
-        if queueLabel not in self.ChildQueues:
+        if queueLabel not in self.childQueues:
             return
         for i in range(n):
-            self.putTo(queueLabel, exit)
+            self.PutTo(queueLabel, exit)
 
     def Run(self):
         workAt(self.mainQueue)

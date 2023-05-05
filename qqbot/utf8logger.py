@@ -6,8 +6,7 @@ if p not in sys.path:
     sys.path.insert(0, p)
 
 import sys, logging
-
-from common import PY3
+import logging
 
 def equalUtf8(coding):
     return coding is None or coding.lower() in ('utf8', 'utf-8', 'utf_8')
@@ -30,21 +29,16 @@ class CodingWrappedWriter(object):
         self._write(s)
         self.flush()
 
-if not PY3:
-    # utf8Stdout.write("中文") <==> 
-    # sys.stdout.write("中文".decode('utf8').encode(sys.stdout.encoding))
-    utf8Stdout = CodingWrappedWriter('utf8', sys.stdout)
-else:
-    # reference http://blog.csdn.net/jim7424994/article/details/22675759
-    import io
-    if hasattr(sys.stdout, 'buffer') and (not equalUtf8(sys.stdout.encoding)):
-        if sys.stdout.encoding in ('gbk', 'cp936'):
-            coding = 'gb18030'
-        else:
-            coding = 'utf-8'
-        utf8Stdout = io.TextIOWrapper(sys.stdout.buffer, encoding=coding)
+# reference http://blog.csdn.net/jim7424994/article/details/22675759
+import io
+if hasattr(sys.stdout, 'buffer') and (not equalUtf8(sys.stdout.encoding)):
+    if sys.stdout.encoding in ('gbk', 'cp936'):
+        coding = 'gb18030'
     else:
-        utf8Stdout = sys.stdout
+        coding = 'utf-8'
+    utf8Stdout = io.TextIOWrapper(sys.stdout.buffer, encoding=coding)
+else:
+    utf8Stdout = sys.stdout
 
 # 此处修改颜色
 FMTDCIT = {
@@ -83,8 +77,8 @@ def Utf8Logger(name):
         logger.setLevel(logging.INFO)
         ch = logging.StreamHandler(utf8Stdout)
         ch.addFilter(filter)
-        fmt = '[%(asctime)s] [%(levelname)s] %(message)s'
-        datefmt = '%Y-%m-%d %H:%M:%S' # 普通输出
+        fmt = '[%(asctime)s][%(levelname)s][%(module)s.%(funcName)s] %(message)s'
+        datefmt = '%y-%m-%d %H:%M:%S' # 普通输出
         datefmt = '\033[4;31m%Y\033[0;4m-\033[4;33m%m\033[0;4m-\033[4;32m%d\033[0;4m \033[4;36m%H\033[0;4m:\033[4;34m%M\033[0;4m:\033[4;35m%S\033[0m' # 彩色输出
         ch.setFormatter(logging.Formatter(fmt, datefmt))
         logger.addHandler(ch)
@@ -108,22 +102,12 @@ _thisDict = globals()
 for name in ('CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'):
     _thisDict[name] = getattr(utf8Logger, name.lower())
 
-if PY3:
-    RAWINPUT = input
-else:
-    def RAWINPUT(msg):
-        utf8Stdout.write(msg)
-        s = raw_input('').rstrip()
-        if not equalUtf8(sys.stdin.encoding):
-            s = s.decode(sys.stdin.encoding).encode('utf8')
-        return s        
-
-def PRINT(s, end='\n'):
-    utf8Stdout.write(s+end)
+def PRINT(*args, end='\n'):
+    utf8Stdout.write(', '.join(args)+end)
     utf8Stdout.flush()
 
 def test():
-    s = RAWINPUT("请输入一串中文：")
+    s = input("请输入一串中文：")
     PRINT(s)
     INFO(s)
     CRITICAL(s)
