@@ -7,7 +7,7 @@ from collections import defaultdict
 
 from mainloop import MainLoop, Put
 from miraiapi import MiraiApi, RequestError
-from common import DotDict, Import, JsonDict, StartDaemonThread
+from common import DotDict, Import, JsonDict, StartDaemonThread, SGR
 from qconf import QConf
 from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 from qterm import QTermServer
@@ -35,9 +35,9 @@ class QQBot(TermBot):
             'onUnplug':[],
             'onExit':[]
         }
-        self.plugins = {}
+        self.plugins = JsonDict()
 
-    def init(self, argv=None):
+    def Init(self, argv=[]):
         for name, slots in self.slotsTable.items():
             setattr(self, name, self.wrap(slots))
         self.slotsTable['onQQRequestEvent'] = []
@@ -51,16 +51,21 @@ class QQBot(TermBot):
         self.SendMessage = self.Mirai.SendMessage
         self.Nudge = self.Mirai.Nudge
         self.Recall = self.Mirai.Recall
+        self.Roaming = self.Mirai.Roaming
         self.List = self.Mirai.List
         self.Profile = self.Mirai.Profile
         self.DelFriend = self.Mirai.DelFriend
         self.Mute = self.Mirai.Mute
-        self.kick = self.Mirai.Kick
-        self.quit = self.Mirai.Quit
+        self.Kick = self.Mirai.Kick
+        self.Quit = self.Mirai.Quit
         self.MuteAll = self.Mirai.MuteAll
         self.SetEssence = self.Mirai.SetEssence
         self.GroupConfig = self.Mirai.GroupConfig
         self.MemberInfo = self.Mirai.MemberInfo
+        self.MemberAdmin = self.Mirai.MemberAdmin
+        self.AnnoList = self.Mirai.AnnoList
+        self.AnnoPut = self.Mirai.AnnoPut
+        self.AnnoDel = self.Mirai.AnnoDel
         self.FileList = self.Mirai.FileList
         self.FileInfo = self.Mirai.FileInfo
         self.FileMkdir = self.Mirai.FileMkdir
@@ -70,10 +75,10 @@ class QQBot(TermBot):
         self.FileUpload = self.Mirai.FileUpload
         self.Upload = self.Mirai.Upload
 
+    def Run(self):
         for pluginName in self.conf.plugins:
             self.Plug(pluginName)
 
-    def Run(self):
         self.onStartupComplete()
         self.onPlug()
 
@@ -112,23 +117,19 @@ class QQBot(TermBot):
                 Sender = ('Group'==Type and self.MemberInfo('get',subject.id, self.conf.qq)) or subject
                 Message = Message.messageChain
                 Source = Message.pop(0)
-                if Type == 'Friend':
-                    INFO(f'同步好友 {subject.nickname}[{subject.remark}({subject.id})] 的消息({Source.id}):\n{str(Message)}')
-                if Type == 'Group':
-                    INFO(f'同步群 {subject.name}({subject.id}) 的消息({Source.id}):\n{str(Message)}')
-                elif Type == 'Temp':
-                    INFO(f'同步群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的临时消息({Source.id}):\n{str(Message)}')
+                Quote = Message[0].id if Message and Message[0].type == 'Quote' else None
+                if Type == 'Friend':INFO(f'{SGR("同步", B4=1)}好友{SGR(subject.nickname,b4=11)}[{SGR(subject.remark,b4=11)}({SGR(subject.id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.id,b4=12)}):\n{Message}')
+                if Type == 'Group':INFO(f'{SGR("同步", B4=4)}群{SGR(subject.name,b4=14)}({SGR(subject.id,b4=4)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.id,b4=12)}):\n{Message}')
+                elif Type == 'Temp':INFO(f'{SGR("同步", B4=4)}群{SGR(Sender.group.name,b4=14)}({SGR(Sender.group.id,b4=4)})成员{SGR(Sender.memberName,b4=13)}({SGR(Sender.id,b4=3)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的临时消息({SGR(Source.id,b4=12)}):\n{Message}')
             else:
                 Type = Message.type.replace('Message','')
                 Sender = Message.sender
                 Message = Message.messageChain
                 Source = Message.pop(0)
-                if Type == 'Friend':
-                    INFO(f'来自好友 {Sender.nickname}[{Sender.remark}({Sender.id})] 的消息({Source.id}):\n{str(Message)}')
-                elif Type == 'Group':
-                    INFO(f'来自群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的消息({Source.id}):\n{str(Message)}')
-                elif Type == 'Temp':
-                    INFO(f'来自群 {Sender.group.name}({Sender.group.id}) 成员 {Sender.memberName}({Sender.id}) 的临时消息({Source.id}):\n{str(Message)}')
+                Quote = Message[0].id if Message and Message[0].type == 'Quote' else None
+                if Type == 'Friend':INFO(f'来自好友{SGR(Sender.nickname,b4=11)}[{SGR(Sender.remark,b4=11)}({SGR(Sender.id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.id,b4=12)}):\n{Message}')
+                elif Type == 'Group':INFO(f'来自群{SGR(Sender.group.name,b4=14)}({SGR(Sender.group.id,b4=4)})成员{SGR(Sender.memberName,b4=13)}({SGR(Sender.id,b4=3)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.id,b4=12)}):\n{Message}')
+                elif Type == 'Temp':INFO(f'来自群{SGR(Sender.group.name,b4=14)}({SGR(Sender.group.id,b4=4)})成员{SGR(Sender.memberName,b4=13)}({SGR(Sender.id,b4=3)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的临时消息({SGR(Source.id,b4=12)}):\n{Message}')
             # if Sender.id in self.BlackList:return
             self.onQQMessage(Type, Sender, Source, Message)
         elif 'RequestEvent' in Message.type:
@@ -149,6 +150,13 @@ class QQBot(TermBot):
 
     def intervalForever(self):
         while True:
+            flag = True
+            while self.conf.qq not in self.Mirai.BotList().data:
+                time.sleep(60)
+                if self.conf.qq in self.Mirai.BotList().data:break
+                # os.popen('taskkill /f /im java.exe').read()
+                if flag:
+                    flag = WARNING(f'qq:{self.conf.qq} 未登录')
             time.sleep(300)
             StartDaemonThread(self.onInterval)
             StartDaemonThread(self.Update)
@@ -172,27 +180,25 @@ class QQBot(TermBot):
             return func
         return wrapper
 
-    def Update(self, Type=None, target=None):
+    def Update(self, Type=None):
         if not Type:
-            code, self.Friend = self.List('Friend')
-            code, self.Group = self.List('Group')
+            self.Friend = self.List('Friend').data
+            self.Group = self.List('Group').data
             self.Member = JsonDict()
             for g in self.Group:
-                setattr(self.Member, str(g.id), self.List('Member',g.id)[1])
+                setattr(self.Member, str(g.id), self.List('Member',g.id).data)
                 for m in self.Member[str(g.id)]:
                     delattr(m,'group')
         elif Type in ['Friend', 'Group']:
-            setattr(self, Type, self.List(Type))
+            setattr(self, Type, self.List(Type).data)
         elif Type == 'Member':
-            if target:
-                setattr(self.Member, str(target), self.List('Member',target))
-                for m in self.Member[target]:
+            data = []
+            for g in self.Group:
+                data[str(g.id)] = self.List('Member',g.id).data
+                for m in data[str(g.id)]:
                     delattr(m,'group')
-            else:
-                for g in self.Group:
-                    setattr(self.Member, str(g.id), self.List('Member',g.id))
-                    for m in self.Member[str(g.id)]:
-                        delattr(m,'group')
+            def member(target):return data[str(target)]
+            self.Member=member
 
     def unplug(self, moduleName, removeJob=True):
         for slots in self.slotsTable.values():
@@ -265,7 +271,7 @@ def runBot(argv=None):
     if sys.argv[-1] == '--subprocessCall':
         sys.argv.pop()
         bot = QQBot.bot
-        bot.init(argv)
+        bot.Init(argv)
         bot.Run()
     else:
         conf = QConf()

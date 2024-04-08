@@ -9,11 +9,27 @@ import soup
 
 requests = cloudscraper.create_scraper()
 
-tempdir = os.path.join(os.getcwd(),'temp/qr').replace('\\','/')
-if not os.path.exists(tempdir):
-    os.makedirs(tempdir)
+tempdir = os.path.join(os.getcwd(),'temp','qr')
+def get_tempdir():
+    temppath = os.path.join(tempdir,time.strftime('%Y-%m-%d',time.localtime()))
+    if not os.path.exists(temppath):
+        os.makedirs(temppath)
+    return temppath
 
-# ===中文支持 UTF-8 转 UTF-16 需要去 amzqr 替换替换以下开头===
+# ===中文支持 UTF-8 转 UTF-16 需要去 amzqr 替换以下开头===
+'''
+def run(words, version=1, level='H', picture=None, colorized=False, contrast=1.0, brightness=1.0, save_name=None, save_dir=os.getcwd()):
+
+    supported_chars = r"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz ··,.:;+-*/\~!@#$%^&`'=<>[]()?_{}|"
+
+
+    # check every parameter
+    if not isinstance(words, str) or any(i not in supported_chars for i in words):
+        raise ValueError('Wrong words! Make sure the characters are supported!')
+'''
+# ===中文支持 UTF-8 转 UTF-16 需要去 amzqr 替换以上开头===
+# ===中文支持 UTF-8 转 UTF-16 需要去 amzqr 替换成以下开头===
+'''
 def utf16to8(input_txt: str) -> str:
     out = []
     for idx in range(len(input_txt)):
@@ -39,7 +55,19 @@ def run(words, version=1, level='H', picture=None, colorized=False, contrast=1.0
     # if not isinstance(words, str) or any(i not in supported_chars for i in words):
     if not isinstance(words, str):
         raise ValueError('Wrong words! Make sure the characters are supported!')
-# ===中文支持 UTF-8 转 UTF-16 需要去 amzqr 替换替换以上开头===
+'''
+# ===中文支持 UTF-8 转 UTF-16 需要去 amzqr 替换成以上开头===
+# ===多线程支持需要去 amzqr 替换以下开头===
+'''
+    tempdir = os.path.join(os.path.expanduser('~'), '.myqr')
+'''
+# ===多线程支持需要去 amzqr 替换以上开头===
+# ===多线程支持需要去 amzqr 替换成以下开头===
+'''
+    try:tempdir = os.path.join(os.path.expanduser('~'), '.myqr', os.path.splitext(os.path.basename(picture))[0])
+    except:tempdir = os.path.join(os.path.expanduser('~'), '.myqr', '_')
+'''
+# ===多线程支持需要去 amzqr 替换成以上开头===
 
 def basename(s:str):
     if s.startswith('http://gchat.qpic.cn/') or s.startswith('http://c2cpicdw.qpic.cn/'):
@@ -49,19 +77,26 @@ def basename(s:str):
         s = s.replace(c,'_')
     return s
 
-def fwimg2qr(node:soup.Node): # messageId=-1，全部图片转QRCode
-    for n in node:
-        for m in range(len(n.messageChain)):
-            if n.messageChain[m].type == 'Image':
-                if 'url' in n.messageChain[m]:
-                    content = requests.get(n.messageChain[m].url).content
-                elif 'path' in n.messageChain[m]:
-                    content = n.messageChain[m].path
+def fwimg2qr(nodeList:soup.Node): # messageId=-1，全部图片转QRCode
+    for node in nodeList:
+        for m in range(len(node.messageChain)):
+            if node.messageChain[m].type == 'Image':
+                if 'url' in node.messageChain[m]:
+                    try:
+                        content = requests.get(node.messageChain[m].url).content
+                    except:
+                        content = None
+                elif 'path' in node.messageChain[m]:
+                    content = node.messageChain[m].path
                 else:
                     continue
-                url = bot.Upload(content).url
-                n.messageChain[m] = img2qr(picture=url)
-    return node
+                try:
+                    if not content:raise
+                    url = bot.Upload(content).url
+                    node.messageChain[m] = img2qr(picture=url)
+                except:
+                    node.messageChain[m] = img2qr(node.messageChain[m].url)
+    return nodeList
 
 def img2qr(
         word:str=None,
@@ -70,7 +105,7 @@ def img2qr(
     ) -> soup.Image:
     '''
     word:文本内容,为空时可以采用picture
-    picture:可以是本地路径、是图片url
+    picture:可以是本地路径,或是图片url
     或soup.Image和soup.FlashImage(至少包含url)
     '''
     if not (word or picture):raise Exception('wrod or picture 不可同时为空')
@@ -104,7 +139,7 @@ def img2qr(
                 elif byte[:6] in (b'GIF87a', b'GIF89a'):file_name+='.gif'
                 elif byte.startswith(b'BM'):file_name+='.bmp'
                 else:file_name+='.png'
-            picture = os.path.join(tempdir, basename(file_name))
+            picture = os.path.join(get_tempdir(), basename(file_name))
             with open(picture, "wb") as f:f.write(byte)
         except:
             picture = None
@@ -112,13 +147,13 @@ def img2qr(
     version, level, qr_name = amzqr.run(
         word,
         version = 1,
-        level = 'H',
+        level = 'L',
         picture = picture,
         colorized = True,
         contrast = 1.0,
         brightness = 1.0,
         save_name = None,
-        save_dir = tempdir
+        save_dir = get_tempdir()
     )
     with open(qr_name, 'rb') as f:
         return soup.Image(base64=f.read())
@@ -142,22 +177,22 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         target = Sender.id, Sender.group.id
 
     quote = Source.id
-    Plain = ''
+    Plain = ''.join([msg.text for msg in Message if msg.type == 'Plain']).strip()
+    if not Plain.lower().startswith('qr'):return
     Image = None
     for msg in Message:
-        if msg.type == 'Plain':Plain += msg.text
-    if not Plain.lower().strip().startswith('qr'):return
-    for msg in Message:
-        if msg.type == 'Image':Image = msg
+        if msg.type == 'Image':
+            Image = msg
+            break
         if msg.type == 'Quote':
-            code, msg = bot.MessageId(target,msg.id)
-            if not code:
-                Message += [msg for msg in msg.messageChain if msg.type in ['Image','FlashImage']]
+            r = bot.MessageId(target,msg.id)
+            if not r.code:
+                Message += [msg for msg in r.data.messageChain if msg.type in ['Image','FlashImage']]
             else:
                 for n in range(quote-1,quote-11,-1):
-                    code, msg = bot.MessageId(target,n)
-                    if not code:
-                        Message += [msg for msg in msg.messageChain if msg.type in ['Image','FlashImage']]
+                    r = bot.MessageId(target,n)
+                    if not r.code:
+                        Message += [msg for r.data in r.msg.messageChain if msg.type in ['Image','FlashImage']]
     words = Plain.strip()[2:]
 
     if not words and not Image:

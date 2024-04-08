@@ -10,7 +10,7 @@ from common import BYTES2STR, STR2BYTES
 from mysocketserver import MySocketServer, Query
 from mainloop import Put
 
-HOST, DEFPORT = 'localhost', 8188
+HOST, DEFPORT = '0.0.0.0', 8188
 
 class QTermServer(MySocketServer):
     def __init__(self, port, onCommand):

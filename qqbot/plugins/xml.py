@@ -34,7 +34,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     for msg in Message:
         if msg.type == 'Quote':
             quote = msg.id
-            code, Quote = bot.MessageId(target,quote)
+            r = bot.MessageId(target,quote)
             break
     for msg in Message:
         if msg.type == 'Plain' and 'xml' in msg.text:
@@ -57,8 +57,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 return
         bot.SendMessage(Type, target, soup.Xml(message))
         
-    elif 'xml' == message and Quote:
-        for msg in Quote.messageChain:
+    elif 'xml' == message and r.data:
+        for msg in r.data.messageChain:
             if msg.type == 'Xml':
                 xml = msg.xml
                 break

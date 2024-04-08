@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from common import DotDict
+import soup
+from common import DotDict, JsonDict, SGR
 from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 import json, os, requests, time, traceback
 
@@ -21,26 +22,6 @@ class MiraiApi():
     ErrorCode = None
     ErrorTime = None
 
-    def ErrorAnalyst(self, r) -> None:
-        if self.ErrorCode != r.code or time.time()-self.ErrorTime > 60:
-            ERROR(f'Code:{r.code}, Msg:{r.msg}')
-        self.ErrorCode, self.ErrorTime = r.code, time.time()
-        if r.code == 1: # 错误的verify key
-            self.verifyKey = input('VerifyKey:')
-        elif r.code == 2:pass # 指定的Bot不存在
-        elif r.code == 3: # Session失效或不存在
-            self.verify()
-        elif r.code == 4: # Session未认证(未激活)
-            self.started = False
-            self.bind()
-        elif r.code == 5:pass # 发送消息目标不存在(指定对象不存在)
-        elif r.code == 6:pass # 指定文件不存在，出现于发送本地图片
-        elif r.code == 10:pass # 无操作权限，指Bot没有对应操作的限权
-        elif r.code == 20:pass # Bot被禁言，指Bot当前无法向指定群发送消息
-        elif r.code == 30:pass # 消息过长
-        elif r.code == 400:pass # 错误的访问，如参数错误等
-        elif r.code == 500:pass # MCL内部错误，或其他原因
-
     def basicsession(self, mode, url, **kwargs):
         if mode == 'get' and 'timeout' not in kwargs:kwargs['timeout'] = self.timeout
         while not self.started and url not in ('verify','bind','botList'):pass
@@ -50,22 +31,33 @@ class MiraiApi():
                 break
             except requests.exceptions.ConnectionError:
                 ERROR('无法连接倒Mirai，请检查服务、地址、端口。')
-            except requests.exceptions.ReadTimeout:
-                os.popen('taskkill /f /im java.exe').read()
-                ERROR('Mirai失去意识，敲打中。')
+            except requests.exceptions.ReadTimeout: # 干掉Mirai进程，需要MCL启动脚循环自启，本配合自动登录
+                ERROR(f'Mirai失去意识，敲打中。{os.popen("taskkill /f /im java.exe").read()}')
             except Exception as e:
                 raise RequestError(e)
         if hasattr(r, 'code') and r.code:
-            self.ErrorAnalyst(r)
-            return r.code, f'Code:{r.code}, Msg:{r.msg}'
-        if hasattr(r, 'data'):
-            return r.code, r.data
-        elif hasattr(r, 'messageId'):
-            return r.code, r.messageId
-        elif hasattr(r, 'msg'):
-            return r.code, r.msg
-        else:
-            return r
+            if self.ErrorCode != r.code or time.time()-self.ErrorTime > 60:
+                ERROR(f'Code:{r.code}, Msg:{r.msg}, mode:{mode}, url:{url}, **kwargs:{str(kwargs)[:100]}{"..." if len(str(kwargs))>250 else ""}')
+            self.ErrorCode, self.ErrorTime = r.code, time.time()
+            if r.code == 1: # 错误的verify key
+                self.verifyKey = input('VerifyKey:')
+            elif r.code == 2:pass # 指定的Bot不存在
+            elif r.code == 3: # Session失效或不存在
+                self.verify()
+            elif r.code == 4: # Session未认证(未激活)
+                self.started = False
+                self.bind()
+            elif r.code == 5:pass # 发送消息目标不存在(指定对象不存在)
+            elif r.code == 6:pass # 指定文件不存在，出现于发送本地图片
+            elif r.code == 10:pass # 无操作权限，指Bot没有对应操作的限权
+            elif r.code == 20:pass # Bot被禁言，指Bot当前无法向指定群发送消息
+            elif r.code == 30:pass # 消息过长
+            elif r.code == 400:pass # 错误的访问，如参数错误等
+            elif r.code == 500: # MCL内部错误，或其他原因
+                if 'unidbg-fetch-qsign' in r.msg:
+                    os.popen("taskkill /f /im java.exe").read()
+                    self.basicsession(self, mode, url, **kwargs)
+        return r
 
     def verify(self) -> None:
         '''认证
@@ -83,54 +75,55 @@ class MiraiApi():
             time.sleep(1)
 
     def bind(self, qq=None) -> None:
-        '''绑定
+        '''绑定?
     qq      Session将要绑定的Bot的qq号
     session 你的session key
         '''
         flag = True
-        while self.qq not in self.BotList()[1]:
-            time.sleep(5)
-            if self.qq in self.BotList()[1]:break
-            os.popen('taskkill /f /im java.exe').read()
+        while self.qq not in self.BotList().data:
+            time.sleep(60)
+            if self.qq in self.BotList().data:break
             if flag:
-                flag = WARNING(f'qq:{self.qq} 未登录')
+                flag = WARNING(f'qq:{self.qq} 未登录 {os.popen("taskkill /f /im java.exe").read()}')
         payload = {
             "sessionKey": self.session,
             "qq": qq or self.qq
         }
-        code, r = self.basicsession('post', 'bind', json=payload)
-        if code == 0:
+        r = self.basicsession('post', 'bind', json=payload)
+        if r.code == 0:
             INFO('绑定成功')
             self.started = True
             return
-        time.sleep(1)
 
-    def BotList(self) -> list:
+    def BotList(self) -> JsonDict["code":0,"msg":"","data":[]]: # https://github.com/project-mirai/mirai-api-http/blob/master/docs/api/API.md#获取登录账号
         '获取登录账号'
         return self.basicsession('get', 'botList')
 
-    def SessionInfo(self) -> DotDict:
+    def SessionInfo(self) -> JsonDict["code":0,"msg":"","data":{}]: # https://github.com/project-mirai/mirai-api-http/blob/master/docs/adapter/HttpAdapter.md#获取会话信息
         '获取会话信息'
         return self.basicsession('get', f'sessionInfo?sessionKey={self.session}')
 
 ### 消息与事件 ###
-    def pollForever(self, MessageAnalyst): # http
+    def pollForever(self, MessageAnalyst): # Http Adapter
+        self.MessageAnalyst = MessageAnalyst
         while True:
             try:
-                code, result = self.Mirai.GetMessage()
+                result = self.Mirai.GetMessage()
             except:
                 ERROR('qsession.Poll 方法出错', exc_info=True)
             else:
                 if not result:continue
-                for r in result:
+                for r in result.data:
                     MessageAnalyst(r)
                     
-    def pollForever(self, MessageAnalyst): # websocket
+    def pollForever(self, MessageAnalyst): # WS Adapter
+        self.MessageAnalyst = MessageAnalyst
         import websocket
         while True:
             try:
                 self.ws = websocket.create_connection(f'ws://{self.host}:{self.port}/all?verifyKey={self.verifyKey}&sessionKey={self.session}')
             except:
+                ERROR('qsession.Poll 方法出错', exc_info=True)
                 self.verify()
                 time.sleep(1)
                 continue
@@ -142,7 +135,7 @@ class MiraiApi():
                     WARNING(e)
                     break
 
-    def countMessage(self) -> int:
+    def countMessage(self) -> JsonDict["code":0,"msg":"","data":1024]: # https://github.com/project-mirai/mirai-api-http/blob/master/docs/adapter/HttpAdapter.md#查看队列大小
         '查看队列大小'
         return self.basicsession('get', f'countMessage?sessionKey={self.session}')
 
@@ -151,7 +144,7 @@ class MiraiApi():
         count:int=1,
         last=True,
         pop=True
-    ) -> tuple([int, list]):
+    ) -> JsonDict["code":0,"msg":"","data":[]]: # https://github.com/project-mirai/mirai-api-http/blob/master/docs/adapter/HttpAdapter.md#获取队列头部
         '''获取或查看消息与事件
     count   获取(查看)消息和事件的数量
     last    时间倒序，否则正序
@@ -165,7 +158,7 @@ class MiraiApi():
         self, 
         target:int,
         id:int
-    ) -> tuple([int, DotDict]):
+    ) -> JsonDict["code":0,"msg":"","data":{}]: # https://github.com/project-mirai/mirai-api-http/blob/master/docs/api/API.md#%E9%80%9A%E8%BF%87messageid%E8%8E%B7%E5%8F%96%E6%B6%88%E6%81%AF
         '''通过MessageID获取消息
     target      好友id或群id
     messageID   获取消息的messageId
@@ -177,9 +170,9 @@ class MiraiApi():
         self, 
         type:str, # 发送对象类型
         target:int|tuple|list, # 对象ID
-        *message:dict, # 消息链
+        *message:dict|str, # 消息链
         id:int=None # 回复ID
-    ) -> tuple([int, int]):
+    ) -> JsonDict["code":0,"msg":"success","messageId":1234567890]:
         r'''发给好友、群、临时消息
     type    friend, group, temp
     target  发送消息目标
@@ -194,18 +187,20 @@ class MiraiApi():
         payload = {'sessionKey':self.session}
         if type != 'temp':payload['target'] = target
         else:payload['group'], payload['qq'] = target
-        payload['messageChain'] = message
+        payload['messageChain'] = [soup.Plain(message[0])] if len(message) and isinstance(message[0], str) else message
         if id:payload['quote'] = id
-        code, msgid = self.basicsession('post', f'send{type}Message', json=payload)
-        INFO(f'发到 {type} {target}({msgid or code}){(id and "回复消息("+str(id)+")") or ""}:\n{message}')
-        return code, msgid
+        r = self.basicsession('post', f'send{type}Message', json=payload)
+        if type.lower()=="friend":INFO(f'发到好友{SGR(target,b4=1)}({SGR(r.messageId or r.code,b4=12 if r.messageId else 11)}){(id and "回复("+SGR(id,b4=2)+")") or ""}:\n{str(message)}')
+        elif type.lower()=="group":INFO(f'发到群{SGR(target,b4=4)}({SGR(r.messageId or r.code,b4=12 if r.messageId else 11)}){(id and "回复("+SGR(id,b4=2)+")") or ""}:\n{str(message)}')
+        elif type.lower()=="temp":INFO(f'发到临时消息{SGR(target,b4=4)}({SGR(r.messageId or r.code,b4=12 if r.messageId else 11)}){(id and "回复("+SGR(id,b4=2)+")") or ""}:\n{str(message)}')
+        return r
 
     def Nudge(
         self, 
         type:str, 
         target:int, 
         id:int
-    ) -> tuple([int, str]):
+    ) -> JsonDict["code":0,"msg":"success"]:
         r'''戳一戳
     kind    上下文类型, 可选值 friend, group, stranger
     target  戳一戳接受主体(上下文), 戳一戳信息会发送至该主体, 为群号/好友QQ号
@@ -223,7 +218,7 @@ class MiraiApi():
         self, 
         target:int, 
         id:int
-    ) -> tuple([int, str]):
+    ) -> JsonDict["code":0,"msg":"success"]:
         '''撤回消息
         target  好友id或群id
         id      需要撤回的messageId
@@ -238,7 +233,7 @@ class MiraiApi():
         target:int, 
         start:int|str=0, 
         end:int|str=0
-    ) -> tuple([int, list]):
+    ) -> JsonDict["code":0,"msg":"success","data":[]]:
         '''获取漫游消息
     target  漫游消息对象，好友id，目前仅支持好友漫游消息
     start   起始时间, UTC+8 时间戳, 单位为秒. 可以为 0, 即表示从可以获取的最早的消息起. 负数将会被看是 0.
@@ -294,7 +289,7 @@ class MiraiApi():
         type:str, 
         target:int=None, 
         memberID:int=None
-    ) -> DotDict:
+    ) -> JsonDict:
         r'''获取bot、好友、成员资料
     type    bot Bot资料、friend 好友资料、member 群成员资料
     target  好友账号或群号
@@ -318,18 +313,18 @@ class MiraiApi():
         return self.basicsession('post', 'deleteFriend', json=payload)
 
 ### 群管理 ###
+ # 禁言或解禁
     def Mute(
         self, 
         target:int, 
         memberID:int, 
         time:int=0
     ) -> tuple([int, str]):
-        r'''禁言
+        r'''禁言或解禁
     target  群号
     member  群成员QQ号码
     time    时长（秒）
         '''
-        print(bool(time),time)
         payload = {'sessionKey':self.session}
         payload['target'] = target
         payload['memberId'] = memberID
@@ -360,13 +355,13 @@ class MiraiApi():
         payload = {'sessionKey':self.session}
         payload['target'] = target
         return self.basicsession('post', 'quit', json=payload)
- # 全体禁言
+ # 全体禁言或解禁
     def MuteAll(
         self, 
         target:int, 
         mute:bool=True
     ) -> tuple([int, str]):
-        r'''全体禁言
+        r'''全体禁言或解禁
     target  群号
     mute    真（禁）/假（解）
     '''
@@ -398,7 +393,7 @@ class MiraiApi():
         allowMemberInvite:bool=False, 
         autoApprove:bool=False, 
         anonymousChat:bool=False
-    ) -> DotDict or tuple([int,str]):
+    ) -> JsonDict or tuple([int,str]):
         r'''获取或修改群设置
         '''
         r'mode = get or set'
@@ -417,8 +412,8 @@ class MiraiApi():
             return self.basicsession('post', 'groupConfig', json=payload)
         else:
             raise RequestError
- # 获取修改群员设置
-    def MemberInfo(self, mode, target:int, memberID:int, name:str=None, special:str=None) -> DotDict or tuple([int,str]):
+ # 获取或修改群员设置
+    def MemberInfo(self, mode, target:int, memberID:int, name:str=None, special:str=None) -> JsonDict or tuple([int,str]):
         r'mode = get or set'
         payload = {'sessionKey':self.session}
         payload['target'] = target
@@ -430,7 +425,7 @@ class MiraiApi():
             payload['info']['name'] = name              # 群名称
             payload['info']['specialTitle'] = special   # 群头衔
             return self.basicsession('post', 'memberInfo', json=payload)
- # 修改群员管理员
+ # 设置或移除群员管理员
     def MemberAdmin(self, target:int, memberID:int) -> tuple([int, str]):
         payload = {'sessionKey':self.session}
         payload['target'] = target
@@ -478,7 +473,7 @@ class MiraiApi():
 
 ### 多媒体内容上传 ###
  # 上传图片或语音
-    def Upload(self, f, Type:str='friend', mode:str='image') -> DotDict:
+    def Upload(self, f, Type:str='friend', mode:str='image') -> JsonDict:
         mode = mode.title()
         Type = Type.lower()
         if mode not in ['Image', 'Voice']:
@@ -555,7 +550,6 @@ class MiraiApi():
         return self._file('upload', payload, files=files)
 
 if __name__ == '__main__':
-    import soup
     from qconf import QConf
     qconf = QConf()
     bot = MiraiApi(qconf.qq, qconf.verifyKey)

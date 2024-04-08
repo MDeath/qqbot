@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import sys, os
+from common import SGR
 p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
@@ -42,12 +43,12 @@ else:
 
 # 此处修改颜色
 FMTDCIT = {
-    'ERROR'   : "\033[31mERROR\033[0m",
-    'INFO'    : "\033[32mINFO\033[0m",
-    'DEBUG'   : "\033[1mDEBUG\033[0m",
-    'WARN'    : "\033[33mWARN\033[0m",
-    'WARNING' : "\033[33mWARNING\033[0m",
-    'CRITICAL': "\033[35mCRITICAL\033[0m",
+    'ERROR'   : SGR("ERROR", b4=1),
+    'INFO'    : SGR("INFO", b4=2),
+    'DEBUG'   : SGR("DEBUG", b4=4),
+    'WARN'    : SGR("WARN", b4=3),
+    'WARNING' : SGR("WARNING", b4=3),
+    'CRITICAL': SGR("CRITICAL", b4=5),
 }
 
 class Filter(logging.Filter):
@@ -78,8 +79,7 @@ def Utf8Logger(name):
         ch = logging.StreamHandler(utf8Stdout)
         ch.addFilter(filter)
         fmt = '[%(asctime)s][%(levelname)s][%(module)s.%(funcName)s] %(message)s'
-        datefmt = '%y-%m-%d %H:%M:%S' # 普通输出
-        datefmt = '\033[4;31m%Y\033[0;4m-\033[4;33m%m\033[0;4m-\033[4;32m%d\033[0;4m \033[4;36m%H\033[0;4m:\033[4;34m%M\033[0;4m:\033[4;35m%S\033[0m' # 彩色输出
+        datefmt = f'{SGR("%y",b4=1)}-{SGR("%m",b4=3)}-{SGR("%d",b4=2)} {SGR("%H",b4=6)}:{SGR("%M",b4=4)}:{SGR("%S",b4=5)}'
         ch.setFormatter(logging.Formatter(fmt, datefmt))
         logger.addHandler(ch)
     return logger

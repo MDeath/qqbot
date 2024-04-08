@@ -37,7 +37,7 @@ sampleConfStr = '''
         # 显示/关闭调试信息
         "debug" : False,
 
-        # QQBot 掉线后自动重启
+        # QQBot 异常后自动重启
         "restartOnOffline" : False,
 
         # 在后台运行 qqbot ( daemon 模式)
@@ -140,7 +140,7 @@ QQBot 机器人
                             默认的监听端口是 8080 (TCP)。
 
   掉线重新启动:
-    -r, --restartOnOffline  在掉线时自动重新启动。
+    -r, --restartOnOffline  在异常时自动重新启动。
     -nr, --norestart        在掉线时不要重新启动。
 
   其他：
@@ -187,9 +187,9 @@ class QConf(object):
 
         parser.add_argument('-p', '--termServerPort', type=int)
 
-        parser.add_argument('-ip', '--host')      
+        parser.add_argument('-ip', '--host', default='localhost')      
 
-        parser.add_argument('-hp', '--port', type=int)
+        parser.add_argument('-hp', '--port', type=int, default=8080)
 
         parser.add_argument('-d', '--debug', action='store_true', default=None)        
 

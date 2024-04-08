@@ -79,9 +79,12 @@ id     | Str | 图片的id，群图片与好友图片格式不同。不为空时
     if path:params.path = path
     if id:params.imageId = id
     if base64:
-        try:b64decode(base64)
-        except: base64 = b64encode(base64)
-        params.base64 = Base64(base64)
+        if isinstance(base64,dict):
+            params.base64 = base64
+        else:
+            try:b64decode(base64)
+            except: base64 = b64encode(base64)
+            params.base64 = Base64(base64)
     return params
 
 def FlashImage(
@@ -222,11 +225,11 @@ def Node(
 ) -> dict:
     r'''聊天记录节点
 senderid   | Int             | 发送人QQ号
-time       | Int             | 发送时间
 senderName | Str             | 显示名称
 message    | List            | 消息数组
-id         | Int             | 可以只使用消息id，从缓存中读取一条消息作为节点
+time       | Int             | 发送时间
 target     | Int             | 引用的上下文目标，群号、好友账号
+id         | Int             | 可以只使用消息id，从缓存中读取一条消息作为节点
 ref        | Dict|List|Tuple | {'id' or 'messageId':Int,'target':Int} 或者 [target:Int,messageId:Int]'''
     params = JsonDict()
     if sender:params.senderId = sender

@@ -1,5 +1,5 @@
 cd %~dp0
 :start
-python start.py
+python run.py
 goto start
 pause

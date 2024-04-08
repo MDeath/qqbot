@@ -5,11 +5,11 @@ import os,json,psutil,random,time,traceback
 from qqbotcls import QQBotSched,bot
 from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 from mainloop import Put
-from common import DotDict, secs2hours, B2GB, b64decode, b64encode
+from common import DotDict, secs2hours, B2GB, b64decode, b64encode, jsondumps, jsonloads
 import soup
 
 def admin_ID(user=False,self=False):
-    return [f.id for f in bot.List('Friend')[1] if(f.remark.lower()=='admin'and f.nickname.lower()!='admin') or (f.remark.lower()=='user'and f.nickname.lower()!='user'and user)] + [bot.conf.qq] if self else [f.id for f in bot.List('Friend')[1] if(f.remark.lower()=='admin'and f.nickname.lower()!='admin') or (f.remark.lower()=='user'and f.nickname.lower()!='user'and user)]
+    return [f.id for f in bot.List('Friend').data if(f.remark.lower()=='admin'and f.nickname.lower()!='admin') or (f.remark.lower()=='user'and f.nickname.lower()!='user'and user)] + [bot.conf.qq] if self else [f.id for f in bot.List('Friend').data if(f.remark.lower()=='admin'and f.nickname.lower()!='admin') or (f.remark.lower()=='user'and f.nickname.lower()!='user'and user)]
 
 b64enc = b64encode
 b64dec = b64decode
@@ -76,23 +76,45 @@ def system_status():
     if b:l.append(f'电源:{b.percent}% {f"，充电中🔋" if b.power_plugged else f"{secs2hours(b.secsleft)}"}')
     return '\n'.join(l)
 
+CallBackList = []
+
 @QQBotSched(year=None, 
             month=None, 
             day=None, 
             week=None, 
             day_of_week=None, 
-            hour=3, 
-            minute=30, 
-            second=None, 
+            hour=None, 
+            minute=','.join([str(n) for n in range(0,60,10)]),
+            second=30, 
             start_date=None, 
             end_date=None, 
             timezone=None)
-def restart_mirai(bot):
-    '定时任务心跳'
-    os.popen('start taskkill /f /im java.exe')
+def Chime(bot):
+    '定时任务'
+    for f in admin_ID():
+        if random.randint(0,1):r = bot.SendMessage('Friend',f,soup.Plain(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())))
+        else:r = bot.SendMessage('Friend',f,soup.Plain(time.strftime('%Y%m%d %H%M%S',time.localtime())))
+        if not r.code:CallBackList.append([f,r.messageId])
+        else:ERROR(f'Mirai 与 QQ 失联重启 Mirai 中。{os.popen("taskkill /f /im java.exe").read()}')
+
+@QQBotSched(year=None, 
+            month=None, 
+            day=None, 
+            week=None, 
+            day_of_week=None, 
+            hour=None, 
+            minute=','.join([str(n) for n in range(1,61,10)]),
+            second=30, 
+            start_date=None, 
+            end_date=None, 
+            timezone=None)
+def CallBack(bot):
+    for _ in range(len(CallBackList)):
+        bot.Recall(*CallBackList.pop())
 
 def onPlug(bot):
-    bot.battery = psutil.sensors_battery().percent
+    bot.battery = psutil.sensors_battery()
+    bot.battery = bot.battery.percent if bot.battery else None
 
 def onUnplug(bot):
     '''\
@@ -100,6 +122,7 @@ def onUnplug(bot):
     bot.Plug(__name__)
 
 def onInterval(bot):
+    if not bot.battery:return
     battery = psutil.sensors_battery()
     if bot.battery != battery.percent:
         for f in admin_ID():
@@ -112,7 +135,7 @@ def onInterval(bot):
             elif battery.percent - bot.battery > 5 or bot.battery - battery.percent > 5:
                 bot.SendMessage('Friend',f,soup.Plain(f'电池电量{battery.percent} %{f"，充电中🔋" if battery.power_plugged else f"{secs2hours(battery.secsleft)}"}'))
         bot.battery = battery.percent
-
+    
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
     输入指令使用
@@ -145,7 +168,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     FlashImage = []
     Json = []
     for msg in Message:
-        if msg.type == 'Quote':Quote = msg
+        if msg.type == 'Quote':
+            msg = bot.MessageId(target,msg.id)
+            Quote = msg.data if 'data' in msg else None
         if msg.type == 'At':At.append(msg.target)
         if msg.type == 'AtAll':AtAll = True
         if msg.type == 'Face':pass
@@ -202,7 +227,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if moduleName != '' and moduleName in bot.Plugins():
             message = moduleName+' 说明'
             modules = [bot.plugins[moduleName]]
-        if moduleName != '' and moduleName not in bot.Plugins():
+        elif moduleName != '' and moduleName not in bot.Plugins():
             message = moduleName+' 说明(未加载)'
             try:
                 modules = [__import__(moduleName)]
@@ -225,7 +250,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 message += f'\n-=# {module.__name__} 模块 #=-{msg}'
         return reply(soup.Plain(message))
 
-    elif '插件列表' == Plain:
+    elif Plain.lower() in ['插件列表','plugins']:
         for p in plug:
             if p.startswith('_'):
                 continue
@@ -242,8 +267,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         return
 
     if Sender.id in admin_ID(True,True):
-        if Plain.strip().startswith('加载插件'):
-            moduleName = Plain.replace('加载插件','')
+        if Plain.lower().strip().startswith(('加载插件','plug')):
+            moduleName = Plain.lower().strip()
+            for keyword in ['加载插件','plug']:moduleName = moduleName.replace(keyword,'')
             Modules = moduleName.split(' ')
             for m in Modules:
                 if m:
@@ -251,8 +277,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                     reply(soup.Plain(result))
             return
 
-        if Plain.strip().startswith('卸载插件'):
-            moduleName = Plain.replace('卸载插件','')
+        if Plain.lower().strip().startswith(('卸载插件','unplug')):
+            moduleName = Plain.lower().strip()
+            for keyword in ['卸载插件','unplug']:moduleName = moduleName.replace(keyword,'')
             Modules = moduleName.split(' ')
             for m in Modules:
                 if m:
@@ -260,16 +287,12 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                     reply(soup.Plain(result))
             return
         if Plain == '解析'and Quote:
-            quote = Quote.id
-            code, Quote = bot.MessageId(target,Quote.id)
             message = json.dumps(Quote.messageChain, ensure_ascii=False, indent=4)
-            message = message.replace('\\\\', '\\')
-            message = message.replace('\\\'','\'')
-            message = message.replace('\\\"','\"')
+            message = message.replace('\\\\', '\\').replace('\\\'','\'').replace('\\\"','\"')
             if len(message) <= 5000:
-                bot.SendMessage(Type, target, soup.Plain(message), id=quote)
+                bot.SendMessage(Type, target, soup.Plain(message), id=Quote.messageChain[0].id)
             else:
-                bot.SendMessage(Type, target, soup.Plain(DotDict(message)), id=quote)
+                bot.SendMessage(Type, target, soup.Plain(DotDict(message)), id=Quote.messageChain[0].id)
 
     if Sender.id in admin_ID(True,True):
         if Plain.strip().lower() in ['激活']:
@@ -312,6 +335,7 @@ def onQQEvent(bot, Message):
                 bot.Mirai.bind()
                 bot.SendMessage('Friend',f,soup.Plain(f'{t} {Message.qq} 被挤下线'))
             elif Message.type == 'BotOfflineEventDropped': # Bot被服务器断开或因网络问题而掉线
+                os.popen('taskkill /f /im java.exe').read() # 干掉Mirai进程，需要MCL启动脚循环自启，本配合自动登录
                 bot.Mirai.bind()
                 bot.SendMessage('Friend',f,soup.Plain(f'{t} {Message.qq} 被服务器断开或因网络问题而掉线'))
             elif Message.type == 'BotReloginEvent': # Bot主动重新登录
@@ -373,8 +397,8 @@ def onQQEvent(bot, Message):
             elif Message.type == 'MemberPermissionChangeEvent': # 成员权限改变的事件（该成员不是Bot）
                 bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.member.group.name}({Message.member.group.id}) 成员 {Message.member.memberName}({Message.member.id}) 权限 {Message.origin} 改为 {Message.current}'))
             elif Message.type == 'MemberMuteEvent': # 群成员被禁言事件（该成员不是Bot）
-                if Message.operator:bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.member.group.name}({Message.member.group.id}) 成员 {Message.member.memberName}({Message.member.id}) 被 {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] 禁言 {time.strftime("%j天%H时%M分",time.gmtime(Message.durationSeconds))}'))
-                else:bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.member.group.name}({Message.member.group.id}) 成员 {Message.member.memberName}({Message.member.id}) 被禁言 {time.strftime("%j天%H时%M分",time.gmtime(Message.durationSeconds))}'))
+                if Message.operator:bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.member.group.name}({Message.member.group.id}) 成员 {Message.member.memberName}({Message.member.id}) 被 {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] 禁言 {time.strftime(f"{time.gmtime(Message.durationSeconds)[2]-1} %H:%M",time.gmtime(Message.durationSeconds))}'))
+                else:bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.member.group.name}({Message.member.group.id}) 成员 {Message.member.memberName}({Message.member.id}) 被禁言 {time.strftime(f"{time.gmtime(Message.durationSeconds)[2]-1} %H:%M",time.gmtime(Message.durationSeconds))}'))
                 if first:bot.SendMessage('Group',Message.member.group.id,soup.At(Message.member.id),soup.Plain('你倒是说句话呀'),soup.Face(13))
             elif Message.type == 'MemberUnmuteEvent': # 群成员被取消禁言事件（该成员不是Bot）
                 if Message.operator:bot.SendMessage('Friend',f,soup.Plain(f'群 {Message.member.group.name}({Message.member.group.id}) 成员 {Message.member.memberName}({Message.member.id}) 被 {Message.operator.memberName}[{Message.operator.permission}({Message.operator.id})] 解禁'))
