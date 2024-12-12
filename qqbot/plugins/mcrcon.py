@@ -6,9 +6,9 @@ from rcon.source import Client
 from qqbotcls import QQBotSched
 
 opts = DotDict({
-    'host':'mdie.asuscomm.com',
-    'port':25575,
-    'password':'1064393873'
+    'host':'',
+    'port':,
+    'password':''
 })
 
 Group = 260715723
