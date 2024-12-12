@@ -6,9 +6,10 @@ from apscheduler.triggers.cron import CronTrigger
 from collections import defaultdict
 
 from mainloop import MainLoop, Put
-from miraiapi import MiraiApi, RequestError
+from onebotapi import OneBotApi, RequestError
 from common import DotDict, Import, JsonDict, StartDaemonThread, SGR
 from qconf import QConf
+from qdb import DataBase
 from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 from qterm import QTermServer
 from termbot import TermBot
@@ -27,10 +28,9 @@ class QQBot(TermBot):
         self.scheduler = BackgroundScheduler(daemon=True)
         self.schedTable = defaultdict(list)
         self.slotsTable = {
-            'onStartupComplete':[],
             'onInterval':[],
             'onQQMessage':[],
-            'onQQEvent':[],
+            'onQQNotice':[],
             'onPlug':[],
             'onUnplug':[],
             'onExit':[]
@@ -44,51 +44,42 @@ class QQBot(TermBot):
         self.conf = QConf(argv)
         self.conf.Display()
 
-        self.Mirai = MiraiApi(self.conf.qq, self.conf.verifyKey, self.conf.host, self.conf.port)
-        while not self.Mirai.started:pass
+        self.db = DataBase('QDB.db')
+        self.OneBot = OneBotApi(self.conf.token, self.conf.host, self.conf.httpport, self.conf.wsport)
 
-        self.MessageId = self.Mirai.MessageId
-        self.SendMessage = self.Mirai.SendMessage
-        self.Nudge = self.Mirai.Nudge
-        self.Recall = self.Mirai.Recall
-        self.Roaming = self.Mirai.Roaming
-        self.List = self.Mirai.List
-        self.Profile = self.Mirai.Profile
-        self.DelFriend = self.Mirai.DelFriend
-        self.Mute = self.Mirai.Mute
-        self.Kick = self.Mirai.Kick
-        self.Quit = self.Mirai.Quit
-        self.MuteAll = self.Mirai.MuteAll
-        self.SetEssence = self.Mirai.SetEssence
-        self.GroupConfig = self.Mirai.GroupConfig
-        self.MemberInfo = self.Mirai.MemberInfo
-        self.MemberAdmin = self.Mirai.MemberAdmin
-        self.AnnoList = self.Mirai.AnnoList
-        self.AnnoPut = self.Mirai.AnnoPut
-        self.AnnoDel = self.Mirai.AnnoDel
-        self.FileList = self.Mirai.FileList
-        self.FileInfo = self.Mirai.FileInfo
-        self.FileMkdir = self.Mirai.FileMkdir
-        self.FileDel = self.Mirai.FileDel
-        self.FileMove = self.Mirai.FileMove
-        self.FilereName = self.Mirai.FilereName
-        self.FileUpload = self.Mirai.FileUpload
-        self.Upload = self.Mirai.Upload
+        self.LoginInfo = self.OneBot.LoginInfo
+        self.List = self.OneBot.List
+        self.Info = self.OneBot.Info
+        self.SystemMsg = self.OneBot.SystemMsg
+        self.SendMsg = self.OneBot.SendMsg
+        self.GetMsg = self.OneBot.GetMsg
+        self.Recall = self.OneBot.Recall
+        self.HistoryMsg = self.OneBot.HistoryMsg
+        self.GetForward = self.OneBot.GetForward
+        self.GetImage = self.OneBot.GetImage
+        self.GetRecord = self.OneBot.GetRecord
+        self.GetFile = self.OneBot.GetFile
+        self.SetGroupName = self.OneBot.SetGroupName
+        self.SetGroupAdmin = self.OneBot.SetGroupAdmin
+        self.SetGroupCard = self.OneBot.SetGroupCard
 
     def Run(self):
         for pluginName in self.conf.plugins:
             self.Plug(pluginName)
 
-        self.onStartupComplete()
         self.onPlug()
 
-        # child thread 1
-        StartDaemonThread(self.Mirai.pollForever, self.MessageAnalyst)
-        # child thread 2
+        # 子线程 1 上报处理
+        StartDaemonThread(self.OneBot.pollForever, self.eventAnalyst)
+        # 子线程 2 五分钟定时任务
         StartDaemonThread(self.intervalForever)
         StartDaemonThread(QTermServer(self.conf.termServerPort, self.onTermCommand).Run)
         self.scheduler.start()
-        Put(self.Update)
+        while not self.OneBot.started:pass
+        self.qq = self.OneBot.qq
+        self.Friend = self.OneBot.Friend
+        self.Group = self.OneBot.Group
+        self.Member = self.OneBot.Member
 
         try:
             MainLoop()
@@ -108,58 +99,64 @@ class QQBot(TermBot):
     def Restart(self):
         sys.exit(RESTART)
 
-    def MessageAnalyst(self, Message):
-        if type(Message) is not JsonDict:Message = DotDict(Message)
-        if 'Message' in Message.type:
-            if 'SyncMessage' in Message.type:
-                Type = Message.type.replace('SyncMessage','')
-                subject = Message.subject
-                Sender = ('Group'==Type and self.MemberInfo('get',subject.id, self.conf.qq)) or subject
-                Message = Message.messageChain
-                Source = Message.pop(0)
-                Quote = Message[0].id if Message and Message[0].type == 'Quote' else None
-                if Type == 'Friend':INFO(f'{SGR("同步", B4=1)}好友{SGR(subject.nickname,b4=11)}[{SGR(subject.remark,b4=11)}({SGR(subject.id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.id,b4=12)}):\n{Message}')
-                if Type == 'Group':INFO(f'{SGR("同步", B4=4)}群{SGR(subject.name,b4=14)}({SGR(subject.id,b4=4)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.id,b4=12)}):\n{Message}')
-                elif Type == 'Temp':INFO(f'{SGR("同步", B4=4)}群{SGR(Sender.group.name,b4=14)}({SGR(Sender.group.id,b4=4)})成员{SGR(Sender.memberName,b4=13)}({SGR(Sender.id,b4=3)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的临时消息({SGR(Source.id,b4=12)}):\n{Message}')
-            else:
-                Type = Message.type.replace('Message','')
-                Sender = Message.sender
-                Message = Message.messageChain
-                Source = Message.pop(0)
-                Quote = Message[0].id if Message and Message[0].type == 'Quote' else None
-                if Type == 'Friend':INFO(f'来自好友{SGR(Sender.nickname,b4=11)}[{SGR(Sender.remark,b4=11)}({SGR(Sender.id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.id,b4=12)}):\n{Message}')
-                elif Type == 'Group':INFO(f'来自群{SGR(Sender.group.name,b4=14)}({SGR(Sender.group.id,b4=4)})成员{SGR(Sender.memberName,b4=13)}({SGR(Sender.id,b4=3)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.id,b4=12)}):\n{Message}')
-                elif Type == 'Temp':INFO(f'来自群{SGR(Sender.group.name,b4=14)}({SGR(Sender.group.id,b4=4)})成员{SGR(Sender.memberName,b4=13)}({SGR(Sender.id,b4=3)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的临时消息({SGR(Source.id,b4=12)}):\n{Message}')
-            # if Sender.id in self.BlackList:return
-            self.onQQMessage(Type, Sender, Source, Message)
-        elif 'RequestEvent' in Message.type:
-            if hasattr(self, 'onQQRequestEvent'):
-                operate, msg = self.onQQRequestEvent(Message)
-                self.Mirai.event_response(Message, operate, msg)
-            bot.Update()
-        elif 'Event' in Message.type:
-            self.onQQEvent(Message)
-
-    def onQQRequestEvent(self, Message):
-        for f in self.slotsTable['onQQRequestEvent']:
-            operate, msg = f(self, Message)
-            if not operate:
-                return operate, msg
+    def eventAnalyst(self, event):
+        DEBUG(event)
+        if event.post_type.startswith('message'): # 消息类型
+            self.MessageAnalyst(event)
+        elif event.post_type == 'notice':
+            self.onQQNotice(event)
+        elif event.post_type == 'request':
+            self.RequestAnalyst(event)
         else:
-            return operate, msg
+            WARNING(f'PostType omission: {event.post_type}\n{event}')
+
+    def MessageAnalyst(self, event): # 上报处理
+        for msg in event.message: # 消息链处理
+            if 'data' not in msg:continue
+            if 'type' in msg.data:msg.data.data_type = msg.data.pop('type') # data内有type转成data_type
+            msg.update(msg.pop('data')) # 把data往上提取一层
+        Quote = event.message[0].id if event.message and event.message[0].type == 'reply' else None # 提取回复的信息ID
+        if event.message_type == 'private': # 好友消息处理
+            Type = 'friend' # 上报
+            Source = JsonDict(time=event.time, message_id=event.message_id, target=event.target_id)
+            Source.update(self.Friend(user_id=event.target_id)[0])
+            Sender = self.Friend(user_id=event.sender.user_id)[0]
+            if 'post_type' in event and event.post_type.endswith('sent'):INFO(f'{SGR("同步", B4=1)}好友{SGR(Source.user_name,b4=11)}[{SGR(Source.user_remark,b4=11)}({SGR(Source.user_id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
+            else:INFO(f'来自好友{SGR(Sender.user_name,b4=11)}[{SGR(Sender.user_remark,b4=11)}({SGR(Sender.user_id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
+                
+        elif event.message_type == 'group' and event.sub_type == 'normal': # 群消息处理
+            Type = event.message_type
+            Source = JsonDict(time=event.time, message_id=event.message_id, target=event.group_id)
+            Source.update(self.Group(group_id=event.group_id)[0])
+            Sender = self.Member(group_id=event.group_id,user_id=event.user_id)[0]
+            if 'post_type' in event and event.post_type.endswith('sent'):INFO(f'{SGR("同步", B4=4)}群{SGR(Source.group_name,b4=14)}({SGR(Source.group_id,b4=4)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
+            else:INFO(f'来自群{SGR(Source.group_name,b4=14)}({SGR(Source.group_id,b4=4)})成员{SGR(Sender.user_name,b4=13)}({SGR(Sender.user_id,b4=3)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
+        else: # 其他类型
+            WARNING(f'MessageSubType omission: {event.sub_type}\n{event}')
+            return
+        self.onQQMessage(Type, Sender, Source, event.message)
+
+    def RequestAnalyst(self, Request):
+        if Request.request_type == 'friend':
+            INFO(f'来自 {Request.user_id} 的好友申请，事件标识：{Request.flag}')
+        if Request.request_type == 'group':
+            INFO(f'来自 {Request.user_id} 的{"申请" if Request.sub_type else "邀请"}，{"申请" if Request.sub_type else "邀请"}加入{Request.group_id}，事件标识：{Request.flag}')
+        approve, re = self.onQQRequestEvent(Request)
+        self.OneBot.request_response(Request, approve, re)
+
+    def onQQRequestEvent(self, Request):
+        approve, re = None, None
+        for f in self.slotsTable['onQQRequestEvent']:
+            approve, re = f(self, Request)
+            if not approve:
+                return approve, re
+        else:
+            return approve, re
 
     def intervalForever(self):
         while True:
-            flag = True
-            while self.conf.qq not in self.Mirai.BotList().data:
-                time.sleep(60)
-                if self.conf.qq in self.Mirai.BotList().data:break
-                # os.popen('taskkill /f /im java.exe').read()
-                if flag:
-                    flag = WARNING(f'qq:{self.conf.qq} 未登录')
             time.sleep(300)
             StartDaemonThread(self.onInterval)
-            StartDaemonThread(self.Update)
 
     def wrap(self, slots):
         def func(*args, **kwargs):
@@ -179,26 +176,6 @@ class QQBot(TermBot):
             self.schedTable[func.__module__].append(j)
             return func
         return wrapper
-
-    def Update(self, Type=None):
-        if not Type:
-            self.Friend = self.List('Friend').data
-            self.Group = self.List('Group').data
-            self.Member = JsonDict()
-            for g in self.Group:
-                setattr(self.Member, str(g.id), self.List('Member',g.id).data)
-                for m in self.Member[str(g.id)]:
-                    delattr(m,'group')
-        elif Type in ['Friend', 'Group']:
-            setattr(self, Type, self.List(Type).data)
-        elif Type == 'Member':
-            data = []
-            for g in self.Group:
-                data[str(g.id)] = self.List('Member',g.id).data
-                for m in data[str(g.id)]:
-                    delattr(m,'group')
-            def member(target):return data[str(target)]
-            self.Member=member
 
     def unplug(self, moduleName, removeJob=True):
         for slots in self.slotsTable.values():
@@ -245,7 +222,7 @@ class QQBot(TermBot):
                          (moduleName, names, jobNames)
                 INFO(result)
 
-                if self.Mirai.started and hasattr(module, 'onPlug'):
+                if self.OneBot.started and hasattr(module, 'onPlug'):
                     _call(module.onPlug, self)
 
         return result
@@ -286,7 +263,6 @@ def runBot(argv=None):
 
         if '--bench' not in args:
             args = args + ['--bench', os.getcwd()]
-        args = args + ['--qq', str(conf.qq)]
         args = args + ['--subprocessCall']
 
         while True:
@@ -296,13 +272,12 @@ def runBot(argv=None):
                 INFO('QQBot 正常停止')
                 sys.exit(code)
             elif code == RESTART:
-                INFO('1 秒后重新启动 QQBot （自动登陆，qq=%s）', args[-2])
+                INFO('1 秒后重新启动 QQBot')
                 time.sleep(1)
             else:
                 CRITICAL('QQBOT 异常停止（code=%s）', code)
                 if conf.restartOnOffline:
-                    args[-2] = '0'
-                    INFO('5秒后重新启动 QQBot （手动登录）')
+                    INFO('5秒后重新启动 QQBot')
                     time.sleep(5)
                 else:
                     sys.exit(code)
@@ -318,3 +293,5 @@ QQBot.bot = bot
 QQBotSlot = bot.AddSlot
 QQBotSched = bot.AddSched
 QQBot.__init__ = None
+if __name__ == '__main__':
+    runBot(['-t','0123456789','-ip','localhost','-hp','5700','-wp','5800','-d'])

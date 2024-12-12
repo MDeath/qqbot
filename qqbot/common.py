@@ -16,52 +16,59 @@ class JsonDict(dict):
         except KeyError:
             return
 
-def DotDict(ojb:dict|list|str|io.IOBase) -> JsonDict:
-    if isinstance(ojb, (dict, list)):
-        ojb = json.dumps(ojb)
-    if isinstance(ojb, io.IOBase):
-        ojb = ojb.read()
-    return json.loads(ojb, object_hook=JsonDict)
+def DotDict(obj:dict|list|str|io.IOBase={}) -> JsonDict:
+    if isinstance(obj, (dict, list)):
+        obj = json.dumps(obj)
+    if isinstance(obj, io.IOBase):
+        obj = obj.read()
+    return json.loads(obj, object_hook=JsonDict)
 
-jsonload = lambda *args, **kwargs: json.load(*args, **kwargs)
+jsonload = json.load
 jsondump = json.dump
-jsonloads = lambda *args, **kwargs: json.loads(*args, **kwargs)
+jsonloads = json.loads
 jsondumps = json.dumps
 
 STR2BYTES = lambda s: s.encode('utf8')
 BYTES2STR = lambda s: s.decode('utf8')
 
-b64encode = lambda s:base64.b64encode(s.encode()).decode().replace('=','') if isinstance(s,str) else base64.b64encode(s).decode().replace('=','')
-b64decode = lambda s:base64.b64decode((s+'='*(len(s)%4)).encode()).decode() if isinstance(s,str) else base64.b64decode((s.decode()+'='*(len(s)%4)).encode()).decode()
+b64enc = lambda s,encoding="utf-8":base64.b64encode(s.encode(encoding)).decode().replace('=','') if isinstance(s,str) else base64.b64encode(s).decode().replace('=','')
+b64dec = lambda s:base64.b64decode((s+'='*(len(s)%4)).encode()).decode() if isinstance(s,str) else base64.b64decode((s.decode()+'='*(len(s)%4)).encode()).decode()
+b64dec2b = lambda s:base64.b64decode((s+'='*(len(s)%4)).encode()) if isinstance(s,str) else base64.b64decode((s.decode()+'='*(len(s)%4)).encode())
 
 def secs2hours(secs):
     M, S = divmod(secs, 60)
     H, M =divmod(M, 60)
-    return "%d:%02d:%02d" % (H, M, S)
+    D, H =divmod(H, 24)
+    return f"{D} {H}:{M}:{S}"
 
-def B2GB(B):
-    KB,B = divmod(B,1024)
-    MB,KB = divmod(KB,1024)
-    GB,MB = divmod(MB,1024)
-    return "%dGB,%dMB,%dKB" % (GB,MB,KB)
+def B2B(B):
+    l = []
+    while True:
+        B, A = divmod(B, 1024)
+        l.append(A)
+        if B <= 1024:break
+    l.append(B)
+    l = list(zip(l, ' KMGTPEZY'))
+    l.reverse()
+    return ','.join([f'{B}{S}B' for B, S in l])
 
 def SGR(text:str,setup:str='',b4:int=None,B4:int=None,b8:int=None,B8:int=None,r:int=None,g:int=None,b:int=None,R:int=None,G:int=None,B:int=None) -> str:
     '''# Select Graphic Rendition 
     text 文本
-    -  setup 字体设置组合
-    - b 加粗或增亮
-    - l 增暗
-    - i 斜体
-    - u 下划线
-    - uu 双下划线
-    - d 删除线
-    - t 上划线
-    - f 闪烁
-    - r 反转字色和底色
-    - h 隐藏
-    - b4 4-bit 字色 0-7 增亮 10-17 | B4 4-bit 底色
-    - b8 8-bit 字色 0-255 | B8 8-bit 底色
-    - r,g,b RGB 字色 | R,G,G RGB 底色'''
+    - setup 字体设置组合
+        - b 加粗或增亮
+        - l 增暗
+        - i 斜体
+        - u 下划线
+        - uu 双下划线
+        - d 删除线
+        - t 上划线
+        - f 闪烁
+        - r 反转字色和底色
+        - h 隐藏
+    - b4 4-bit 字色 | B4 4-bit 底色: 0-7 增亮 10-17
+    - b8 8-bit 字色 | B8 8-bit 底色: 0-255
+    - r,g,b RGB字色 | R,G,G RGB底色'''
     conf = []
     if 'b'in setup.lower():conf.append('1') # 加粗或增亮
     if 'l'in setup.lower():conf.append('2') # 增暗
@@ -162,7 +169,26 @@ def CallInNewConsole(args=None):
         return 1
         # return subprocess.Popen(list(args) + ['&'])
 
-Pass = lambda *arg, **kwargs: None
+def search(name,mod=None,path=os.getcwd(),dir_path=False): # 查找文件返回路径
+    # mod - 搜索模式
+    #    dn 搜索文件夹包含的文字
+    #    fn 搜索文件包含的文字
+    if type(name) is not str:name = str(name)
+    def return_dir(root,name,dir_path=False):
+        if dir_path:return root
+        return os.path.join(root, name)
+
+    for root, dirs, files in os.walk(path):  # path 为根目录
+        if mod == None and (name in dirs or name in files): # 绝对名搜索
+            return return_dir(dir_path, root, name)
+        elif mod == 'dn': # 文件夹包含文字
+            for d in dirs:
+                if name in f:return return_dir(root, d)
+        elif mod == 'fn': # 文件包含文字
+            for f in files:
+                if name in f:return return_dir(root, f, dir_path)
+        else:
+            raise
 
 def LeftTrim(s, head):
     if s.startswith(head):

@@ -24,4 +24,10 @@ pip install revChatGPT
 echo tornado
 pip install tornado
 
+echo wordcloud
+pip install jieba
+pip install matplotlib
+pip install wordcloud
+pip install numpy
+
 pause

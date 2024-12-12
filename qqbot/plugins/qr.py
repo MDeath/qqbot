@@ -3,7 +3,7 @@ import cloudscraper, os, time
 from amzqr import amzqr
 
 from qqbotcls import bot
-from common import JsonDict, b64decode
+from common import JsonDict, b64dec2b
 from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 import soup
 
@@ -11,7 +11,7 @@ requests = cloudscraper.create_scraper()
 
 tempdir = os.path.join(os.getcwd(),'temp','qr')
 def get_tempdir():
-    temppath = os.path.join(tempdir,time.strftime('%Y-%m-%d',time.localtime()))
+    temppath = os.path.join(tempdir,time.strftime('%Y%m',time.localtime()))
     if not os.path.exists(temppath):
         os.makedirs(temppath)
     return temppath
@@ -77,26 +77,9 @@ def basename(s:str):
         s = s.replace(c,'_')
     return s
 
-def fwimg2qr(nodeList:soup.Node): # messageId=-1，全部图片转QRCode
-    for node in nodeList:
-        for m in range(len(node.messageChain)):
-            if node.messageChain[m].type == 'Image':
-                if 'url' in node.messageChain[m]:
-                    try:
-                        content = requests.get(node.messageChain[m].url).content
-                    except:
-                        content = None
-                elif 'path' in node.messageChain[m]:
-                    content = node.messageChain[m].path
-                else:
-                    continue
-                try:
-                    if not content:raise
-                    url = bot.Upload(content).url
-                    node.messageChain[m] = img2qr(picture=url)
-                except:
-                    node.messageChain[m] = img2qr(node.messageChain[m].url)
-    return nodeList
+def imageType2qr(message):
+    def temp(msg):img2qr(picture=msg)
+    soup.Type_Func(message, 'image', temp)
 
 def img2qr(
         word:str=None,
@@ -105,34 +88,40 @@ def img2qr(
     ) -> soup.Image:
     '''
     word:文本内容,为空时可以采用picture
-    picture:可以是本地路径,或是图片url
+    picture:可以是图片对象，本地路径，或是图片url,base64
     或soup.Image和soup.FlashImage(至少包含url)
     '''
     if not (word or picture):raise Exception('wrod or picture 不可同时为空')
     
-    file_name, imgurl = time.strftime("%H-%M-%S",time.localtime()), False
+    file_name, imgurl, byte = time.strftime('%y%m%d%H%M%S',time.localtime()), False, False
     if isinstance(picture, JsonDict):
-        imgurl = picture.url
-        if not word and picture:
-            word = picture.url
+        if 'url' in picture:imgurl = picture.url
+        elif 'file' in picture:
+            if picture.file.startswith(('http://','https://')):
+                imgurl = picture.file
+                if imgurl.endswith(('.jpg','.png','.bmp','.gif')):file_name = imgurl
+            elif picture.file.startswith('base64://'):
+                try:byte = b64dec2b(picture.file[9:])
+                except:Exception('错误的base64')
+            else:Exception(f'不支持的格式 {picture.file[:6]}')
+        else:Exception('没有包含 url 或 file')
 
-        if 'imageId' in picture:
-            file_name = picture.imageId
-        elif 'id' in picture:
-            file_name = picture.id
-        elif picture.url.endswith(('.jpg','.png','.bmp','.gif')):
-            file_name = picture.url
     elif isinstance(picture,str) and picture.startswith('http'):
         imgurl = picture
-        if not word and picture:
-            word = picture
-
         if picture.endswith(('.jpg','.png','.bmp','.gif')):
             file_name = picture
+
+    elif picture and os.path.exists(picture):
+        with open(picture, 'rb')as f:byte = f.read()
+
+    elif picture:byte = b64dec2b(picture)
+
+    if imgurl and not word:word = imgurl
+    elif byte and not word:Exception('字节和Base64图片 word 不得为空')
     
-    if imgurl:
+    if imgurl:byte = requests.get(imgurl,**kwargs).content
+    if byte:
         try:
-            byte = requests.get(imgurl,**kwargs).content
             if not file_name.endswith(('.jpg','.png','.bmp','.gif')):
                 if byte[6:10] in (b'JFIF', b'Exif'):file_name+='.jpg'
                 elif byte.startswith(b'\211PNG\r\n\032\n'):file_name+='.png'
@@ -143,7 +132,7 @@ def img2qr(
             with open(picture, "wb") as f:f.write(byte)
         except:
             picture = None
-        
+
     version, level, qr_name = amzqr.run(
         word,
         version = 1,
@@ -155,8 +144,7 @@ def img2qr(
         save_name = None,
         save_dir = get_tempdir()
     )
-    with open(qr_name, 'rb') as f:
-        return soup.Image(base64=f.read())
+    with open(qr_name, 'rb') as f:return soup.Image(file=f.read())
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
@@ -166,37 +154,20 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     生成该图临时QR码
     发送 'qr' 加上 文本 并附带回复 图片
     生成艺术QR码'''
-    if Type not in ['Friend', 'Group', 'Temp']:
-        return
-
-    if Type == 'Friend':
-        target = Sender.id
-    elif Type == 'Group':
-        target = Sender.group.id
-    elif Type == 'Temp':
-        target = Sender.id, Sender.group.id
-
-    quote = Source.id
-    Plain = ''.join([msg.text for msg in Message if msg.type == 'Plain']).strip()
+    Plain = ''.join([msg.text for msg in Message if msg.type == 'text']).strip()
     if not Plain.lower().startswith('qr'):return
     Image = None
     for msg in Message:
-        if msg.type == 'Image':
+        if msg.type == 'image':
             Image = msg
             break
-        if msg.type == 'Quote':
-            r = bot.MessageId(target,msg.id)
-            if not r.code:
-                Message += [msg for msg in r.data.messageChain if msg.type in ['Image','FlashImage']]
-            else:
-                for n in range(quote-1,quote-11,-1):
-                    r = bot.MessageId(target,n)
-                    if not r.code:
-                        Message += [msg for r.data in r.msg.messageChain if msg.type in ['Image','FlashImage']]
+        if msg.type == 'reply':
+            try:Message += [m for m in bot.GetMsg(msg.id).message if m.type == 'image']
+            except:pass
     words = Plain.strip()[2:]
 
     if not words and not Image:
-        bot.SendMessage(Type, target, soup.Plain('没有包含文本，或者关联图片，请尝试直接和图片一起发送'), id=Source.id)
+        bot.SendMsg(Type, Source.target, soup.Text('没有包含文本，或者关联图片，请尝试直接和图片一起发送'), reply=Source.message_id)
         return
 
-    bot.SendMessage(Type, target, img2qr(words, Image), id=Source.id)
+    bot.SendMsg(Type, Source.target, img2qr(words, Image), reply=Source.message_id)

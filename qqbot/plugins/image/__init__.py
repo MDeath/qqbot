@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .saucenao_api import SauceNao
-from .errors import UnknownApiError,LongLimitReachedError,ShortLimitReachedError
+from .errors import UnknownApiError,LongLimitReachedError,ShortLimitReachedError,UnknownClientError
 
 from .asc2d import Ascii2DSearch
 # from PicImageSearch.sync import Ascii2D as Ascii2DSync
@@ -11,8 +11,8 @@ from common import jsonload
 import soup
 from qqbotcls import bot
 from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
+from qr import imageType2qr, img2qr
 from admin import admin_ID
-from qr import fwimg2qr, img2qr
 
 pid_black_list:int = [24704630]
 
@@ -28,33 +28,97 @@ else:
 
 def pixivid(pid:str):
     pid = re.findall(r'\d+',pid)
-    if not hasattr(bot,'pixiv') and not pid:return False
-    pid = pid[-1]
-    illust = bot.pixiv.illust_detail(pid)
-    return False if 'error' in illust or not (illust.illust.title or illust.illust.user.name) else pid
+    return pid[-1] if pid else False
 
 def sauce(url):
     api_key.insert(0,api_key.pop())
     return SauceNao(api_key[0]).from_url(url)
 
-def Resp2Msg(Type,Resp,pid):
+def Resp2Msg(Type,Resp,pid,qr=False):
     msg = []
     if len(Resp.raw) <= 1:return msg,pid
     for r in Resp.raw[1:]:
-        msg.append([soup.Image(r.thumbnail)])
+        msg.append([soup.Image(r.thumbnail) if qr else img2qr(picture=r.thumbnail)])
         if not (r.title or r.url_list):
-            msg[-1].append(soup.Plain('暂无收录'))
+            msg[-1].append(soup.Text('暂无收录'))
             continue
-        msg[-1].append(soup.Plain(f'\n{Type}搜索：\n标题：{r.title}' if r.title else f'\n{Type}搜索：'))
+        msg[-1].append(soup.Text(f'\n{Type}搜索：\n标题：{r.title}' if r.title else f'\n{Type}搜索：'))
         if r.url_list:
             urls = ''
             for url,title in r.url_list:
-                if pid is None and 'fanbox' not in url and any(u in url for u in ['www.pixiv.net/artworks','i.pximg.net']):
-                    pid = pixivid(url)
+                if isinstance(pid,list) and 'fanbox' not in url and any(u in url for u in ['www.pixiv.net/artworks','i.pximg.net']):
+                    pid.append(pixivid(url))
                 host = re.search(r"://.*?/",url)
                 urls += f'\n{title}：\n{url.replace(host.group(),host.group().replace(".","。"))}' if host else f'\n{title}：\n{url}'
-            msg[-1].append(soup.Plain(urls))
+            msg[-1].append(soup.Text(urls))
         if r.title and r.url_list:return msg,pid
+
+def search(Type,Sender,Source,imgurl,pid):
+    message = []
+    error_number = 0
+    while True:
+        error_number += 1
+        if 'offpic_new' in imgurl:imgurl = imgurl.replace('multimedia.nt.qq.com.cn','c2cpicdw.qpic.cn')
+        if 'gchatpic_new' in imgurl:imgurl = imgurl.replace('multimedia.nt.qq.com.cn','gchat.qpic.cn')
+        try:ColorResp, BovwResp = Ascii2DSearch(imgurl.replace(f'c2cpicdw.qpic.cn/offpic_new/{Sender.user_id}//',f'gchat.qpic.cn/gchatpic_new/0/').replace('c2cpicdw.qpic.cn/offpic_new/0//',f'gchat.qpic.cn/gchatpic_new/0/'))
+        except:ColorResp, BovwResp = None, None
+        if ColorResp:
+            for mode,Resp in [['特征',BovwResp],['色相',ColorResp]]:
+                node, pid = Resp2Msg(mode,Resp,pid,Type=='friend')
+                for n in node:message.append(soup.Node(*n))
+        try:
+            max = False
+            results = sauce(imgurl) # or from_file()
+            for r in results[::-1]:
+                urls = ''
+                if 'source' in r.raw['data']:
+                    host = re.search(r'://.*?/',r.raw['data']['source'])
+                    urls += '\n' + (r.raw['data']['source'].replace(host.group(),host.group().replace('.','。')) if host else r.raw['data']['source'])
+
+                for url in r.urls:
+                    host = re.search(r'://.*?/',url)
+                    urls += '\n' + (url.replace(host.group(),host.group().replace('.','。')) if host else url)
+
+                s = f'\n相似度：{r.similarity}\n标题：{r.title}\n作者：{r.author}{urls}'
+
+                if isinstance(pid,list) and 'source' in r.raw['data'] and r.similarity >= 55:
+                    if 'fanbox' not in r.raw['data']['source'] and any(u in r.raw['data']['source'] for u in ['www.pixiv.net','i.pximg.net']):
+                        pid.append(pixivid(r.raw['data']['source']))
+
+                elif isinstance(pid,list) and r.similarity >= 55:
+                    for url in r.urls:
+                        if 'fanbox' not in url and any(u in url for u in ['www.pixiv.net','i.pximg.net']):
+                            getpid = pixivid(url)
+                            pid.append(getpid)
+                            if getpid:break
+                message.insert(0 if r.similarity >= 60 else -1,soup.Node(soup.Image(r.thumbnail) if Type == 'friend' else img2qr(picture=r.thumbnail),soup.Text(s)))
+            max = r.similarity<60
+            break
+        except UnknownClientError as e:
+            WARNING(e)
+            bot.SendMsg(Type, Source.target, soup.Text('🆘搜图失败🆘'), reply=Source.message_id)
+            if len(message)==0:return [], pid
+            break
+        except UnknownApiError as e:
+            WARNING(e)
+            bot.SendMsg(Type, Source.target, soup.Text('⚠️搜图失败，请稍后尝试⚠️'), reply=Source.message_id)
+            if len(message)==0:return [], pid
+            break
+        except LongLimitReachedError:
+            WARNING(f"Count:{error_number} ERROR:{traceback.format_exc()}")
+            bot.SendMsg(Type, Source.target, soup.Text('🚫今日已达上限，搜索结果受限🚫'), reply=Source.message_id)
+            if len(message)==0:return [], pid
+            break
+        except ShortLimitReachedError:
+            WARNING(f"Count:{error_number} ERROR:{traceback.format_exc()}")
+            if len(message)==0:bot.SendMsg(Type, Source.target, soup.Text('⛔搜图进入CD，请等候30秒⛔'), reply=Source.message_id)
+            time.sleep(30)
+        except:ERROR(f"Count:{error_number} ERROR:{traceback.format_exc()}")
+        if error_number == 5:
+            bot.SendMsg(Type, Source.target, soup.Text('🆘搜图失败，请稍后尝试🆘'), reply=Source.message_id)
+            if len(message)==0:return [], None
+            break
+    return [soup.Node(id=Source.message_id),soup.Node(soup.Reply(Source.message_id),soup.Image(imgurl) if Type == 'friend' else img2qr(picture=imgurl),soup.Text(f'查看{len(message)}条查询结果:\n{"⚠️匹配度低可能是AI或裁切拼接⚠️" if max else ""}'))]+message,pid
 
 def onPlug(bot):
     bot.sauce = sauce
@@ -68,118 +132,53 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
     回复图片发送 '搜图' 可图片溯源
     回复图片发送 '识图' 可图片溯源，并自动获取PixivID'''
-    if Type not in ['Friend', 'Group', 'Temp']:
-        return
-
-    if Type == 'Friend':
-        target = Sender.id
-    elif Type == 'Group':
-        target = Sender.group.id
-    elif Type == 'Temp':
-        target = Sender.id, Sender.group.id
-
-    Plain = ''
+    Text = ''
     Image = []
     for msg in Message:
-        if msg.type == 'Plain':Plain += msg.text
-    if Plain.strip() not in ['搜图', '识图']:return
+        if msg.type == 'text':Text += msg.text
+    if Text.strip() not in ['st', '搜图', '识图']:return
     for msg in Message:
-        if msg.type == 'Image':
-            Image.append(msg)
-        elif msg.type == 'Quote':
-            r = bot.MessageId(target,msg.id)
-            if not r.code:
-                Message += [m for m in r.data.messageChain if m.type in ['Image','FlashImage']]
+        if msg.type == 'image':Image.append(msg)
+        if msg.type == 'reply':
+            try:Message += [m for m in bot.GetMsg(msg.id).message if m.type == 'image']
+            except:pass
+    DEBUG(Message)
     if not Image:
-        bot.SendMessage(Type, target, soup.Plain('⚠️关联图片失败，请尝试直接和图片一起发送，或是使用旧版客户端⚠️'), id=Source.id)
+        if Text.strip() != 'st':bot.SendMsg(Type, Source.target, soup.Text('⚠️关联图片失败，请尝试直接和图片一起发送⚠️'), reply=Source.message_id)
         return
-    bot.SendMessage(Type, target, soup.Plain(f'正在{Plain.strip()}♾️'), id=Source.id)
+    bot.SendMsg(Type, Source.target, soup.Text(f'正在{Text.strip()}♾️'), reply=Source.message_id)
+    print(Image)
     for img in Image:
-        pid = None if Plain.strip()=='识图' else False
-        message = [soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,soup.Image(img.url),soup.Plain('\n识别结果：'))]
+        print(img)
+        pid = [] if Text.strip()=='识图' else False
+        message, pid = search(Type, Sender, Source, img.url, pid)
+        if len(message)==0:
+            bot.SendMsg(Type, Source.target, soup.Text('🆘暂时无法连到服务器🆘'), reply=Source.message_id)
+            continue
 
         error_number = 0
         while True:
-            try:
-                if Type!="Friend":
-                    try:ColorResp, BovwResp = Ascii2DSearch(img.url) # 色相，特征
-                    except:ColorResp, BovwResp = None, None
-                else:
-                    try:ColorResp, BovwResp = Ascii2DSearch(img.url.replace(f'c2cpicdw.qpic.cn/offpic_new/{Sender.id}//',f'gchat.qpic.cn/gchatpic_new/0/').replace('c2cpicdw.qpic.cn/offpic_new/0//',f'gchat.qpic.cn/gchatpic_new/0/'))
-                    except:ColorResp, BovwResp = None, None
-                results = sauce(img.url) # or from_file()
-                for n in range(len(results)):
-                    r = results[n]
-                    if ColorResp and (n == len([r.similarity for r in results if r.similarity >= 60]) or n == len(results)-1):
-                        node, pid = Resp2Msg('特征',BovwResp,pid)
-                        for msg in node:message.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*msg))
-                        node, pid = Resp2Msg('色相',ColorResp,pid)
-                        for msg in node:message.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,*msg))
-
-                    urls = ''
-                    if 'source' in r.raw['data']:
-                        host = re.search(r'://.*?/',r.raw['data']['source'])
-                        urls += '\n' + (r.raw['data']['source'].replace(host.group(),host.group().replace('.','。')) if host else r.raw['data']['source'])
-
-                    for url in r.urls:
-                        host = re.search(r'://.*?/',url)
-                        urls += '\n' + (url.replace(host.group(),host.group().replace('.','。')) if host else url)
-
-                    s = f'\n相似度：{r.similarity}\n标题：{r.title}\n作者：{r.author}{urls}'
-
-                    if pid is None and 'source' in r.raw['data'] and r.similarity >= 50:
-                        if 'fanbox' not in r.raw['data']['source'] and any(u in r.raw['data']['source'] for u in ['www.pixiv.net','i.pximg.net']):
-                            pid = pixivid(r.raw['data']['source'])
-
-                    elif pid is None and r.similarity >= 55:
-                        for url in r.urls:
-                            if 'fanbox' not in url and any(u in url for u in ['www.pixiv.net','i.pximg.net']):
-                                pid = pixivid(url)
-                                if pid:break
-
-                    message.append(soup.Node(Sender.id,(hasattr(Sender,'memberName') and Sender.memberName) or Sender.nickname,soup.Image(r.thumbnail),soup.Plain(s)))
-                break
-            except UnknownApiError as e:
-                if error_number == 5 and not message:
-                    bot.SendMessage(Type, target, soup.Plain('⚠️搜图失败，请稍后尝试⚠️'), id=Source.id)
-                WARNING(e)
-            except LongLimitReachedError:
-                if not message:bot.SendMessage(Type, target, soup.Plain('🚫今日已达上限，搜索结果受限🚫'), id=Source.id)
-                results = None
-                break
-            except ShortLimitReachedError:
-                if not message:bot.SendMessage(Type, target, soup.Plain('⛔搜图进入CD，请等候30秒⛔'), id=Source.id)
-                time.sleep(30)
-            except:
-                ERROR(f"Count:{error_number} ERROR:{traceback.format_exc()}")
-            if error_number == 5 and not message:
-                break
+            data = bot.SendMsg(Type, Source.target, *message)
             error_number += 1
-
-        if not message:
-            bot.SendMessage(Type, target, soup.Plain('🆘暂时无法连到服务器🆘'), id=Source.id)
-            results = None
-            return
-
-        error_number = 0
-        while True:
-            r = bot.SendMessage(Type, target, soup.Forward(*message,summary=f'查看{len(message)}条查询结果',preview=['⚠️匹配度较低，可能被裁切、拼接，或是AI作图⚠️'] if results and max([r.similarity for r in results]) < 60 else None))
-            error_number += 1
-            if r.messageId == -1:
-                if error_number == 1:message[0]['messageChain'][0] = img2qr(img.url, img.url)
-                if error_number == 2:fwimg2qr(message)
-            elif not r.code:break
-            elif r.code == 20:break
-            elif r.code == 500:pass
+            if 'retcode' not in data:break
+            if error_number == 1:message.pop(0) # 20002
+            if error_number == 2:imageType2qr(message) # 20002
             if error_number == 3:
                 for n in message:
-                    for m in range(len(n.messageChain)):
-                        if n.messageChain[m].type == 'Image':
-                            n.messageChain[m] = soup.Plain('[被吞]')
+                    for m in n:
+                        if m.type == 'image':
+                            m.clear()
+                            m.update(soup.Text('[被吞]'))
             if error_number == 4:
-                bot.SendMessage(Type, target, soup.Plain('🆘发送失败🆘'),id=Source.id)
+                bot.SendMsg(Type, Source.target, soup.Text('🆘发送失败🆘'),reply=Source.message_id)
                 break
-        if pid and int(pid) not in pid_black_list:
-            bot.onQQMessage(Type, Sender, Source, [soup.Plain(f'Pid{pid}')])
+        for f in [f for f in admin_ID() if 'res_id' in data and f.user_id != Source.target]:
+            bot.SendMsg('friend', f.user_id, soup.Forward(data.res_id))
+        if pid and hasattr(bot,'pixiv'):
+            for i in pid[::-1]:
+                illust = bot.pixiv.illust_detail(i)
+                if 'error' in illust or not (illust.illust.title or illust.illust.user.name):continue
+                bot.onQQMessage(Type, Sender, Source, [soup.Text(f'Pid{i}')])
+                break
 
         time.sleep(20)

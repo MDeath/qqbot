@@ -43,7 +43,7 @@ class TaskLoop(object):
     # a committing task with his result into the main queue.
     # At first, there is only one worker(thread) works on a child queue. You
     # can call `AddWorkerTo` to add workers(threads) to a child queue.
-    # 将任务放入标签为`queueLabel`的子队列。会的
+    # 将任务放入标签为`queueLabel`的子队列。会
     # 在子线程中执行。通常，放置IO是一个好主意
     # 任务放入子队列，当该任务完成其工作时，他将
     # 将其结果提交到主队列的任务。
@@ -87,3 +87,15 @@ Put = mainLoop.Put
 PutTo = mainLoop.PutTo
 AddWorkerTo = mainLoop.AddWorkerTo
 RemoveWorkerTo = mainLoop.RemoveWorkerTo
+
+def PutBack(func, *args, **kwargs):
+    ls = []
+    StartDaemonThread(Put, lambda:ls.append(func(*args, **kwargs)))
+    while not ls:pass
+    return ls.pop()
+
+def PutToBack(queueLabel, func, *args, **kwargs):
+    ls = []
+    PutTo(queueLabel, lambda:ls.append(func(*args, **kwargs)))
+    while not ls:pass
+    return ls.pop()

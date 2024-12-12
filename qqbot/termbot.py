@@ -5,7 +5,7 @@ import os,json,psutil,random,time,traceback
 import soup
 from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 from mainloop import Put
-from common import Unquote, STR2BYTES, BYTES2STR, b64decode, b64encode, jsondumps, DotDict, StartDaemonThread
+from common import Unquote, STR2BYTES, BYTES2STR, b64dec, b64enc, jsondumps, DotDict, SGR, StartDaemonThread
 
 cmdFuncs, usage = {}, {}
 
@@ -41,9 +41,9 @@ class TermBot(object):
                 result, err = None, traceback.format_exc()
         
         if not err:
-            INFO(f'\n\033[32mQQBot-Term Command\033[0m:{command}\033[32mResult:\033[0m\n{result}')
+            INFO(f'\n{SGR("QQBot-Term Command:",b4=2)}{command}\n{SGR("Result:",b4=2)}\n{result}')
         else:
-            ERROR(f'\n\033[32mQQBot-Term Command\033[0m:{command}\033[31mResult:\033[0m\n{err}')
+            ERROR(f'\n{SGR("QQBot-Term Command:",b4=2)}{command}\n{SGR("Result:",b4=1)}\n{err}')
 
         if http:
             rep = {'result':result, 'err': err}
