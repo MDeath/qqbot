@@ -18,14 +18,14 @@ hosts = [
     # 'https://i.pixiv.cat',
     'https://i.pixiv.re',
     'https://i.pixiv.nl',
-    # 'http://mdie.asuscomm.com:8888',
+    'https://img.mdie.top'
 ]
 
 def get_host():
     hosts.insert(0,hosts.pop())
     return hosts[0]
 
-log_title = '访问时间,限制时间,IP,位置,Cookies,Headers,路径,真实路径,编码,超时,正常\n'
+log_title = '访问时间,限制时间,Cookies,Headers,路径,真实路径,编码,超时,正常\n'
 
 def log_write(*arge):
     if not os.path.exists(f'logs/fileserver_{time.strftime("%Y-%m")}.csv'):
@@ -33,7 +33,7 @@ def log_write(*arge):
     with open(f'logs/fileserver_{time.strftime("%Y-%m")}.csv', 'a', encoding='UTF-8') as f:f.write(','.join([str(i).replace('\n',r'\n').replace('\r',r'\r').replace(',',';') for i in arge])+'\n')
 
 user_illusts_path = r"/Media/Picture/Pixiv/user_illusts" # 相对位置
-fileserver = 'http://mdie.asuscomm.com:8888'
+fileserver = 'https://pixiv.mdie.top'
 host = ''
 prot = 8888
 password:str = '1064393873' # 不限时密钥
@@ -252,23 +252,24 @@ class PixivFileHandler(tornado.web.RequestHandler):
             t = t.group() if t else None # 获取过期时间戳
         timeout = not (t and time.time()-starttime+life >= int(t) >= time.time()-starttime)
         true_path = true_path.replace(password,'').replace(t or '','')
-        try: # 尝试获取位置信息
-            response = yield tornado.httpclient.AsyncHTTPClient().fetch(f'https://ip.cn/api/index?{urllib.parse.urlencode({"ip":self.request.remote_ip,"type":1})}')
-            location = tornado.escape.json_decode(response.body)
-        except:
-            ERROR(traceback.format_exc())
-            location = 'Unknown'
+        # try: # 尝试获取位置信息
+        #     response = yield tornado.httpclient.AsyncHTTPClient().fetch(f'https://ip.cn/api/index?{urllib.parse.urlencode({"ip":self.request.remote_ip,"type":1})}')
+        #     location = tornado.escape.json_decode(response.body)
+        # except:
+        #     ERROR(traceback.format_exc())
+        #     location = 'Unknown'
+# IP:{location['ip']}\t{location['address']}
+# location['ip'],location['address'],
         INFO(f'''
 Limit_Time:{time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(int(t)+starttime)) if t else time.strftime("%Y-%m-%d %H:%M:%S",now)}
 Path:{path}
 True_Path:{true_path}
-IP:{location['ip']}\t{location['address']}
 Cookies:-   +   -   +   -   +
 {self.cookies}
 Headers:-   +   -   +   -   +
 {self.request.headers}
 Encode:{enc}\ttimeout:{timeout}\tnormal:{enc and not timeout}''')
-        log_write(time.strftime('%Y-%m-%d %H:%M:%S',now),time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(int(t)+starttime))if t else time.strftime('%Y-%m-%d %H:%M:%S',now),location['ip'],location['address'],dict(self.cookies),dict(self.request.headers),path,true_path,enc,timeout,enc and not timeout)
+        log_write(time.strftime('%Y-%m-%d %H:%M:%S',now),time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(int(t)+starttime))if t else time.strftime('%Y-%m-%d %H:%M:%S',now),dict(self.cookies),dict(self.request.headers),path,true_path,enc,timeout,enc and not timeout)
         try:
             if timeout:
                 self.write(Error_Msg())
