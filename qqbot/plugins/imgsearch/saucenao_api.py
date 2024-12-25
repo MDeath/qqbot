@@ -84,11 +84,11 @@ class SauceNao:
 
         # Taken from https://saucenao.com/tools/examples/api/identify_images_v1.1.py
         if status < 0:
-            raise UnknownClientError('Unknown client error, status < 0')
+            raise UnknownClientError(f'Unknown client error, status = {status} < 0')
         elif status > 0:
-            raise UnknownServerError('Unknown API error, status > 0')
+            raise UnknownServerError(f'Unknown API error, status = {status} > 0')
         elif user_id < 0:
-            raise UnknownServerError('Unknown API error, user_id < 0')
+            raise UnknownServerError(f'Unknown API error, user_id < 0')
 
         # Request passed, but api_key was ignored
         elif user_id == 0 and 'api_key' in params:
