@@ -119,7 +119,12 @@ def img2qr(
     if imgurl and not word:word = imgurl
     elif byte and not word:Exception('字节和Base64图片 word 不得为空')
     
-    if imgurl:byte = requests.get(imgurl,**kwargs).content
+    if imgurl:
+        for n in range(5):
+            try:byte = requests.get(imgurl,**kwargs).content
+            except Exception as e:pass
+            else:break
+        else:ERROR(f'{imgurl}\n{e}')
     if byte:
         try:
             if not file_name.endswith(('.jpg','.png','.bmp','.gif')):
