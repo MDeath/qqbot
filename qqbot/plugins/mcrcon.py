@@ -2,14 +2,17 @@ import traceback,os
 import soup
 from admin import admin_ID
 from common import DotDict,jsondump,jsonload
+from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 from rcon.source import Client
 from qqbotcls import QQBotSched
 
-opts = DotDict({
-    'host':'mdie.asuscomm.com',
-    'port':25575,
-    'password':'1064393873'
-})
+config = {
+    "host":"",
+    "port":25575,
+    "password":""
+}
+
+opts = DotDict(config)
 
 Group = 260715723
 
@@ -47,11 +50,17 @@ def MCRcon(text,p=False):
         if p:print(Formatting2ANSI(response))
         return Formatting2ANSI(response,False)
     except KeyboardInterrupt:exit()
-    except:traceback.print_exc()
+    except:ERROR(traceback.format_exc())
 
 def onPlug(bot):
     if not os.path.exists(bot.conf.Config('MC')):
         os.mkdir(bot.conf.Config('MC'))
+    if not os.path.exists(bot.conf.Config('MC/config.json')):
+        with open(bot.conf.Config('MC/config.json'),'w') as f:
+            jsondump(config, f)
+    with open(bot.conf.Config('MC/config.json'),'r') as f:
+        for k,v in jsonload(f).items():
+            if isinstance(v, str) and v:opts[k] = v
     bot.MC = DotDict()
     if not os.path.exists(bot.conf.Config('MC/players.txt')):
         with open(bot.conf.Config('MC/players.txt'),'w') as f:
@@ -71,11 +80,11 @@ def onPlug(bot):
             end_date=None, 
             timezone=None)
 def NewPlayer(bot):
-    players = MCRcon('list')
+    players = MCRcon('list').split(':')[1].split(',')
     if not players:return
-    players = players.split(':')[1].split(',')
     count = len(bot.MC.players)
     for player in players:
+        player = player.strip()
         if player not in bot.MC.players:
             bot.MC.players.append(player)
             MCRcon(f'give {player} notreepunching:knife/flint')
@@ -98,3 +107,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     r = MCRcon(Plain,True)
     if not r:return
     bot.SendMsg(Type, Source.target, soup.Text(r), reply=Source.message_id)
+
+if __name__ == '__main__':
+    while True:
+        text = input('>')
+        if text in ('q', 'quit', 'exit'):break
+        MCRcon(text)
