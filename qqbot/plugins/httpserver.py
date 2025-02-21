@@ -2,16 +2,52 @@ import tornado.httpclient
 import tornado.gen
 import tornado.ioloop
 import tornado.web
-import os,re,time,traceback,mimetypes,urllib.parse
-from qqbotcls import bot
-from common import b64dec,b64enc,DotDict,jsonload,jsonloads,jsondump,StartDaemonThread,search
-from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
+import os,re,time,traceback,mimetypes,sys
+if __name__ == '__main__':
+    from pixivpy3 import AppPixivAPI
+    illusts = []
+    class Pixiv(AppPixivAPI):
+        def __init__(self, **requests_kwargs): #初始化api
+            super().__init__(**requests_kwargs)
+            self.set_accept_language('zh-cn')
 
-config = {
-    'REFRESH_TOKEN':'',
-    'USERNAME':'',
-    'PASSWORD':''
-}
+        def require_auth(self) -> None:
+            if self.access_token is None:
+                self.auth()
+
+        def auth(self, username = None, password = None, refresh_token = None, headers = None):
+            while True:
+                try:return super().auth(username, password, refresh_token, headers)
+                except PixivError as e:ERROR(e)
+
+        def no_auth_requests_call(self, *args, **kwargs):
+            while True:
+                try:
+                    r = super().no_auth_requests_call(*args, **kwargs)
+                    if r.ok:return r
+                    if r.text:jsondict = self.parse_json(r.text)
+                    else:continue
+                    time.sleep(10)
+                    if hasattr(jsondict.error, 'message') and jsondict.error.message:
+                        if 'Rate Limit' in jsondict.error.message:
+                            continue
+                        elif 'Error occurred at the OAuth process.' in jsondict.error.message:
+                            self.auth(refresh_token=self.refresh_token or config['REFRESH_TOKEN'])
+                            continue
+                    return r
+                except PixivError as e:
+                    if e.reason.startswith('[ERROR] auth() failed! check refresh_token.') or str(e).startswith('Authentication required! Call login() or set_auth() first!'):
+                        self.auth()
+                    elif e.reason.startswith('requests'):pass
+                    else:raise PixivError(e)
+                except:
+                    traceback.print_exc()
+
+    pixiv = Pixiv(proxies={'http':'http://127.0.0.1:7897','https':'http://127.0.0.1:7897'})
+    pixiv.auth(refresh_token=input('pixiv refresh_token: '))
+else:
+    from common import b64dec,b64enc,DotDict,jsonload,jsonloads,jsondump,StartDaemonThread,search
+    from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 
 # 图片代理
 hosts = [
@@ -154,16 +190,17 @@ def onIllustPath(path, t):
 
 def onIllusts(img_path, t, path, medium=False):
     imgs = []
+    global illusts
     for pid in img_path:
-        for illust in bot.illusts:
+        for illust in illusts:
             if pid == illust['pid']:
                 break
         else:
-            illust = bot.pixiv.illust_detail(pid)
+            illust = pixiv.illust_detail(pid)
             if 'error' in illust:continue
             if not (illust.illust.title or illust.illust.user.name):continue
             illust = {'uid':illust.illust.user.id,'pid':pid,'type':illust.illust.type,'count':illust.illust.page_count,'medium':illust.illust.image_urls.medium,'original':illust.illust.meta_single_page.original_image_url if illust.illust.page_count == 1 else illust.illust.meta_pages[0].image_urls.original}
-            bot.illusts.append(illust)
+            illusts.append(illust)
         for n in range(illust['count']):
             if illust['type'] == 'ugoira':
                 for u in os.listdir(user_illusts_path):
@@ -184,7 +221,7 @@ def onIllusts(img_path, t, path, medium=False):
                     illust['medium'].replace('_p0',f"_p{n}").replace('https://i.pximg.net',get_host())
                 ])
     img = '\n'.join([Image_box(num, imgs[num][0], imgs[num][1] if medium else None) for num in range(len(imgs))])
-    bot.illusts = bot.illusts[-1000:]
+    illusts = illusts[-1000:]
     return f'''\
 <!doctype html>
 <html>
@@ -294,13 +331,17 @@ app = tornado.web.Application(
 )
 
 def onPlug(bot):
+    global illusts
+    global pixiv
+    pixiv = bot.pixiv
     if not hasattr(bot,'server'):bot.server = app.listen(prot)
     if not hasattr(bot,'illusts'):
         try:
-            if os.path.exists(bot.conf.Config('illusts.json')):
-                with open(bot.conf.Config('illusts.json'), 'r', encoding='utf-8') as f:bot.illusts = jsonload(f)
+            if os.path.exists(bot.conf.Config('illusts.json')) and hasattr(bot, 'illusts'):
+                with open(bot.conf.Config('illusts.json'), 'r', encoding='utf-8') as f:illusts = jsonload(f)
             else:raise
-        except:bot.illusts = []
+        except:illusts = []
+    bot.illusts = illusts
     StartDaemonThread(tornado.ioloop.IOLoop.current().start)
 
 def onUnplug(bot):
@@ -313,6 +354,6 @@ def onInterval(bot): # 保存illusts记录
 
 if __name__ == '__main__':
     app.listen(prot)
-    bot.server = app.listen(prot)
+    server = app.listen(prot)
     illusts = []
     tornado.ioloop.IOLoop.current().start()

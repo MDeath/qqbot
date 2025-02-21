@@ -2,20 +2,33 @@
 ---------
 
 这是我魔改 pandolia的 [qqbot](https://github.com/pandolia/qqbot) 实现的
-qqbot 是一个用 python 实现的、基于 Mirai-Http 协议的 QQ 机器人
+Onebot 是一个用 python 实现的、基于 [OpenShamrock](https://whitechi73.github.io/OpenShamrock) 的 QQ 机器人
 
 你可以通过扩展 qqbot 来实现：
 
-* 监控、收集 QQ 消息
-* 自动消息推送
+* 收集 QQ 的消息、通知和请求
+* 定制消息推送
 * 聊天机器人
+* 远程命令控制等
+
+#### 已有模块
+| 模块名称 | 描述 |
+| - | - |
+| imgsearch | 使用 SauceNao 和 Ascii2D 搜图，并自动识别 Pixiv 链接提取 |
+| adb | 调用本地 ADB 工具 |
+| admin | 基础聊天命令、Python eval 函数（可通过 os.popen 调用命令行），事件处理和请求处理，插件制作模板 |
+| chatgpt | AI 聊天模块 |
+| fileserver | web 服务器，目前主要为 Pixiv 提供图床合集 |
+| img2px | 调用 [Koalas to the Max dot Com](koalastothemax.com) 把收到的图片转换成像素刮刮乐 |
+| mcrcon | MCRcon 客户端，连接到一个 MCRcon 服务器 |
+
 
 二、使用方法
 -------------
 
 ##### 1. 启动 QQBot
 
-启动前先登录好带有HTTPapi插件的Mirai，在目录下启动命令行输入： **python start.py** ，即可启动一个 QQBot 。启动成功后，会将本次登录信息保存到本地文件中，下次启动时，可以输入： **qqbot -q qq号码** ，先尝试从本地文件中恢复登录信息
+启动前先登录部署好[OpenShamrock](https://whitechi73.github.io/OpenShamrock)，在目录下启动命令行输入： **python start.py** ，即可启动一个 QQBot 。启动成功后，会将本次登录信息保存到本地文件中，下次启动时，可以输入： **qqbot -q qq号码** ，先尝试从本地文件中恢复登录信息
 
 三、实现你自己的 QQ 机器人
 ---------------------------

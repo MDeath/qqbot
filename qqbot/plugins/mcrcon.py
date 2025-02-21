@@ -68,17 +68,17 @@ def onPlug(bot):
     with open(bot.conf.Config('MC/players.txt'),'r') as f:
         bot.MC.players = DotDict(jsonload(f))
 
-@QQBotSched(year=None, 
-            month=None, 
-            day=None, 
-            week=None, 
-            day_of_week=None, 
-            hour=None, 
-            minute=None, 
-            second='0,5,10,15,20,25,30,35,40,45,50,55', 
-            start_date=None, 
-            end_date=None, 
-            timezone=None)
+# @QQBotSched(year=None, 
+#             month=None, 
+#             day=None, 
+#             week=None, 
+#             day_of_week=None, 
+#             hour=None, 
+#             minute=None, 
+#             second='0,5,10,15,20,25,30,35,40,45,50,55', 
+#             start_date=None, 
+#             end_date=None, 
+#             timezone=None)
 def NewPlayer(bot):
     players = MCRcon('list').split(':')[1].split(',')
     if not players:return

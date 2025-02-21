@@ -145,13 +145,13 @@ content     TEXT
 def onPlug(bot):
     bot.db.Add_Tabel_DataObj(wordclouds)
 
-@QQBotSched(hour=0)
+# @QQBotSched(hour=0)
 def Day(bot,date:str=None):
     '每日任务'
     if date:timestamp = time.mktime(time.strptime(date,'%Y%m%d'))
     else:timestamp = time.mktime(time.localtime())-24*60*60
     st2et = f'({int(timestamp)+24*60*60} > time and time >= {int(timestamp)})'
-    for Type,name,target in [('group',g.group_name,g.group_id) for g in bot.Group()]+[('friend',f.user_name,f.user_id) for f in bot.Friend()]:
+    for Type,name,target in [('group',g.group_name,g.group_id) for g in bot.Group()]+[('friend',f,f.user_id) for f in bot.Friend()]:
         text = [t.content for t in bot.db.Select('wordclouds', f'type="{Type}" and target={target} and {st2et}')]
         if not text:continue
         wc = WordCloud(text)
@@ -160,13 +160,13 @@ def Day(bot,date:str=None):
             for f in bot.Friend(user_remark='Admin'):
                 bot.SendMsg('friend',f.user_id,soup.Text(f'{Type}:{name}({target})'),wc)
 
-@QQBotSched(day_of_week=0)
+# @QQBotSched(day_of_week=0)
 def Week(bot,date:str=None):
     '每周任务'
     if date:timestamp = time.mktime(time.strptime(date,'%Y%m%d'))
     else:timestamp = time.mktime(time.localtime())-7*24*60*60
     st2et = f'({int(timestamp)+7*24*60*60} > time and time >= {int(timestamp)})'
-    for Type,name,target in [('group',g.group_name,g.group_id) for g in bot.Group()]+[('friend',f.user_name,f.user_id) for f in bot.Friend()]:
+    for Type,name,target in [('group',g.group_name,g.group_id) for g in bot.Group()]+[('friend',f,f.user_id) for f in bot.Friend()]:
         text = [t.content for t in bot.db.Select('wordclouds', f'type="{Type}" and target={target} and {st2et}')]
         if not text:continue
         wc = WordCloud(text)
@@ -175,7 +175,7 @@ def Week(bot,date:str=None):
             for f in bot.Friend(user_remark='Admin'):
                 bot.SendMsg('friend',f.user_id,soup.Text(f'{Type}:{name}({target})'),wc)
 
-@QQBotSched(day_of_week=0)
+# @QQBotSched(day_of_week=0)
 def Week(bot,date:str=None):
     '每月任务'
     if date:
@@ -184,10 +184,14 @@ def Week(bot,date:str=None):
         end_time = time.mktime(struct_time[:1]+[struct_time.tm_mon+1]+struct_time[2:])
     else:
         struct_time = time.localtime()
-        start_time = time.mktime(struct_time[:1]+[struct_time.tm_mon-1]+struct_time[2:])
-        end_time = time.mktime(struct_time)
+        if struct_time.tm_mon == 1:
+            start_time = time.mktime([struct_time.tm_year-1]+[12]+struct_time[2:])
+            end_time = time.mktime(struct_time)
+        else:
+            start_time = time.mktime(struct_time[:1]+[struct_time.tm_mon-1]+struct_time[2:])
+            end_time = time.mktime(struct_time)
     st2et = f'({int(start_time)} > time and time >= {int(end_time)})'
-    for Type,name,target in [('group',g.group_name,g.group_id) for g in bot.Group()]+[('friend',f.user_name,f.user_id) for f in bot.Friend()]:
+    for Type,name,target in [('group',g.group_name,g.group_id) for g in bot.Group()]+[('friend',f,f.user_id) for f in bot.Friend()]:
         text = [t.content for t in bot.db.Select('wordclouds', f'type="{Type}" and target={target} and {st2et}')]
         if not text:continue
         wc = WordCloud(text)

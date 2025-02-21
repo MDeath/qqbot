@@ -23,17 +23,17 @@ def system_status():
 
 CallBackList = []
 
-@QQBotSched(year=None, 
-            month=None, 
-            day=None, 
-            week=None, 
-            day_of_week=None, 
-            hour=None, 
-            minute=','.join([str(n) for n in range(0,60,10)]),
-            second=30, 
-            start_date=None, 
-            end_date=None, 
-            timezone=None)
+# @QQBotSched(year=None, 
+#             month=None, 
+#             day=None, 
+#             week=None, 
+#             day_of_week=None, 
+#             hour=None, 
+#             minute=','.join([str(n) for n in range(0,60,10)]),
+#             second=30, 
+#             start_date=None, 
+#             end_date=None, 
+#             timezone=None)
 def Chime(bot):
     '定时任务'
     for f in admin_ID():
@@ -115,9 +115,9 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 ERROR(f'\n{err}')
         return
 
-    if bot.OneBot.qq in At:[bot.SendMsg('Friend',f.user_id,soup.Text(f"[@ME] 群 {Source.group_name}({Sender.group_id}) 成员 {Sender.user_name}({Sender.user_id}) @ME:\n"),*[msg if msg.type!='At' else soup.Text(f"{(msg.id==bot.OneBot.qq and '[@ME]')or f'@{msg.qq}'}") for msg in Message])for f in admin_ID()]
+    if bot.OneBot.qq in At:[bot.SendMsg('Friend',f.user_id,soup.Text(f"[@ME] 群 {Source.group_name}({Sender.group_id}) 成员 {Sender.nickname}({Sender.user_id}) @ME:\n"),*[msg if msg.type!='At' else soup.Text(f"{(msg.id==bot.OneBot.qq and '[@ME]')or f'@{msg.qq}'}") for msg in Message])for f in admin_ID()]
 
-    if Flash:[bot.SendMsg(Type,f.user_id,soup.Text(((Type == 'group' and f'群 {Source.group_name}({Sender.group_id}) 成员 {Sender.user_name}({Sender.user_id}') or f'好友 {Sender.user_name}({Sender.user_id}')+') 的闪图：\n'),soup.Image(Flash.url))for f in admin_ID]
+    if Flash:[bot.SendMsg(Type,f.user_id,soup.Text(((Type == 'group' and f'群 {Source.group_name}({Sender.group_id}) 成员 {Sender.nickname}({Sender.user_id}') or f'好友 {Sender.nickname}({Sender.user_id}')+') 的闪图：\n'),soup.Image(Flash.url))for f in admin_ID]
 
     plug = [m.split('.')[0] for m in os.listdir(bot.conf.pluginPath)]
 
@@ -220,36 +220,64 @@ def onQQNotice(bot, Notice):
     '''\
     事件处理'''
     if Notice.notice_type == 'group_upload': # 群文件上传
-        pass
+        {'time': 1736753531, 'self_id': 2907237958, 'post_type': 'notice', 'notice_type': 'group_upload', 'group_id': 714470571, 'operator_id': 1535559131, 'user_id': 1535559131, 'file': {'id': '/3f16b76c-7d92-4729-990d-bd2b3d791cba', 'name': 'base.apk.1', 'size': 38357089, 'busid': 102, 'url': 'http://gzc-download.ftn.qq.com/ftn_handler/c8107a6ddd20e4068832ded5982318a73b913bbcf8cdba24ddf4ea8f36eb7cd2e5bc801511f571ce4a2a227285d2b96e406f5be10f812622764bb28cc88a2312/?fname=/3f16b76c-7d92-4729-990d-bd2b3d791cba&client_proto=qq&client_appid=537228697&client_type=android&client_ver=9.0.71&client_down_type=auto&client_aio_type=unk'}, 'source': 'private'}
+        member = bot.Member(group_id=Notice.group_id,user_id=Notice.user_id)[0]
+        group = bot.group(group_id=Notice.group_id)[0]
+        for f in admin_ID():
+            bot.SendMsg('friend',f.user_id,soup.Text(f'群友 {member.nickname}({member.user_id}) 在 {group.group_name}({group.group_id}) 上传了文件:\n{Notice.file.name}\nID:{Notice.file.id}\n大小:{B2B(Notice.file.size)}\n链接:{Notice.file.url}'))
+        return
+    
     if Notice.notice_type == 'group_admin': # 群管理员变动
         pass
+
     if Notice.notice_type == 'group_decrease': # 群成员减少
-        pass
-    if Notice.notice_type == 'group_increase': # 群成员增加
-        pass
-    if Notice.notice_type == 'group_ban': # 群禁言
-        # 禁言 bot
-        {'time': 1733392512, 'self_id': 2907237958, 'post_type': 'notice', 'notice_type': 'group_ban', 'sub_type': 'ban', 'group_id': 260715723, 'operator_id': 1064393873, 'operator_uid': 'u_FHYadP-ArAm1UC9BAgy-6w', 'user_id': 2907237958, 'sender_id': 1064393873, 'duration': 600, 'target_id': 2907237958, 'target_uid': 'u_XGLNBZyp3QKeaXiEqaWQjw', 'source': 'group'}
-        # 解禁 bot
-        {'time': 1733392755, 'self_id': 2907237958, 'post_type': 'notice', 'notice_type': 'group_ban', 'sub_type': 'lift_ban', 'group_id': 260715723, 'operator_id': 1064393873, 'operator_uid': 'u_FHYadP-ArAm1UC9BAgy-6w', 'user_id': 2907237958, 'sender_id': 1064393873, 'duration': 0, 'target_id': 2907237958, 'target_uid': 'u_XGLNBZyp3QKeaXiEqaWQjw', 'source': 'group'}
-        if Event.operator:bot.SendMsg('Friend',f,soup.Text(f'群 {Event.member.group.name}({Event.member.group.id}) 成员 {Event.member.memberName}({Event.member.id}) 被 {Event.operator.memberName}[{Event.operator.permission}({Event.operator.id})] 禁言 {time.strftime(f"{time.gmtime(Event.durationSeconds)[2]-1} %H:%M",time.gmtime(Event.durationSeconds))}'))
-        else:bot.SendMsg('Friend',f,soup.Text(f'群 {Event.member.group.name}({Event.member.group.id}) 成员 {Event.member.memberName}({Event.member.id}) 被禁言 {time.strftime(f"{time.gmtime(Event.durationSeconds)[2]-1} %H:%M",time.gmtime(Event.durationSeconds))}'))
-        if first:bot.SendMsg('Group',Event.member.group.id,soup.At(Event.member.id),soup.Text('你倒是说句话呀'),soup.Face(13))
-        return
-    if Notice.notice_type == 'group_recall': # 群消息撤回
+        {'time': 1737420071, 'self_id': 2907237958, 'post_type': 'notice', 'notice_type': 'group_decrease', 'sub_type': 'leave', 'group_id': 931021429, 'operator_id': 0, 'user_id': 3112904250, 'user_uid': 'u_hONp9jR8QqCd91_yRgDuHw', 'sender_id': 0, 'target_id': 3112904250, 'target_uid': 'u_hONp9jR8QqCd91_yRgDuHw', 'source': 'group'}
+        bot.SendMsg('group',Notice.group_id,soup.Text(f'{Notice.user_id} 离开了，永远缅怀'),soup.Face(9))
+        group = bot.Group(group_id=Notice.group_id)[0]
         for f in admin_ID():
-            bot.SendMsg('friend', f.user_id, soup.Text(f'群 {bot.Group(group_id=Notice.group_id)[0].group_name}({Notice.group_id}) {bot.Member(group_id=Notice.group_id,user_id=Notice.operator_id)[0].user_name}[{bot.Member(group_id=Notice.group_id,user_id=Notice.operator_id)[0].role}({Notice.operator_id})] 撤回了 {"" if Notice.operator_id==Notice.user_id else f" {bot.Member(group_id=Notice.group_id,user_id=Notice.user_id)[0].user_name}[{bot.Member(group_id=Notice.group_id,user_id=Notice.user_id)[0].role}({Notice.user_id})] 的"}消息ID {Notice.message_id}'))
+            bot.SendMsg('friend',f.user_id,soup.Text(f'{Notice.user_id} 退出了 {group.group_name}({group.group_id})'))
+
+    if Notice.notice_type == 'group_increase': # 群成员增加
+        {'time': 1737431992, 'self_id': 2907237958, 'post_type': 'notice', 'notice_type': 'group_increase', 'sub_type': 'approve', 'group_id': 683327278, 'operator_id': 183744529, 'operator_uid': 'u_mEg0pkdNJZBsh5PmiJtZBw', 'user_id': 2117636781, 'user_uid': 'u_Hd9dRGd0SK2L0lS-5rUX_Q', 'sender_id': 183744529, 'target_id': 2117636781, 'target_uid': 'u_Hd9dRGd0SK2L0lS-5rUX_Q', 'source': 'group'}
+        bot.SendMsg('group',Notice.group_id,soup.Text('欢迎新人'),soup.Face(13),soup.At(Notice.user_id))
+        member = bot.Member(group_id=Notice.group_id,user_id=Notice.user_id)[0]
+        group = bot.group(group_id=Notice.group_id)[0]
+        for f in admin_ID():
+            bot.SendMsg('friend',f.user_id,soup.Text(f'{member.nickname}({member.user_id}) 加入了 {group.group_name}({group.group_id})'))
+
+    if Notice.notice_type == 'group_ban': # 群禁言
+        group = bot.Group(group_id=Notice.group_id)[0]
+        user = bot.Member(group_id=Notice.group_id,user_id=Notice.operator_id)[0]
+        member = bot.Member(group_id=Notice.group_id,user_id=Notice.user_id)[0]
+        if Notice.sub_type == 'ban': # 禁言
+            {'time': 1733392512, 'self_id': 2907237958, 'post_type': 'notice', 'notice_type': 'group_ban', 'sub_type': 'ban', 'group_id': 260715723, 'operator_id': 1064393873, 'operator_uid': 'u_FHYadP-ArAm1UC9BAgy-6w', 'user_id': 2907237958, 'sender_id': 1064393873, 'duration': 600, 'target_id': 2907237958, 'target_uid': 'u_XGLNBZyp3QKeaXiEqaWQjw', 'source': 'group'}
+            bot.SendMsg('group',Notice.group_id,soup.At(Notice.user_id),soup.Text('你倒是说句话呀'),soup.Face(13))
+            for f in admin_ID():bot.SendMsg('Friend',f.user_id,soup.Text(f'群 {group.group_name}({group.group_id}) 成员 {member.nickname}({member.user_id}) 被 {user.nickname}[{user.role}({user.user_id})] 禁言至 {time.strftime(f"%y-%m-%d %H:%M",time.localtime(Notice.time+Notice.duration))}'))
+
+        else:# 解禁
+            {'time': 1733392755, 'self_id': 2907237958, 'post_type': 'notice', 'notice_type': 'group_ban', 'sub_type': 'lift_ban', 'group_id': 260715723, 'operator_id': 1064393873, 'operator_uid': 'u_FHYadP-ArAm1UC9BAgy-6w', 'user_id': 2907237958, 'sender_id': 1064393873, 'duration': 0, 'target_id': 2907237958, 'target_uid': 'u_XGLNBZyp3QKeaXiEqaWQjw', 'source': 'group'}
+            bot.SendMsg('group',Notice.group_id,soup.Text('啧，走后门'))
+            for f in admin_ID():bot.SendMsg('Friend',f.user_id,soup.Text(f'群 {group.group_name}({group.group_id}) 成员 {member.nickname}({member.user_id}) 被 {user.nickname}[{user.role}({user.user_id})] 解除禁言'))
+        return
+    
+    if Notice.notice_type == 'group_recall': # 群消息撤回
+        group = bot.Group(group_id=Notice.group_id)[0]
+        user = bot.Member(group_id=Notice.group_id,user_id=Notice.operator_id)[0]
+        member = bot.Member(group_id=Notice.group_id,user_id=Notice.user_id)[0]
+        for f in admin_ID():
+            bot.SendMsg('friend', f.user_id, soup.Text(f'群 {group.group_name}({group.group_id}) {user.nickname}[{user.role}({user.user_id})] 撤回了 {"" if user.user_id==member.user_id else f" {member.nickname}[{member.role}({member.user_id})] 的"}消息ID {Notice.message_id}'))
             if 'msglog' in bot.db.Table:
                 message = bot.db.Select('msglog','message_id',Notice.message_id)
                 if message:bot.SendMsg('friend', f.user_id, *[soup.Node(*msg.message) for msg in message])
         return
+    
     if Notice.notice_type == 'group_card': # 群成员名片变动
         pass
     if Notice.notice_type == 'friend_add': # 好友添加
         pass
     if Notice.notice_type == 'friend_recall': # 好友撤回
         for f in admin_ID():
-            bot.SendMsg('friend', f.user_id, soup.Text(f'好友{bot.Friend(user_id=Notice.operator_id)[0].user_name}[{bot.Friend(user_id=Notice.operator_id)[0].user_remark}({bot.Friend(user_id=Notice.operator_id)[0].user_id})]撤回了消息 {Notice.message_id}'))
+            bot.SendMsg('friend', f.user_id, soup.Text(f'好友{bot.Friend(user_id=Notice.operator_id)[0].nickname}[{bot.Friend(user_id=Notice.operator_id)[0].user_remark}({bot.Friend(user_id=Notice.operator_id)[0].user_id})]撤回了消息 {Notice.message_id}'))
             if 'msglog' in bot.db.Table:
                 message = bot.db.Select('msglog','message_id',Notice.message_id)
                 if message:bot.SendMsg('friend', f.user_id, *[soup.Node(*msg.message) for msg in message])
@@ -259,7 +287,19 @@ def onQQNotice(bot, Notice):
     if Notice.notice_type == 'client_status': # 客户端状态
         pass
     if Notice.notice_type == 'essence': # 精华消息
-        pass
+        {'time': 1733382566, 'self_id': 2907237958, 'post_type': 'notice', 'notice_type': 'essence', 'sub_type': 'add', 'group_id': 683327278, 'operator_id': 183744529, 'sender_id': 592066232, 'message_id': 971594782, 'source': 'group'}
+        group = bot.Group(group=Notice.group_id)
+        user = bot.Member(group=Notice.group_id,user_id=Notice.operator_id)
+        member = bot.Member(group=Notice.group_id,user_id=Notice.sender_id)
+        message = bot.GetMsg(Notice.message_id)
+        for f in admin_ID():
+            if Notice.sub_type == 'add':
+                bot.SendMsg('friend',f.user_id,soup.Text(f'群 {group.group_name}({group.group_id}) 成员 {member.nickname}({member.user_id}) 的消息 ({Notice.message_id}) 被 {user.nickname}[{user.role}({user.user_id})] 添加精华'))
+                bot.SendMsg('friend',f.user_id,soup.Node(id=Notice.message_id))
+            else:
+                bot.SendMsg('friend',f.user_id,soup.Text(f'群 {group.group_name}({group.group_id}) 成员 {member.nickname}({member.user_id}) 的消息 ({Notice.message_id}) 被 {user.nickname}[{user.role}({user.user_id})] 移出精华'))
+                bot.SendMsg('friend',f.user_id,soup.Node(id=Notice.message_id))
+
     if Notice.notice_type == 'notify': # 系统通知
         if Notice.sub_type == 'honor': # 群荣誉变更
             pass

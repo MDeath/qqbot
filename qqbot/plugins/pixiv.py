@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import json, os, time, random, re, traceback
+import json, os, time, re, traceback
 from io import BytesIO
 from pixivpy3 import AppPixivAPI
 from pixivpy3.utils import PixivError
@@ -19,18 +19,19 @@ starttime = 1672531200 # 起始时间
 life:int = 10800 # 链接时效 3*60*60
 # 1672531200 - 10800 = 1672520400
 
-fileserver = 'http://mdie.asuscomm.com:8888'
+fileserver = 'https://pixiv.mdie.top'
 
 # 图片代理
-hosts = [ # 'https://i.pximg.net'
-    # 'https://i.pixiv.cat',
-    'https://i.pixiv.re',
-    'https://i.pixiv.nl',
-    # 'http://mdie.asuscomm.com:8888',
+HOSTS = [
+    # 'i.pixiv.cat',
+    'img.mdie.top',
+    'i.pixiv.re',
+    'i.pixiv.nl',
 ]
-def host(): # 混用代理切换
-    hosts.insert(0,hosts.pop())
-    return hosts[0]
+def change_host(url:str):
+    # 图片代理
+    HOSTS.append(HOSTS.pop(0))
+    return url.replace('i.pximg.net',HOSTS[0])
 
 # pixiv配置
 config = {
@@ -89,7 +90,7 @@ def get_tags(number=40):
     return "\n".join([f"{tag.tag}:{tag.translated_name}" for tag in pixiv.trending_tags_illust().trend_tags][:number])
 
 def content(url: str) -> bytes:
-    with pixiv.requests.get(url, headers={"Referer": "https://app-api.pixiv.net/"}, stream=True) as response:return response.content
+    with pixiv.requests.get(change_host(url), headers={"Referer": "https://app-api.pixiv.net/"}, stream=True) as response:return response.content
 
 def ugoira_download(illust):
     delay = [frame.delay for frame in pixiv.ugoira_metadata(illust.id).ugoira_metadata.frames]
@@ -121,21 +122,28 @@ def illust_msg(illust, Group=True, limit=100): # 插画生成消息连
     if illust.type == 'ugoira':
         if not os.path.exists(f'{tempdir}/{illust.id}.gif'):ugoira_download(illust)
         url = f"{fileserver}/{b64enc('%d'%(time.time()-starttime+life)+f'{tempdir}/{illust.id}.gif')}"
-        try:message += [img2qr(url, f'{tempdir}/{illust.id}.gif')]
-        except:
-            ERROR(traceback.format_exc())
-            try:message += [img2qr(url, illust.image_urls.medium.replace('https://i.pximg.net', host()))]
-            except:
-                ERROR(traceback.format_exc())
-                message += [img2qr(url, illust.image_urls.medium, headers={"Referer": "https://app-api.pixiv.net/"})]
+        for n in range(5):
+            try:message += [img2qr(url, f'{tempdir}/{illust.id}.gif')]
+            except:e = traceback.print_exception()
+            else:break
+        else:
+            ERROR(e)
+            for n in range(5):
+                try:message += [img2qr(url, change_host(illust.image_urls.medium))]
+                except:e = traceback.format_exc()
+                else:break
+            else:ERROR(e)
     else:
         if illust.page_count == 1:imgs = [[illust.meta_single_page.original_image_url, illust.image_urls.medium]]
         else:imgs = [[page.image_urls.original, page.image_urls.medium] for page in illust.meta_pages]
         url = re.search(r'\d+/\d+/\d+/\d+/\d+/\d+/\d+', imgs[0][0]).group()
-        try:message += [img2qr(fileserver +'/'+ b64enc('%d/%s_%d%s' % (time.time()-starttime+life, url, illust.page_count, imgs[0][0][-3:])), imgs[0][1].replace('https://i.pximg.net',host()))]
-        except:message += [img2qr(fileserver +'/'+ b64enc('%d/%s_%d%s' % (time.time()-starttime+life, url, illust.page_count, imgs[0][0][-3:])), content(imgs[0][1]))]
+        for n in range(5):
+            try:message += [img2qr(fileserver +'/'+ b64enc('%d/%s_%d%s' % (time.time()-starttime+life, url, illust.page_count, imgs[0][0][-3:])), change_host(imgs[0][1]))]
+            except:e = traceback.format_exc()
+            else:break
+        else:ERROR(e)
         if not Group:
-            message += [soup.Image(img[0].replace('https://i.pximg.net', host())) for img in imgs[:limit]]
+            message += [soup.Image(change_host(img[0])) for img in imgs[:limit]]
     return message
 
 def send_illust(illust, Type, target:int, reply:int=None): # 单插画聊天记录
@@ -222,26 +230,19 @@ def onUnplug(bot):
     del bot.pixiv
 
 def onInterval(bot): # 刷新令牌和保存PID记录
-    # while True:
-    #     try:
-    #         pixiv.auth(refresh_token=pixiv.refresh_token or config['REFRESH_TOKEN'])
-    #         break
-    #     except PixivError as e:
-    #         ERROR(traceback.format_exc())
-    #         time.sleep(10)
     with open(bot.conf.Config('PID.json'), 'w', encoding='utf-8') as f:json.dump(pixiv.PID, f)
 
 @QQBotSched(day_of_week=1) # 每周一减少PID记录
 def week_clear_pid(bot):
-    pixiv.PID = pixiv.PID[-1000:]
+    pixiv.PID = pixiv.PID[-10000:]
 
 # Pixiv日榜
-@QQBotSched(hour=8)
+# @QQBotSched(hour=8)
 def day_ranking(bot):
     ranking(bot, title=f'Pixiv {time.strftime("%Y-%m-%d", time.localtime(time.time()-86400))} 日榜单')
 
 # Pixiv R-18日榜
-@QQBotSched(hour=23, minute=30)
+# @QQBotSched(hour=23, minute=30)
 def day_r18_ranking(bot):
     ranking(bot, mode='day_r18',title=f'Pixiv {time.strftime("%Y-%m-%d", time.localtime(time.time()-86400))} R-18榜单')
 
@@ -268,18 +269,21 @@ def illust_follow(bot, Type=None, target=None, date=None):
             next_url = pixiv.parse_qs(illusts.next_url)
     for illust in illusts:
         bot.illusts.append({'uid':illust.user.id,'pid':illust.id,'type':illust.type,'count':illust.page_count,'medium':illust.image_urls.medium,'original':illust.meta_single_page.original_image_url if illust.page_count == 1 else illust.meta_pages[0].image_urls.original})
+    text = 'x'+'x'.join([f'{hex(i.id)[2:]}' for i in illusts])
+    imgqr = img2qr(fileserver+'/'+b64enc(password+text),change_host(illust.image_urls.medium))
     if Type and target and Type in ['friend', 'group']:
-        imgqr = img2qr(fileserver+'/'+b64enc('%sx%s' % (password, 'x'.join([f'{hex(i.id)[2:]}' for i in illusts]))),illust.image_urls.medium.replace('https://i.pximg.net',host()))
-        bot.SendMsg(Type, target, soup.Text(f'更新共 {len(illusts)} 个作品'))
+        bot.SendMsg(Type, target, soup.Text(password+text))
+        bot.SendMsg(Type, target, soup.Text(f'{date} 更新共 {len(illusts)} 个作品'))
         bot.SendMsg(Type, target, imgqr)
         return
-    imgqr = img2qr(fileserver+'/'+b64enc('%sx%s' % (password, 'x'.join([f'{hex(i.id)[2:]}' for i in illusts]))),illust.image_urls.medium.replace('https://i.pximg.net',host()))
+    
     for f in admin_ID():
-        bot.SendMsg('friend', f.user_id, soup.Text(f'更新共 {len(illusts)} 个作品'))
+        bot.SendMsg('friend', f.user_id, soup.Text(password+text))
+        bot.SendMsg('friend', f.user_id, soup.Text(f'{date} 更新共 {len(illusts)} 个作品'))
         bot.SendMsg('friend', f.user_id, imgqr)
-    imgqr = img2qr(fileserver+'/'+b64enc('%dx%s' % (time.time()-1672520400, 'x'.join([f'{hex(i.id)[2:]}' for i in illusts]))),illust.image_urls.medium.replace('https://i.pximg.net',host()))
+    imgqr = img2qr(fileserver+'/'+b64enc(f'{time.time()-1672520400}{text}'),change_host(illust.image_urls.medium))
     for g in bot.Group():
-        bot.SendMsg('group', g.group_id, soup.Text(f'更新共 {len(illusts)} 个作品'))
+        bot.SendMsg('group', g.group_id, soup.Text(f'{date} 更新共 {len(illusts)} 个作品'))
         bot.SendMsg('group', g.group_id, imgqr)
 
 def onQQMessage(bot, Type, Sender, Source, Message):
@@ -351,7 +355,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             [bot.SendMsg(Type, Source.target, soup.Text(f'⚠️{k}:{v}'+'\n'), reply=Source.message_id) for k, v in user.error.items() if v]
             return
         bot.SendMsg(Type, Source.target, soup.Text(f'UserID:{uid},Name:{user.user.name} 获取中♾️'), reply=Source.message_id)
-        if 'https://i.pximg.net' in user.user.profile_image_urls.medium:message = soup.Image(user.user.profile_image_urls.medium.replace('https://i.pximg.net', host())),
+        if 'https://i.pximg.net' in user.user.profile_image_urls.medium:message = soup.Image(change_host(user.user.profile_image_urls.medium)),
         else:message = soup.Image(content(user.user.profile_image_urls.medium)),
         message += soup.Text(f"\nUid:{user.user.id}\n名字:{user.user.name}\n插画:{user.profile.total_illusts} 漫画:{user.profile.total_manga} 小说:{user.profile.total_novels}"),
         node.append(soup.Node(*message))
@@ -417,7 +421,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         data = send_illust(illusts[0], Type, Source.target, Source.message_id)
         if Sender.user_id in [f.user_id for f in admin_ID()]:return
         for f in admin_ID():
-            bot.SendMsg('friend', f.user_id, soup.Text(f'群 {Source.group_name}({Source.group_id}) 成员 {Sender.user_name}({Sender.user_id}): {Plain}' if Group else f'好友 {Sender.user_name}({Sender.user_id}): {Plain}'))
+            bot.SendMsg('friend', f.user_id, soup.Text(f'群 {Source.group_name}({Source.group_id}) 成员 {Sender.nickname}({Sender.user_id}): {Plain}' if Group else f'好友 {Sender.nickname}({Sender.user_id}): {Plain}'))
             send_illust(illusts[0], 'friend', f.user_id)
         return
 
@@ -427,5 +431,5 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     if Group:admin_node += [soup.Node(*illust_msg(illust, False, 3)) for illust in illusts]
     else:admin_node = [soup.Forward(data.res_id)]
     for f in admin_ID():
-        bot.SendMsg('friend', f.user_id, soup.Text(f'群 {Source.group_name}({Source.group_id}) 成员 {Sender.user_name}({Sender.user_id}): {Plain}' if Group else f'好友 {Sender.user_name}({Sender.user_id}): {Plain}'))
+        bot.SendMsg('friend', f.user_id, soup.Text(f'群 {Source.group_name}({Source.group_id}) 成员 {Sender.nickname}({Sender.user_id}): {Plain}' if Group else f'好友 {Sender.nickname}({Sender.user_id}): {Plain}'))
         send_illusts(admin_node, 'friend', f.user_id)

@@ -27,7 +27,7 @@ def Source(
     return params
 
 def Reply(id:int):
-    return JsonDict({"type": "reply", "id": id})
+    return JsonDict({"type": "reply", "id": str(id)})
 
 def Text(text:str):
     return JsonDict({"type": "text", "text": str(text)})

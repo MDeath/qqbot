@@ -14,17 +14,17 @@ SHELL = lambda s:ADB(fr'-s {SERIAL} shell {s}')
 shell = lambda s:os.popen(SHELL(s)).read()
 DEVICES = lambda:{line.split()[0]:{info.split(':')[0]:info.split(':')[1] for info in line.split()[2:]} for line in os.popen(ADB('devices -l')).read().splitlines()[1:-1]}
 
-@QQBotSched(year=None, 
-            month=None, 
-            day=None, 
-            week=None, 
-            day_of_week=None, 
-            hour=None, 
-            minute=','.join([str(n) for n in range(0,60,3)]),
-            second=None, 
-            start_date=None, 
-            end_date=None, 
-            timezone=None)
+# @QQBotSched(year=None, 
+#             month=None, 
+#             day=None, 
+#             week=None, 
+#             day_of_week=None, 
+#             hour=None, 
+#             minute=','.join([str(n) for n in range(0,60,3)]),
+#             second=None, 
+#             start_date=None, 
+#             end_date=None, 
+#             timezone=None)
 def Chick(bot): # 免死金牌
     if bot.OneBot.started:return
     if SERIAL not in DEVICES():return

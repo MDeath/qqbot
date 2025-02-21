@@ -133,7 +133,7 @@ def img2qr(
                 elif byte[:6] in (b'GIF87a', b'GIF89a'):file_name+='.gif'
                 elif byte.startswith(b'BM'):file_name+='.bmp'
                 else:file_name+='.png'
-            picture = os.path.join(get_tempdir(), basename(file_name))
+            picture = os.path.join(get_tempdir(), basename(file_name[-250:]))
             with open(picture, "wb") as f:f.write(byte)
         except:
             picture = None

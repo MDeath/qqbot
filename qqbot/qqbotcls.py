@@ -18,7 +18,7 @@ RESTART = 201
 
 def _call(func, *args, **kwargs):
     try:
-        StartDaemonThread(func, *args, **kwargs)
+        func(*args, **kwargs)
     except Exception as e:
         ERROR('', exc_info=True)
         ERROR('执行 %s.%s 时出错，%s', func.__module__, func.__name__, e)
@@ -45,7 +45,7 @@ class QQBot(TermBot):
         self.conf.Display()
 
         self.db = DataBase('QDB.db')
-        self.OneBot = OneBotApi(self.conf.token, self.conf.host, self.conf.httpport, self.conf.wsport)
+        self.OneBot = OneBotApi(self.conf.token, self.conf.host, self.conf.httpport, self.conf.wsport, timeout=600)
 
         self.LoginInfo = self.OneBot.LoginInfo
         self.List = self.OneBot.List
@@ -121,8 +121,8 @@ class QQBot(TermBot):
             Source = JsonDict(time=event.time, message_id=event.message_id, target=event.target_id)
             Source.update(self.Friend(user_id=event.target_id)[0])
             Sender = self.Friend(user_id=event.sender.user_id)[0]
-            if 'post_type' in event and event.post_type.endswith('sent'):INFO(f'{SGR("同步", B4=1)}好友{SGR(Source.user_name,b4=11)}[{SGR(Source.user_remark,b4=11)}({SGR(Source.user_id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
-            else:INFO(f'来自好友{SGR(Sender.user_name,b4=11)}[{SGR(Sender.user_remark,b4=11)}({SGR(Sender.user_id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
+            if 'post_type' in event and event.post_type.endswith('sent'):INFO(f'{SGR("同步", B4=1)}好友{SGR(Source,b4=11)}[{SGR(Source.user_remark,b4=11)}({SGR(Source.user_id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
+            else:INFO(f'来自好友{SGR(Sender.nickname,b4=11)}[{SGR(Sender.user_remark,b4=11)}({SGR(Sender.user_id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
                 
         elif event.message_type == 'group' and event.sub_type == 'normal': # 群消息处理
             Type = event.message_type
@@ -130,7 +130,7 @@ class QQBot(TermBot):
             Source.update(self.Group(group_id=event.group_id)[0])
             Sender = self.Member(group_id=event.group_id,user_id=event.user_id)[0]
             if 'post_type' in event and event.post_type.endswith('sent'):INFO(f'{SGR("同步", B4=4)}群{SGR(Source.group_name,b4=14)}({SGR(Source.group_id,b4=4)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
-            else:INFO(f'来自群{SGR(Source.group_name,b4=14)}({SGR(Source.group_id,b4=4)})成员{SGR(Sender.user_name,b4=13)}({SGR(Sender.user_id,b4=3)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
+            else:INFO(f'来自群{SGR(Source.group_name,b4=14)}({SGR(Source.group_id,b4=4)})成员{SGR(Sender.nickname,b4=13)}({SGR(Sender.user_id,b4=3)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
         else: # 其他类型
             WARNING(f'MessageSubType omission: {event.sub_type}\n{event}')
             return
@@ -160,8 +160,8 @@ class QQBot(TermBot):
 
     def wrap(self, slots):
         def func(*args, **kwargs):
-            for f in slots:
-                _call(f, self, *args, **kwargs)
+            for func in slots:
+                _call(func, self, *args, **kwargs)
         return func
 
     def AddSlot(self, func):

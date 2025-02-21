@@ -8,18 +8,15 @@ class RequestError(Exception):
 
 class OneBotApi():
     def __init__(self, token=None, host='localhost', hp=5700, wp=5800, **kwargs) -> None:
-        self.started = False
+        self.started = None
         self.host = host
         self.hp = hp
         self.wp = wp
         self.kwargs = kwargs
-        self.headers = {'access_token':token,'ticket':token,'Authorization':token}
+        self.headers = {'Authorization':f'Bearer {token}'}
         self.Friend = lambda **kwargs:[t for t in self.List('friend') if not kwargs or all(t[k]==v for k,v in kwargs.items())]
         self.Group = lambda **kwargs:[t for t in self.List('group') if not kwargs or all(t[k]==v for k,v in kwargs.items())]
         self.Member = lambda **kwargs:[t for g in self.Group() for t in self.List('member',g.group_id) if not kwargs or all(t[k]==v for k,v in kwargs.items())]
-
-    ErrorCode = None
-    ErrorTime = None
 
     def basicsession(self, mode, url, **kwargs):
         kw = kwargs
@@ -28,31 +25,34 @@ class OneBotApi():
             if not self.started:continue
             try:
                 DEBUG(f'url:http://{self.host}:{self.hp}/{url} kw:{kw}')
-                r = getattr(requests, mode)(f'http://{self.host}:{self.hp}/{url}',headers=self.headers , **kw)
-                if r:r = DotDict(r.json())
-                else:r = DotDict({'status': 'ok', 'retcode': 0, 'data': None, 'echo': ''})
+                response = getattr(requests, mode)(f'http://{self.host}:{self.hp}/{url}',headers=self.headers , **kw)
+                r = DotDict(response.text)
+                if response.status_code != 200:raise RequestError(f'status_code: {response.status_code}')
                 break
             except requests.exceptions.ConnectionError:
                 ERROR('无法连接倒OneBot，请检查服务、地址、端口。')
+            except RequestError as e:
+                ERROR(e)
             except Exception as e:
                 raise RequestError(e)
         if (hasattr(r, 'status') and r.status != 'ok') or (hasattr(r,'retcode') and r.retcode != 0):
-            ERROR(f'mode: {mode}, url: {url}, kwargs: {kwargs}, status: {r.status}, retcode:{r.retcode}, Msg: {r.msg}, Wording: {r.wording}')
+            ERROR(f'mode: {mode}, url: {url}, kwargs: {kwargs}, {", ".join([f"{k}: {v}" for k,v in r.items()])}')
             return r
         return r.data
 
 ### 消息与事件上报 ###
     def pollForever(self, Analyst): # WS Adapter
-        self.Analyst = Analyst
         import websocket
         while True:
             try:
-                self.ws = websocket.create_connection(f'ws://{self.host}:{self.wp}', header=self.headers)
+                self.ws = websocket.create_connection(f'ws://{self.host}:{self.wp}', header=self.headers, timeout=60)
                 recv = self.ws.recv()
                 if not recv:raise
                 recv = DotDict(recv)
             except:
-                ERROR('qsession.Poll 方法出错请检查连接配置', exc_info=True)
+                if self.started:
+                    ERROR('qsession.Poll 方法出错请检查连接配置', exc_info=True)
+                    self.started = False
                 time.sleep(15)
                 continue
             INFO(f'qq:{recv.self_id} 链接成功')
@@ -61,11 +61,12 @@ class OneBotApi():
             while self.started:
                 try:
                     recv = DotDict(self.ws.recv())
-                    if recv.post_type == 'meta_event':continue
-                    self.Analyst(recv)
+                    if recv.post_type == 'meta_event':
+                        DEBUG(f'qq.status:{recv.status["qq.status"]}')
+                        continue
+                    StartDaemonThread(Analyst, recv)
                 except Exception as e:
                     ERROR(e)
-                    self.started = False
                     break
 
     def LoginInfo(self):
@@ -137,7 +138,7 @@ class OneBotApi():
 
     def HistoryMsg(self, mode:str, target:int, start:int=0, count:int=0):
         '''获取历史消息
-    id	int	是	消息ID'''
+    start	int	是	由此消息ID往前'''
         mode = mode.lower()
         payload = JsonDict()
         if mode == 'friend':
@@ -186,7 +187,7 @@ class OneBotApi():
         data = self.basicsession('post',url,json=payload)
         if mode=="friend":
             target = self.Friend(user_id=target)[0]
-            INFO(f'发到好友{SGR(target.user_name,b4=11)}[{SGR(target.user_remark,b4=11)}({SGR(target.user_id,b4=1)})]{(reply and "回复("+SGR(reply,b4=2)+")") or ""}消息({SGR(data.message_id, b4=12) if "message_id" in data else SGR(data.retcode, b4=11)}):\n{str(message)}')
+            INFO(f'发到好友{SGR(target.nickname,b4=11)}[{SGR(target.user_remark,b4=11)}({SGR(target.user_id,b4=1)})]{(reply and "回复("+SGR(reply,b4=2)+")") or ""}消息({SGR(data.message_id, b4=12) if "message_id" in data else SGR(data.retcode, b4=11)}):\n{str(message)}')
         elif mode=="group":
             target = self.Group(group_id=target)[0]
             INFO(f'发到群{SGR(target.group_name,b4=14)}({SGR(target.group_id,b4=4)}){(reply and "回复("+SGR(reply,b4=2)+")") or ""}消息({SGR(data.message_id, b4=12) if "message_id" in data else SGR(data.retcode, b4=11)}):\n{str(message)}')

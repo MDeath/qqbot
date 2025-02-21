@@ -3,9 +3,9 @@
 import os,json,psutil,random,time,traceback
 
 import soup
-from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
-from mainloop import Put
-from common import Unquote, STR2BYTES, BYTES2STR, b64dec, b64enc, jsondumps, DotDict, SGR, StartDaemonThread
+from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING, SetLogLevel, EnableLog, DisableLog
+from mainloop import Put, PutBack
+from common import JsonDict, DotDict, jsonloads, jsondumps, secs2hours, B2B, b64dec, b64enc, Unquote, STR2BYTES, BYTES2STR, SGR, StartDaemonThread
 
 cmdFuncs, usage = {}, {}
 
