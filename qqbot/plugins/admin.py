@@ -9,7 +9,7 @@ from common import JsonDict, DotDict, secs2hours, B2B, b64dec, b64enc, jsondumps
 import soup
 
 def admin_ID(user=False,me=False) -> list:
-    return [f for f in bot.Friend() if f.user_remark=='Admin' or (user and f.user_remark=='User') or (me and f.user_id==bot.qq)]
+    return [f for f in bot.Friend() if f.remark=='Admin' or (user and f.remark=='User') or (me and f.user_id==bot.qq)]
 
 def system_status():
     m = psutil.virtual_memory()
@@ -277,7 +277,7 @@ def onQQNotice(bot, Notice):
         pass
     if Notice.notice_type == 'friend_recall': # 好友撤回
         for f in admin_ID():
-            bot.SendMsg('friend', f.user_id, soup.Text(f'好友{bot.Friend(user_id=Notice.operator_id)[0].nickname}[{bot.Friend(user_id=Notice.operator_id)[0].user_remark}({bot.Friend(user_id=Notice.operator_id)[0].user_id})]撤回了消息 {Notice.message_id}'))
+            bot.SendMsg('friend', f.user_id, soup.Text(f'好友{bot.Friend(user_id=Notice.operator_id)[0].nickname}[{bot.Friend(user_id=Notice.operator_id)[0].remark}({bot.Friend(user_id=Notice.operator_id)[0].user_id})]撤回了消息 {Notice.message_id}'))
             if 'msglog' in bot.db.Table:
                 message = bot.db.Select('msglog','message_id',Notice.message_id)
                 if message:bot.SendMsg('friend', f.user_id, *[soup.Node(*msg.message) for msg in message])

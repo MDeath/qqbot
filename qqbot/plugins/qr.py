@@ -149,7 +149,8 @@ def img2qr(
         save_name = None,
         save_dir = get_tempdir()
     )
-    with open(qr_name, 'rb') as f:return soup.Image(file=f.read())
+    DEBUG(qr_name)
+    return soup.Image(qr_name)
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
