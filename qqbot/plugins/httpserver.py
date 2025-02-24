@@ -3,46 +3,58 @@ import tornado.gen
 import tornado.ioloop
 import tornado.web
 import os,re,time,traceback,mimetypes,sys
+from pixivpy3 import AppPixivAPI,PixivError
+
+# pixiv配置
+config = {
+    'REFRESH_TOKEN':'',
+    'USERNAME':'',
+    'PASSWORD':'',
+    'PROXIES':{
+        'http':'http://127.0.0.1:7897',
+        'https':'http://127.0.0.1:7897'
+    }
+}
+
+illusts = []
+class Pixiv(AppPixivAPI):
+    def __init__(self, **requests_kwargs): #初始化api
+        super().__init__(**requests_kwargs)
+        self.set_accept_language('zh-cn')
+
+    def require_auth(self) -> None:
+        if self.access_token is None:
+            self.auth()
+
+    def auth(self, username = None, password = None, refresh_token = None, headers = None):
+        while True:
+            try:return super().auth(username, password, refresh_token, headers)
+            except PixivError as e:ERROR(e)
+
+    def no_auth_requests_call(self, *args, **kwargs):
+        while True:
+            try:
+                r = super().no_auth_requests_call(*args, **kwargs)
+                if r.ok:return r
+                if r.text:jsondict = self.parse_json(r.text)
+                else:continue
+                time.sleep(10)
+                if hasattr(jsondict.error, 'message') and jsondict.error.message:
+                    if 'Rate Limit' in jsondict.error.message:
+                        continue
+                    elif 'Error occurred at the OAuth process.' in jsondict.error.message:
+                        self.auth(refresh_token=self.refresh_token or config['REFRESH_TOKEN'])
+                        continue
+                return r
+            except PixivError as e:
+                if e.reason.startswith('[ERROR] auth() failed! check refresh_token.') or str(e).startswith('Authentication required! Call login() or set_auth() first!'):
+                    self.auth()
+                elif e.reason.startswith('requests'):pass
+                else:raise PixivError(e)
+            except:
+                traceback.print_exc()
+
 if __name__ == '__main__':
-    from pixivpy3 import AppPixivAPI
-    illusts = []
-    class Pixiv(AppPixivAPI):
-        def __init__(self, **requests_kwargs): #初始化api
-            super().__init__(**requests_kwargs)
-            self.set_accept_language('zh-cn')
-
-        def require_auth(self) -> None:
-            if self.access_token is None:
-                self.auth()
-
-        def auth(self, username = None, password = None, refresh_token = None, headers = None):
-            while True:
-                try:return super().auth(username, password, refresh_token, headers)
-                except PixivError as e:ERROR(e)
-
-        def no_auth_requests_call(self, *args, **kwargs):
-            while True:
-                try:
-                    r = super().no_auth_requests_call(*args, **kwargs)
-                    if r.ok:return r
-                    if r.text:jsondict = self.parse_json(r.text)
-                    else:continue
-                    time.sleep(10)
-                    if hasattr(jsondict.error, 'message') and jsondict.error.message:
-                        if 'Rate Limit' in jsondict.error.message:
-                            continue
-                        elif 'Error occurred at the OAuth process.' in jsondict.error.message:
-                            self.auth(refresh_token=self.refresh_token or config['REFRESH_TOKEN'])
-                            continue
-                    return r
-                except PixivError as e:
-                    if e.reason.startswith('[ERROR] auth() failed! check refresh_token.') or str(e).startswith('Authentication required! Call login() or set_auth() first!'):
-                        self.auth()
-                    elif e.reason.startswith('requests'):pass
-                    else:raise PixivError(e)
-                except:
-                    traceback.print_exc()
-
     pixiv = Pixiv(proxies={'http':'http://127.0.0.1:7897','https':'http://127.0.0.1:7897'})
     pixiv.auth(refresh_token=input('pixiv refresh_token: '))
 else:
@@ -221,7 +233,7 @@ def onIllusts(img_path, t, path, medium=False):
                     illust['medium'].replace('_p0',f"_p{n}").replace('https://i.pximg.net',get_host())
                 ])
     img = '\n'.join([Image_box(num, imgs[num][0], imgs[num][1] if medium else None) for num in range(len(imgs))])
-    illusts = illusts[-1000:]
+    illusts = illusts[-10000:]
     return f'''\
 <!doctype html>
 <html>
@@ -238,7 +250,7 @@ def onIllusts(img_path, t, path, medium=False):
 
 class PixivFileHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
-    def get(self, path:str):
+    def get(self, path:str): # pixiv 图片反代
         if any([key in path for key in ["user-profile/img","img-original/img","img-master/img"]]):
             INFO(path)
             # 构建代理 URL
@@ -262,16 +274,20 @@ class PixivFileHandler(tornado.web.RequestHandler):
                 self.set_status(500)
                 self.write("server error")
             return
-        elif path.startswith('/lolicon'):
+        
+        elif path.startswith('/lolicon'): # lolicon API
             response = yield tornado.httpclient.AsyncHTTPClient().fetch(f'https://api.lolicon.app/setu/v2?{self.request.query}' if self.request.query else 'https://api.lolicon.app/setu/v2')
             imgs = '\n'.join([f'<div class="image-container"><img class="image" src="{url["urls"]["original"]}" alt="{url["urls"]["original"]}"/></div>' for url in jsonloads(response.body.decode())['data']])
             self.write(f"{Head('')}{imgs}")
             return
-        elif path.startswith(user_illusts_path):
+        
+        elif path.startswith(user_illusts_path): # pixiv 静态文件
             content_type, _ = mimetypes.guess_type(path) # 使用 mimetypes 模块自动推断文件类型
             if not content_type:content_type = "application/octet-stream" # 如果无法确定文件类型，则默认为 application/octet-stream
             self.set_header("Content-Type", content_type)# 设置响应头 Content-Type
             with open(path,'rb') as f:return self.write(f.read())
+        
+        # pixiv 服务 临时文件映射 pixiv地址映射 pixiv64位ID映射
         path = path[1:] # 移除 /
         now = time.localtime()
         try: # 尝试解码
@@ -333,15 +349,18 @@ app = tornado.web.Application(
 def onPlug(bot):
     global illusts
     global pixiv
-    pixiv = bot.pixiv
+    if hasattr(bot,'pixiv'):pixiv = bot.pixiv
+    else:
+        pixiv = Pixiv(proxies={'http':'http://127.0.0.1:7897','https':'http://127.0.0.1:7897'})
+        pixiv.auth(refresh_token=input('pixiv refresh_token: '))
     if not hasattr(bot,'server'):bot.server = app.listen(prot)
-    if not hasattr(bot,'illusts'):
-        try:
-            if os.path.exists(bot.conf.Config('illusts.json')) and hasattr(bot, 'illusts'):
-                with open(bot.conf.Config('illusts.json'), 'r', encoding='utf-8') as f:illusts = jsonload(f)
-            else:raise
-        except:illusts = []
-    bot.illusts = illusts
+    try:
+        if os.path.exists(bot.conf.Config('illusts.json')) and hasattr(bot, 'illusts'):
+            with open(bot.conf.Config('illusts.json'), 'r', encoding='utf-8') as f:illusts = jsonload(f)
+        else:raise
+    except:illusts = []
+    if not hasattr(bot,'illusts'):bot.illusts = illusts
+    else:illusts = bot.illusts
     StartDaemonThread(tornado.ioloop.IOLoop.current().start)
 
 def onUnplug(bot):
