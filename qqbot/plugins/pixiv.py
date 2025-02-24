@@ -237,18 +237,18 @@ def week_clear_pid(bot):
     pixiv.PID = pixiv.PID[-10000:]
 
 # Pixiv日榜
-# @QQBotSched(hour=8)
+@QQBotSched(hour=8)
 def day_ranking(bot):
     ranking(bot, title=f'Pixiv {time.strftime("%Y-%m-%d", time.localtime(time.time()-86400))} 日榜单')
 
 # Pixiv R-18日榜
-# @QQBotSched(hour=23, minute=30)
+@QQBotSched(hour=23, minute=30)
 def day_r18_ranking(bot):
     ranking(bot, mode='day_r18',title=f'Pixiv {time.strftime("%Y-%m-%d", time.localtime(time.time()-86400))} R-18榜单')
 
 # Pixiv每日动态
 @QQBotSched(hour=23)
-def illust_follow(bot, Type=None, target=None, date=None):
+def illust_follow(bot, Type='friend', target=1064393873, date=None):
     if date is None:date = time.strftime("%Y-%m-%d", time.localtime())
     next_url = {'restrict':'all'}
     illust_list = []

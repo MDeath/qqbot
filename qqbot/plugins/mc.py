@@ -106,17 +106,17 @@ if __name__ != '__main__':
         bot.MC.rcon.close()
         delattr(bot, 'MC')
 
-    # @QQBotSched(year=None, 
-    #             month=None, 
-    #             day=None, 
-    #             week=None, 
-    #             day_of_week=None, 
-    #             hour=None, 
-    #             minute=None, 
-    #             second='0,5,10,15,20,25,30,35,40,45,50,55', 
-    #             start_date=None, 
-    #             end_date=None, 
-    #             timezone=None)
+    @QQBotSched(year=None, 
+                month=None, 
+                day=None, 
+                week=None, 
+                day_of_week=None, 
+                hour=None, 
+                minute=None, 
+                second='0,5,10,15,20,25,30,35,40,45,50,55', 
+                start_date=None, 
+                end_date=None, 
+                timezone=None)
     def NewPlayer(bot):
         players = bot.MC.Rcon('list').strip().split(':')[1]
         players = set(players.split(', ')) if players else set()
