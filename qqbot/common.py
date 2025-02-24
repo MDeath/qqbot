@@ -31,7 +31,7 @@ jsondumps = json.dumps
 STR2BYTES = lambda s: s.encode('utf8')
 BYTES2STR = lambda s: s.decode('utf8')
 
-b64enc = lambda s,encoding="utf-8":base64.b64encode(s.encode(encoding)).decode().replace('=','') if isinstance(s,str) else base64.b64encode(s).decode().replace('=','')
+b64enc = lambda s,encoding="utf-8",equal=False:base64.b64encode(s.encode(encoding)).decode().replace('=','') if isinstance(s,str) else base64.b64encode(s).decode().replace(''if equal else'=','')
 b64dec = lambda s:base64.b64decode((s+'='*(len(s)%4)).encode()).decode() if isinstance(s,str) else base64.b64decode((s.decode()+'='*(len(s)%4)).encode()).decode()
 b64dec2b = lambda s:base64.b64decode((s+'='*(len(s)%4)).encode()) if isinstance(s,str) else base64.b64decode((s.decode()+'='*(len(s)%4)).encode())
 
