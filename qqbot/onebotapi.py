@@ -106,8 +106,6 @@ class OneBotApi():
             payload.group_id = int(gid)
         return self.basicsession('post',url,json=payload)
 
-
-
     def Info(self, mode:str, target:int, gid:int=None):
         '''获取联系人信息。
     mode	string	是	获取对象类型：unfriend|group|honor|member
@@ -171,7 +169,6 @@ class OneBotApi():
         mode = mode.lower()
         payload = JsonDict({'user_id' if mode == 'friend' else 'group_id':target})
         message = [JsonDict({'type':msg.pop('type'), 'data':msg}) for msg in [JsonDict(msg.copy()) for msg in list(message) + ([soup.Reply(reply)] if reply else [])]]
-        DEBUG(message)
         if any([msg.type=='node' for msg in message]):
             url = 'send_private_forward_msg' if mode == 'friend' else 'send_group_forward_msg'
             for node in message:
@@ -187,12 +184,11 @@ class OneBotApi():
         data = self.basicsession('post',url,json=payload)
         if mode=="friend":
             target = self.Friend(user_id=target)[0]
-            INFO(f'发到好友{SGR(target.nickname,b4=11)}[{SGR(target.user_remark,b4=11)}({SGR(target.user_id,b4=1)})]{(reply and "回复("+SGR(reply,b4=2)+")") or ""}消息({SGR(data.message_id, b4=12) if "message_id" in data else SGR(data.retcode, b4=11)}):\n{str(message)}')
+            INFO(f'发到好友{SGR(target.nickname,b4=11)}[{SGR(target.remark,b4=11)}({SGR(target.user_id,b4=1)})]{(reply and "回复("+SGR(reply,b4=2)+")") or ""}消息({SGR(data.message_id, b4=12) if "message_id" in data else SGR(data.retcode, b4=11)}):\n{str(message)}')
         elif mode=="group":
             target = self.Group(group_id=target)[0]
             INFO(f'发到群{SGR(target.group_name,b4=14)}({SGR(target.group_id,b4=4)}){(reply and "回复("+SGR(reply,b4=2)+")") or ""}消息({SGR(data.message_id, b4=12) if "message_id" in data else SGR(data.retcode, b4=11)}):\n{str(message)}')
         return data
-
 
     def Recall(self, id:int):
         '''该接口用于撤回消息。
