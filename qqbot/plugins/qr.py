@@ -149,7 +149,6 @@ def img2qr(
         save_name = None,
         save_dir = get_tempdir()
     )
-    DEBUG(qr_name)
     return soup.Image(qr_name)
 
 def onQQMessage(bot, Type, Sender, Source, Message):
