@@ -8,7 +8,7 @@ class ParamError(BaseException):pass
 
 class Base64(str):
     def __repr__(self) -> str:
-        return f'[Base64] size:{len(self[9:])}'
+        return f'Base64://[size: {len(self[9:])}]'
 
 def Type_Func(message:list|tuple, Type:list=None, Func=None):
     for msg in message:
@@ -33,21 +33,21 @@ def Text(text:str):
     return JsonDict({"type": "text", "text": str(text)})
 
 def At(uid:int=0):
-    return JsonDict({"type": "at", "qq": uid})
+    return JsonDict({"type": "at", 'data': {"user_id": str(uid)}})
 
-def Face(id:int, big:bool=None):
-    return JsonDict({"type": "face", "id": id,"big": big})
+def Face(id:int, big:bool=False):
+    return JsonDict({"type": "face", "id": str(id),"large": big})
 
 def FaceCount(id:int, count:bool=None):
-    return JsonDict({"type": "bubble_face", "id": id,"count": count})
+    return JsonDict({"type": "bubble_face", "id": str(id),"count": count})
 
 def media(file:str|bytes):
     '''file 可以是http、https、localpath、file、base64或是二进制'''
     if isinstance(file, str) and os.path.exists(file):
         with open(file,'rb') as f:file = f.read()
     if not (isinstance(file, str) and file.startswith(('http://','https://','file://'))):
-        try:file = Base64('base64://'+b64enc(b64dec(file)))
-        except:file = Base64('base64://'+b64enc(file))
+        try:file = Base64('base64://'+b64enc(b64dec(file),equal=True))
+        except:file = Base64('base64://'+b64enc(file,equal=True))
     return file
 
 def Image(file:str|bytes, type:str=None, subType:str=None):
@@ -64,20 +64,20 @@ def Video(file:str|bytes):
 
 def Basketball(id:int):
     '5 没中, 4 擦边没中, 3 卡框, 2 擦边中, 1 正中'
-    return JsonDict({{"type": "basketball", "id": id}})
+    return JsonDict({{"type": "basketball", "id": str(id)}})
 
 def RPS(id:int):
     '锤 3 剪 2 布 1'
-    return JsonDict({"type": "new_rps", "id": id})
+    return JsonDict({"type": "new_rps", "id": str(id)})
 
 def Dice(id:int):
-    return JsonDict({"type": "new_dice", "id": id})
+    return JsonDict({"type": "new_dice", "id": str(id)})
 
 def Poke(uid:int,type:int=1,level:int=1):
-    return JsonDict({"type": "poke", "type":type,"id": uid,"strength":level})
+    return JsonDict({"type": "poke", "type":str(type),"id": str(uid),"strength":str(level)})
 
 def Touch(uid:int):
-    return JsonDict({"type": "touch", "id": uid})
+    return JsonDict({"type": "touch", "id": str(uid)})
 
 def Music(url:str=None,audio:str=None,title:str=None,singer:str=None,image:str=None,type:str=None, id:int=None):
     '''\
@@ -91,7 +91,7 @@ image	string	✓	✓	否	封面图片链接'''
     obj = JsonDict({"type": "music", "type":type})
     if type in ('qq','163'):
         obj.data_type = type
-        obj.data.id = id
+        obj.data.id = str(id)
     else:
         obj.data_type = 'custom'
         obj.url = url
@@ -119,16 +119,18 @@ def Url(url:str,title:str=None,content:str=None,file:str=None):
     if content:obj.content = content
     if file:obj.file = media(file)
 
-def Gift(uid:int,id:id):
-    return JsonDict({"type": "gift", "qq": uid,'id':id})
+def Gift(uid:int,id:int):
+    return JsonDict({"type": "gift", "qq": str(uid),'id':str(id)})
 
-def Node(*message,id=None):
+def Node(*message,id:int=None,uid:int=2854196310,nickname='Q群管家'):
     obj = JsonDict({"type": "node"})
-    if id:obj.id = id
+    obj.user_id = str(uid)
+    obj.nickname = nickname
+    if id:obj.id = str(id)
     else:obj.content = message
     return obj
 
-def Forward(id):
+def Forward(id:str):
     return JsonDict(type='forward', id=id)
 
 def Json(obj:object):
