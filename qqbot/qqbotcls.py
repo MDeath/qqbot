@@ -62,6 +62,9 @@ class QQBot(TermBot):
         self.SetGroupName = self.OneBot.SetGroupName
         self.SetGroupAdmin = self.OneBot.SetGroupAdmin
         self.SetGroupCard = self.OneBot.SetGroupCard
+        self.Friend = self.OneBot.Friend
+        self.Group = self.OneBot.Group
+        self.Member = self.OneBot.Member
 
     def Run(self):
 
@@ -77,9 +80,6 @@ class QQBot(TermBot):
         for pluginName in self.conf.plugins:
             self.Plug(pluginName)
         self.qq = self.OneBot.qq
-        self.Friend = self.OneBot.Friend
-        self.Group = self.OneBot.Group
-        self.Member = self.OneBot.Member
 
         try:
             MainLoop()
@@ -120,7 +120,7 @@ class QQBot(TermBot):
             Type = 'friend' # 上报
             Sender = self.Friend(user_id=event.sender.user_id)[0]
             Source = JsonDict(time=event.time, message_id=event.message_id, target=event.target_id if event.user_id==event.self_id else event.user_id)
-            Source.update(self.Friend(user_id=event.target_id)[0])
+            Source.update(self.Friend(user_id=event.target_id if event.user_id==event.self_id else event.user_id)[0])
             if 'post_type' in event and event.post_type.endswith('sent'):INFO(f'{SGR("同步", B4=1)}好友{SGR(Source.nickname,b4=11)}[{SGR(Source.remark,b4=11)}({SGR(Source.user_id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
             else:INFO(f'来自好友{SGR(Sender.nickname,b4=11)}[{SGR(Sender.remark,b4=11)}({SGR(Sender.user_id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
                 
