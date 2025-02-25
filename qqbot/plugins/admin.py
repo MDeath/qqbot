@@ -191,7 +191,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             return
 
         if Text.lower().strip().startswith(('日志等级', 'setloglevel')):
-            for keyword in ['日志等级', 'setloglevel']:Text = Text.replace(keyword,'')
+            for keyword in ['日志等级', 'setloglevel']:Text = Text.replace(keyword,'').strip()
             SetLogLevel(Text)
             reply(soup.Text(f'日志等级设置为 {Text.upper()}'), reply=Source.message_id)
             return
@@ -222,7 +222,7 @@ def onQQNotice(bot, Notice):
     if Notice.notice_type == 'group_upload': # 群文件上传
         {'time': 1736753531, 'self_id': 2907237958, 'post_type': 'notice', 'notice_type': 'group_upload', 'group_id': 714470571, 'operator_id': 1535559131, 'user_id': 1535559131, 'file': {'id': '/3f16b76c-7d92-4729-990d-bd2b3d791cba', 'name': 'base.apk.1', 'size': 38357089, 'busid': 102, 'url': 'http://gzc-download.ftn.qq.com/ftn_handler/c8107a6ddd20e4068832ded5982318a73b913bbcf8cdba24ddf4ea8f36eb7cd2e5bc801511f571ce4a2a227285d2b96e406f5be10f812622764bb28cc88a2312/?fname=/3f16b76c-7d92-4729-990d-bd2b3d791cba&client_proto=qq&client_appid=537228697&client_type=android&client_ver=9.0.71&client_down_type=auto&client_aio_type=unk'}, 'source': 'private'}
         member = bot.Member(group_id=Notice.group_id,user_id=Notice.user_id)[0]
-        group = bot.group(group_id=Notice.group_id)[0]
+        group = bot.Group(group_id=Notice.group_id)[0]
         for f in admin_ID():
             bot.SendMsg('friend',f.user_id,soup.Text(f'群友 {member.nickname}({member.user_id}) 在 {group.group_name}({group.group_id}) 上传了文件:\n{Notice.file.name}\nID:{Notice.file.id}\n大小:{B2B(Notice.file.size)}\n链接:{Notice.file.url}'))
         return
@@ -241,7 +241,7 @@ def onQQNotice(bot, Notice):
         {'time': 1737431992, 'self_id': 2907237958, 'post_type': 'notice', 'notice_type': 'group_increase', 'sub_type': 'approve', 'group_id': 683327278, 'operator_id': 183744529, 'operator_uid': 'u_mEg0pkdNJZBsh5PmiJtZBw', 'user_id': 2117636781, 'user_uid': 'u_Hd9dRGd0SK2L0lS-5rUX_Q', 'sender_id': 183744529, 'target_id': 2117636781, 'target_uid': 'u_Hd9dRGd0SK2L0lS-5rUX_Q', 'source': 'group'}
         bot.SendMsg('group',Notice.group_id,soup.Text('欢迎新人'),soup.Face(13),soup.At(Notice.user_id))
         member = bot.Member(group_id=Notice.group_id,user_id=Notice.user_id)[0]
-        group = bot.group(group_id=Notice.group_id)[0]
+        group = bot.Group(group_id=Notice.group_id)[0]
         for f in admin_ID():
             bot.SendMsg('friend',f.user_id,soup.Text(f'{member.nickname}({member.user_id}) 加入了 {group.group_name}({group.group_id})'))
 
