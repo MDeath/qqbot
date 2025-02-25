@@ -60,6 +60,10 @@ class RCON(Client):
         while True:
             try:
                 response = self.run(text)
+                if response is None:
+                    self.close()
+                    self.__init__()
+                    continue
                 if p:print(Formatting2ANSI(response))
                 return Formatting2ANSI(response,False)
             except KeyboardInterrupt:
