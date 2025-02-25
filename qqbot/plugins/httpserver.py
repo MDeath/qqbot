@@ -4,6 +4,8 @@ import tornado.ioloop
 import tornado.web
 import os,re,time,traceback,mimetypes,sys
 from pixivpy3 import AppPixivAPI,PixivError
+from common import b64dec,b64enc,DotDict,jsonload,jsonloads,jsondump,StartDaemonThread,search
+from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 
 # pixiv配置
 config = {
@@ -57,9 +59,6 @@ class Pixiv(AppPixivAPI):
 if __name__ == '__main__':
     pixiv = Pixiv(proxies={'http':'http://127.0.0.1:7897','https':'http://127.0.0.1:7897'})
     pixiv.auth(refresh_token=input('pixiv refresh_token: '))
-else:
-    from common import b64dec,b64enc,DotDict,jsonload,jsonloads,jsondump,StartDaemonThread,search
-    from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 
 # 图片代理
 hosts = [
