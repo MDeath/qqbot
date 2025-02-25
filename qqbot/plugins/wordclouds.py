@@ -135,7 +135,7 @@ def WordCloud(text:str | list):
 class wordclouds(DataObj): # 注册表数据对象
     columns = '''\
 id          INTEGER     PRIMARY KEY     NOT NULL,
-time        INTEGER        NOT NULL,
+time        INTEGER     NOT NULL,
 type        TEXT        NOT NULL,
 target      INTEGER,
 sender      INTEGER     NOT NULL,
@@ -145,7 +145,7 @@ content     TEXT
 def onPlug(bot):
     bot.db.Add_Tabel_DataObj(wordclouds)
 
-# @QQBotSched(hour=0)
+@QQBotSched(hour=0)
 def Day(bot,date:str=None):
     '每日任务'
     if date:timestamp = time.mktime(time.strptime(date,'%Y%m%d'))
@@ -157,10 +157,10 @@ def Day(bot,date:str=None):
         wc = WordCloud(text)
         if Type == 'group':bot.SendMsg(Type,target,soup.Text(f'昨日群词云'),wc)
         else:
-            for f in bot.Friend(user_remark='Admin'):
+            for f in bot.Friend(remark='Admin'):
                 bot.SendMsg('friend',f.user_id,soup.Text(f'{Type}:{name}({target})'),wc)
 
-# @QQBotSched(day_of_week=0)
+@QQBotSched(day_of_week=0)
 def Week(bot,date:str=None):
     '每周任务'
     if date:timestamp = time.mktime(time.strptime(date,'%Y%m%d'))
@@ -172,10 +172,10 @@ def Week(bot,date:str=None):
         wc = WordCloud(text)
         if Type == 'group':bot.SendMsg(Type,target,soup.Text(f'上周群词云'),wc)
         else:
-            for f in bot.Friend(user_remark='Admin'):
+            for f in bot.Friend(remark='Admin'):
                 bot.SendMsg('friend',f.user_id,soup.Text(f'{Type}:{name}({target})'),wc)
 
-# @QQBotSched(day_of_week=0)
+@QQBotSched(day_of_week=0)
 def Week(bot,date:str=None):
     '每月任务'
     if date:
@@ -197,7 +197,7 @@ def Week(bot,date:str=None):
         wc = WordCloud(text)
         if Type == 'group':bot.SendMsg(Type,target,soup.Text(f'上月群词云'),wc)
         else:
-            for f in bot.Friend(user_remark='Admin'):
+            for f in bot.Friend(remark='Admin'):
                 bot.SendMsg('friend',f.user_id,soup.Text(f'{Type}:{name}({target})'),wc)
 
 def onQQMessage(bot, Type, Sender, Source, Message):

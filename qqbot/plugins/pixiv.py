@@ -193,7 +193,7 @@ def ranking(
     if targets:targets = [getattr(bot,Type.title())(group_id=t,user_id=t) for t in targets]
     else:targets = [t for t in bot.Group()] if Type == 'group' else []
     if not targets:return
-    targets = [t for t in bot.Friend(user_remark='Admin')] + targets
+    targets = [t for t in bot.Friend(remark='Admin')] + targets
     illusts = [soup.Node(*illust_msg(illust, True, 0)) for illust in illusts[:stop]]
     data = [send_illusts(illusts[num:num+step], 'friend', targets[0].user_id, None, title) for num in range(0,len(illusts),step)]
     for target in targets[1:]:
@@ -248,7 +248,7 @@ def day_r18_ranking(bot):
 
 # Pixiv每日动态
 @QQBotSched(hour=23)
-def illust_follow(bot, Type='friend', target=1064393873, date=None):
+def illust_follow(bot, Type=None, target=None, date=None):
     if date is None:date = time.strftime("%Y-%m-%d", time.localtime())
     next_url = {'restrict':'all'}
     illust_list = []
