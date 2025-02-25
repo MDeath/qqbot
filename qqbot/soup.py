@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from time import time
-import os
+import cloudscraper, os
 from common import JsonDict, b64dec, b64enc, jsonloads, jsondumps
 
 class ParamError(BaseException):pass
@@ -45,16 +45,15 @@ def media(file:str|bytes):
     '''file 可以是http、https、localpath、file、base64或是二进制'''
     if isinstance(file, str) and os.path.exists(file):
         with open(file,'rb') as f:file = f.read()
+    elif isinstance(file, str) and file.startswith('https://multimedia.nt.qq.com.cn/download'):
+        file = cloudscraper.create_scraper().get(file).content
     if not (isinstance(file, str) and file.startswith(('http://','https://','file://'))):
         try:file = Base64('base64://'+b64enc(b64dec(file),equal=True))
         except:file = Base64('base64://'+b64enc(file,equal=True))
     return file
 
-def Image(file:str|bytes, type:str=None, subType:str=None):
-    obj = JsonDict({"type": "image", "file":media(file)})
-    if type:obj.type = type
-    if subType:obj.data_type = subType
-    return obj
+def Image(file:str|bytes):
+    return JsonDict({"type": "image", "file":media(file)})
 
 def Voice(file:str|bytes):
     return JsonDict({"type": "record", "file":media(file)})

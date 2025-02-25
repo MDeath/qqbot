@@ -58,14 +58,14 @@ def search(Type,Sender,Source,imgurl,pid):
     error_number = 0
     while True:
         error_number += 1
-        if 'offpic_new' in imgurl:imgurl = imgurl.replace('multimedia.nt.qq.com.cn','c2cpicdw.qpic.cn')
-        if 'gchatpic_new' in imgurl:imgurl = imgurl.replace('multimedia.nt.qq.com.cn','gchat.qpic.cn')
-        try:ColorResp, BovwResp = Ascii2DSearch(imgurl.replace(f'c2cpicdw.qpic.cn/offpic_new/{Sender.user_id}//',f'gchat.qpic.cn/gchatpic_new/0/').replace('c2cpicdw.qpic.cn/offpic_new/0//',f'gchat.qpic.cn/gchatpic_new/0/'))
+        if 'offpic_new' in imgurl:imgurl = imgurl.replace('multimedia.nt.qq.com.cn','c2cpicdw.qpic.cn') # 9.0 以前的图床转换
+        if 'gchatpic_new' in imgurl:imgurl = imgurl.replace('multimedia.nt.qq.com.cn','gchat.qpic.cn') # 9.0 以前的图床转换
+        try:ColorResp, BovwResp = Ascii2DSearch(imgurl.replace(f'c2cpicdw.qpic.cn/offpic_new/{Sender.user_id}//',f'gchat.qpic.cn/gchatpic_new/0/').replace('c2cpicdw.qpic.cn/offpic_new/0//',f'gchat.qpic.cn/gchatpic_new/0/')) # 9.0 以前的图床转换
         except:ColorResp, BovwResp = None, None
         if ColorResp:
             for mode,Resp in [['特征',BovwResp],['色相',ColorResp]]:
                 node, pid = Resp2Msg(mode,Resp,pid,Type=='friend')
-                for n in node:message.append(soup.Node(*n))
+                for n in node:message.append(soup.Node(*n,uid=Sender.user_id,nickname=Sender.nickname))
         try:
             max = False
             results = sauce(imgurl) # or from_file()
@@ -91,7 +91,7 @@ def search(Type,Sender,Source,imgurl,pid):
                             getpid = pixivid(url)
                             pid.append(getpid)
                             if getpid:break
-                message.insert(0 if r.similarity >= 60 else -1,soup.Node(soup.Image(r.thumbnail) if Type == 'friend' else img2qr(picture=r.thumbnail),soup.Text(s)))
+                message.insert(0 if r.similarity >= 60 else -1,soup.Node(soup.Image(r.thumbnail) if Type == 'friend' else img2qr(picture=r.thumbnail),soup.Text(s),uid=Sender.user_id,nickname=Sender.nickname))
             max = r.similarity<60
             break
         except UnknownClientError as e:
@@ -118,7 +118,7 @@ def search(Type,Sender,Source,imgurl,pid):
             bot.SendMsg(Type, Source.target, soup.Text('🆘搜图失败，请稍后尝试🆘'), reply=Source.message_id)
             if len(message)==0:return [], None
             break
-    return [soup.Node(id=Source.message_id),soup.Node(soup.Reply(Source.message_id),soup.Image(imgurl) if Type == 'friend' else img2qr(picture=imgurl),soup.Text(f'查看{len(message)}条查询结果:\n{"⚠️匹配度低可能是AI或裁切拼接⚠️" if max else ""}'))]+message,pid
+    return [soup.Node(soup.Image(imgurl) if Type == 'friend' else img2qr(picture=imgurl),soup.Text(f'查看{len(message)}条查询结果:\n{"⚠️匹配度低可能是AI或裁切拼接⚠️" if max else ""}'),uid=Sender.user_id,nickname=Sender.nickname)]+message,pid
 
 def onPlug(bot):
     bot.sauce = sauce

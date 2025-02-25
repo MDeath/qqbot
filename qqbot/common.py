@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import json, subprocess, threading, sys, platform, os, base64, io
+import cloudscraper, json, subprocess, threading, sys, platform, os, base64, io
 
 class JsonDict(dict):
     def __getattr__(self, attr):

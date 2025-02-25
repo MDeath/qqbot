@@ -7,8 +7,6 @@ from common import JsonDict, b64dec2b
 from utf8logger import CRITICAL, DEBUG, ERROR, INFO, PRINT, WARNING
 import soup
 
-requests = cloudscraper.create_scraper()
-
 tempdir = os.path.join(os.getcwd(),'temp','qr')
 def get_tempdir():
     temppath = os.path.join(tempdir,time.strftime('%Y%m',time.localtime()))
@@ -121,7 +119,7 @@ def img2qr(
     
     if imgurl:
         for n in range(5):
-            try:byte = requests.get(imgurl,**kwargs).content
+            try:byte = cloudscraper.create_scraper().get(imgurl,**kwargs).content
             except Exception as e:pass
             else:break
         else:ERROR(f'{imgurl}\n{e}')
