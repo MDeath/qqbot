@@ -64,7 +64,7 @@ class OneBotApi():
                     if recv.post_type == 'meta_event':
                         DEBUG(f'qq.status:{recv.status["qq.status"]}')
                         continue
-                    StartDaemonThread(Analyst, recv)
+                    Analyst(recv)
                 except Exception as e:
                     ERROR(e)
                     break
