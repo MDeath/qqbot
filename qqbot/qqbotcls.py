@@ -125,6 +125,7 @@ class QQBot(TermBot):
             else:INFO(f'来自好友{SGR(Sender.nickname,b4=11)}[{SGR(Sender.remark,b4=11)}({SGR(Sender.user_id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
                 
         elif event.message_type == 'group' and event.sub_type == 'normal': # 群消息处理
+            if event.user_id==event.self_id and not event.message_style.is_cs_font_effect_enabled:return # lagrange bot 发送的消息
             Type = event.message_type
             Source = JsonDict(time=event.time, message_id=event.message_id, target=event.group_id)
             Source.update(self.Group(group_id=event.group_id)[0])
@@ -161,7 +162,7 @@ class QQBot(TermBot):
     def wrap(self, slots):
         def func(*args, **kwargs):
             for func in slots:
-                _call(func, self, *args, **kwargs)
+                StartDaemonThread(_call, func, self, *args, **kwargs)
         return func
 
     def AddSlot(self, func):
