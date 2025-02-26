@@ -208,6 +208,10 @@ def onIllusts(img_path, t, path, medium=False):
                 break
         else:
             illust = pixiv.illust_detail(pid)
+            Plain = f'标题:{illust.title} Pid:{illust.id}\n作者:{illust.user.name} Uid:{illust.user.id} {"T"if illust.user.is_followed else "F"}\n时间:{illust.create_date[:-6]}\n类型:{illust.type} 收藏比:{illust.total_bookmarks}/{illust.total_view},{"%.2f"%(illust.total_bookmarks/illust.total_view*100)}% 标签:\n'
+            if illust.illust_ai_type == 2:Plain += 'AI作图\n'
+            for tag in illust.tags:Plain += f'{tag.name}:{tag.translated_name}\n'
+            DEBUG(Plain)
             if 'error' in illust:continue
             if not (illust.illust.title or illust.illust.user.name):continue
             illust = {'uid':illust.illust.user.id,'pid':pid,'type':illust.illust.type,'count':illust.illust.page_count,'medium':illust.illust.image_urls.medium,'original':illust.illust.meta_single_page.original_image_url if illust.illust.page_count == 1 else illust.illust.meta_pages[0].image_urls.original}
