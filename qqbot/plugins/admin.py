@@ -256,7 +256,7 @@ def onQQNotice(bot, Notice):
 
         else:# 解禁
             {'time': 1733392755, 'self_id': 2907237958, 'post_type': 'notice', 'notice_type': 'group_ban', 'sub_type': 'lift_ban', 'group_id': 260715723, 'operator_id': 1064393873, 'operator_uid': 'u_FHYadP-ArAm1UC9BAgy-6w', 'user_id': 2907237958, 'sender_id': 1064393873, 'duration': 0, 'target_id': 2907237958, 'target_uid': 'u_XGLNBZyp3QKeaXiEqaWQjw', 'source': 'group'}
-            bot.SendMsg('group',Notice.group_id,soup.Text('啧，走后门'))
+            bot.SendMsg('group',Notice.group_id,soup.Text('啧'))
             for f in admin_ID():bot.SendMsg('Friend',f.user_id,soup.Text(f'群 {group.group_name}({group.group_id}) 成员 {member.nickname}({member.user_id}) 被 {user.nickname}[{user.role}({user.user_id})] 解除禁言'))
         return
     
@@ -265,22 +265,21 @@ def onQQNotice(bot, Notice):
         user = bot.Member(group_id=Notice.group_id,user_id=Notice.operator_id)[0]
         member = bot.Member(group_id=Notice.group_id,user_id=Notice.user_id)[0]
         for f in admin_ID():
+            message = bot.GetMsg(Notice.message_id)
+            bot.SendMsg('friend', f.user_id, soup.Node(*message.message,uid=message.sender.user_id,nickname=message.sender.nickname))
             bot.SendMsg('friend', f.user_id, soup.Text(f'群 {group.group_name}({group.group_id}) {user.nickname}[{user.role}({user.user_id})] 撤回了 {"" if user.user_id==member.user_id else f" {member.nickname}[{member.role}({member.user_id})] 的"}消息ID {Notice.message_id}'))
-            if 'msglog' in bot.db.Table:
-                message = bot.db.Select('msglog','message_id',Notice.message_id)
-                if message:bot.SendMsg('friend', f.user_id, *[soup.Node(*msg.message) for msg in message])
         return
     
     if Notice.notice_type == 'group_card': # 群成员名片变动
         pass
     if Notice.notice_type == 'friend_add': # 好友添加
         pass
-    if Notice.notice_type == 'friend_recall': # 好友撤回
+    if Notice.notice_type == 'friend_recall': # 好友消息撤回
+        friend = bot.Friend(user_id=Notice.user_id)[0]
         for f in admin_ID():
-            bot.SendMsg('friend', f.user_id, soup.Text(f'好友{bot.Friend(user_id=Notice.operator_id)[0].nickname}[{bot.Friend(user_id=Notice.operator_id)[0].remark}({bot.Friend(user_id=Notice.operator_id)[0].user_id})]撤回了消息 {Notice.message_id}'))
-            if 'msglog' in bot.db.Table:
-                message = bot.db.Select('msglog','message_id',Notice.message_id)
-                if message:bot.SendMsg('friend', f.user_id, *[soup.Node(*msg.message) for msg in message])
+            message = bot.GetMsg(Notice.message_id)
+            bot.SendMsg('friend', f.user_id, soup.Node(*message.message,uid=friend.user_id,nickname=friend.nickname))
+            bot.SendMsg('friend', f.user_id, soup.Text(f'好友{friend.nickname}[{friend.remark}({friend.user_id})]撤回了消息 {Notice.message_id}'))
         return
     if Notice.notice_type == 'offline_file': # 接收到离线文件包
         pass
