@@ -140,7 +140,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     for msg in Message:
         if msg.type == 'image':Image.append(msg)
         if msg.type == 'reply':
-            try:Message += [m for m in bot.GetMsg(msg.id).message if m.type == 'image']
+            try:[Image.append(m) for m in bot.GetMsg(msg.id).message if m.type == 'image']
             except:pass
     DEBUG(Message)
     if not Image:
@@ -173,7 +173,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 bot.SendMsg(Type, Source.target, soup.Text('🆘发送失败🆘'),reply=Source.message_id)
                 break
         for f in [f for f in admin_ID() if 'res_id' in data and f.user_id != Source.target]:
-            bot.SendMsg('friend', f.user_id, soup.Forward(data.res_id))
+            data = bot.SendMsg(Type, Source.target, *message)
         if pid and hasattr(bot,'pixiv'):
             for i in pid[::-1]:
                 illust = bot.pixiv.illust_detail(i)
