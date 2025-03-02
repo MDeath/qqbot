@@ -133,25 +133,24 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     回复图片发送 '搜图' 可图片溯源
     回复图片发送 '识图' 可图片溯源，并自动获取PixivID'''
     Text = ''
-    Image = []
+    Image = set()
     for msg in Message:
         if msg.type == 'text':Text += msg.text
     if Text.strip() not in ['st', '搜图', '识图']:return
     for msg in Message:
-        if msg.type == 'image':Image.append(msg)
+        if msg.type == 'image':Image.add(m.url)
         if msg.type == 'reply':
-            try:[Image.append(m) for m in bot.GetMsg(msg.id).message if m.type == 'image']
+            try:[Image.add(m.url) for m in bot.GetMsg(msg.id).message if m.type == 'image']
             except:pass
     DEBUG(Message)
     if not Image:
         if Text.strip() != 'st':bot.SendMsg(Type, Source.target, soup.Text('⚠️关联图片失败，请尝试直接和图片一起发送⚠️'), reply=Source.message_id)
         return
     bot.SendMsg(Type, Source.target, soup.Text(f'正在{Text.strip()}♾️'), reply=Source.message_id)
-    print(Image)
+
     for img in Image:
-        print(img)
         pid = [] if Text.strip()=='识图' else False
-        message, pid = search(Type, Sender, Source, img.url, pid)
+        message, pid = search(Type, Sender, Source, img, pid)
         if len(message)==0:
             bot.SendMsg(Type, Source.target, soup.Text('🆘暂时无法连到服务器🆘'), reply=Source.message_id)
             continue
