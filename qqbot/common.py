@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import cloudscraper, json, subprocess, threading, sys, platform, os, base64, io
+import time, json, subprocess, threading, sys, platform, os, base64, io
 
 class JsonDict(dict):
     def __getattr__(self, attr):
@@ -87,6 +87,13 @@ def SGR(text:str,setup:str='',b4:int=None,B4:int=None,b8:int=None,B8:int=None,r:
     if any([i in range(256) for i in [r,g,b]]):conf += ['38','2',str(r or 0),str(g or 0),str(b or 0)]
     if any([i in range(256) for i in [R,G,B]]):conf += ['48','2',str(R or 0),str(G or 0),str(B or 0)]
     return f'\033[{";".join(conf)}m{text}\033[0m' if 'Windows-10' in platform.platform() else text
+
+def loading():
+    s = ' ⠦ ⠧ ⠏ ⠋ ⠙ ⠹ ⠼ ⠴'
+    while True:
+        s = s[2:]+s[:2]
+        print(s,end='\r')
+        time.sleep(0.1)
 
 def isSpace(b):
     return b in [' ', '\t', '\n', '\r', 32, 9, 10, 13]
