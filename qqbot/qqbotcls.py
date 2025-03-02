@@ -16,12 +16,15 @@ from termbot import TermBot
 
 RESTART = 201
 
-def _call(func, *args, **kwargs):
-    try:
-        func(*args, **kwargs)
-    except Exception as e:
-        ERROR('', exc_info=True)
-        ERROR('执行 %s.%s 时出错，%s', func.__module__, func.__name__, e)
+def call(func, *args, **kwargs):
+    def _call():
+        try:
+            func(*args, **kwargs)
+        except Exception as e:
+            ERROR('执行 %s.%s 时出错，%s', func.__module__, func.__name__, e)
+            ERROR('', exc_info=True)
+    _call.__name__ = f'{time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())} {func.__module__}.{func.__name__}'
+    StartDaemonThread(_call)
 
 class QQBot(TermBot):
     def __init__(self) -> None:
@@ -162,7 +165,7 @@ class QQBot(TermBot):
     def wrap(self, slots):
         def func(*args, **kwargs):
             for func in slots:
-                StartDaemonThread(_call, func, self, *args, **kwargs)
+                call(func, self, *args, **kwargs)
         return func
 
     def AddSlot(self, func):
@@ -171,7 +174,7 @@ class QQBot(TermBot):
 
     def AddSched(self, **triggerArgs):
         def wrapper(func):
-            job = lambda: Put(_call, func, self)
+            job = lambda: call(func, self)
             job.__name__ = func.__name__
             j = self.scheduler.add_job(job, CronTrigger(**triggerArgs))
             self.schedTable[func.__module__].append(j)
@@ -224,7 +227,7 @@ class QQBot(TermBot):
                 INFO(result)
 
                 if self.OneBot.started and hasattr(module, 'onPlug'):
-                    _call(module.onPlug, self)
+                    call(module.onPlug, self)
 
         return result
 
@@ -237,7 +240,7 @@ class QQBot(TermBot):
             module = self.plugins[moduleName]
             self.unplug(moduleName)
             if hasattr(module, 'onUnplug'):
-                _call(module.onUnplug, self)
+                call(module.onUnplug, self)
             result = '成功：卸载插件 %s' % moduleName
             INFO(result)
             return result
