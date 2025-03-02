@@ -118,6 +118,7 @@ def img2qr(
     elif byte and not word:Exception('字节和Base64图片 word 不得为空')
     
     if imgurl:
+        DEBUG(imgurl)
         for n in range(5):
             try:byte = cloudscraper.create_scraper().get(imgurl,**kwargs).content
             except Exception as e:pass
@@ -147,6 +148,7 @@ def img2qr(
         save_name = None,
         save_dir = get_tempdir()
     )
+    DEBUG(qr_name)
     return soup.Image(qr_name)
 
 def onQQMessage(bot, Type, Sender, Source, Message):
