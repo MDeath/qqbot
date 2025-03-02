@@ -197,8 +197,8 @@ def ranking(
     illusts = [soup.Node(*illust_msg(illust, True, 0)) for illust in illusts[:stop]]
     data = [send_illusts(illusts[num:num+step], 'friend', targets[0].user_id, None, title) for num in range(0,len(illusts),step)]
     for target in targets[1:]:
-        for resp in data:
-            bot.SendMsg('group' if 'group_id' in target else 'friend', target.group_id if 'group_id' in target else target.user_id, soup.Forward(resp.res_id))
+        for num in range(0,len(illusts),step):
+            send_illusts(illusts[num:num+step], 'group' if 'group_id' in target else 'friend', target.group_id if 'group_id' in target else target.user_id, None, title)
 
 def onPlug(bot):
     bot.pixiv = pixiv
@@ -418,18 +418,15 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     else:return # 不匹配 PID UID 色图
 
     if len(illusts) == 1:
-        data = send_illust(illusts[0], Type, Source.target, Source.message_id)
+        send_illust(illusts[0], Type, Source.target, Source.message_id)
         if Sender.user_id in [f.user_id for f in admin_ID()]:return
         for f in admin_ID():
             bot.SendMsg('friend', f.user_id, soup.Text(f'群 {Source.group_name}({Source.group_id}) 成员 {Sender.nickname}({Sender.user_id}): {Plain}' if Group else f'好友 {Sender.nickname}({Sender.user_id}): {Plain}'))
             send_illust(illusts[0], 'friend', f.user_id)
         return
 
-    node += [soup.Node(*illust_msg(illust, Group, 3)) for illust in illusts]
-    data = send_illusts(node, Type, Source.target, Source.message_id)
+    send_illusts([soup.Node(*illust_msg(illust, Group, 3)) for illust in illusts], Type, Source.target, Source.message_id)
     if Sender.user_id in [f.user_id for f in admin_ID()]:return
-    if Group:admin_node += [soup.Node(*illust_msg(illust, False, 3)) for illust in illusts]
-    else:admin_node = [soup.Forward(data.res_id)]
     for f in admin_ID():
         bot.SendMsg('friend', f.user_id, soup.Text(f'群 {Source.group_name}({Source.group_id}) 成员 {Sender.nickname}({Sender.user_id}): {Plain}' if Group else f'好友 {Sender.nickname}({Sender.user_id}): {Plain}'))
-        send_illusts(admin_node, 'friend', f.user_id)
+        send_illusts([soup.Node(*illust_msg(illust, False, 3)) for illust in illusts], 'friend', f.user_id)
