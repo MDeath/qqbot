@@ -208,12 +208,12 @@ def onIllusts(img_path, t, path, medium=False):
                 break
         else:
             illust = pixiv.illust_detail(pid)
-            Plain = f'标题:{illust.title} Pid:{illust.id}\n作者:{illust.user.name} Uid:{illust.user.id} {"T"if illust.user.is_followed else "F"}\n时间:{illust.create_date[:-6]}\n类型:{illust.type} 收藏比:{illust.total_bookmarks}/{illust.total_view},{"%.2f"%(illust.total_bookmarks/illust.total_view*100)}% 标签:\n'
-            if illust.illust_ai_type == 2:Plain += 'AI作图\n'
-            for tag in illust.tags:Plain += f'{tag.name}:{tag.translated_name}\n'
-            DEBUG(Plain)
             if 'error' in illust:continue
             if not (illust.illust.title or illust.illust.user.name):continue
+            Plain = f'标题:{illust.illust.title} Pid:{illust.illust.id}\n作者:{illust.illust.user.name} Uid:{illust.illust.user.id} {"T"if illust.illust.user.is_followed else "F"}\n时间:{illust.illust.create_date[:-6]}\n类型:{illust.illust.type} 收藏比:{illust.illust.total_bookmarks}/{illust.illust.total_view},{"%.2f"%(illust.illust.total_bookmarks/illust.illust.total_view*100)}% 标签:\n'
+            if illust.illust.illust_ai_type == 2:Plain += 'AI作图\n'
+            for tag in illust.illust.tags:Plain += f'{tag.name}:{tag.translated_name}\n'
+            DEBUG(Plain)
             illust = {'uid':illust.illust.user.id,'pid':pid,'type':illust.illust.type,'count':illust.illust.page_count,'medium':illust.illust.image_urls.medium,'original':illust.illust.meta_single_page.original_image_url if illust.illust.page_count == 1 else illust.illust.meta_pages[0].image_urls.original}
             illusts.append(illust)
         for n in range(illust['count']):
@@ -358,12 +358,12 @@ def onPlug(bot):
         pixiv.auth(refresh_token=input('pixiv refresh_token: '))
     if not hasattr(bot,'server'):bot.server = app.listen(prot)
     try:
-        if os.path.exists(bot.conf.Config('illusts.json')) and hasattr(bot, 'illusts'):
+        if os.path.exists(bot.conf.Config('illusts.json')):
             with open(bot.conf.Config('illusts.json'), 'r', encoding='utf-8') as f:illusts = jsonload(f)
         else:raise
     except:illusts = []
     if not hasattr(bot,'illusts'):bot.illusts = illusts
-    else:illusts = bot.illusts
+    else:bot.illusts += illusts
     StartDaemonThread(tornado.ioloop.IOLoop.current().start)
 
 def onUnplug(bot):
