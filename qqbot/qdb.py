@@ -33,6 +33,12 @@ time        REAL,
 
 def Create_DataObj(tname, columns):return type(tname, (DataObj,), {'columns': columns})
 
+def _work(func):
+    def _temp(*args, **kwargs):
+        try:return func(*args, **kwargs)
+        except sqlite3.ProgrammingError:return PutBack(func, *args, **kwargs)
+    return _temp
+
 class DataBase(object):
     def __init__(self, dbname=':memory:'):
         self.conn = sqlite3.connect(dbname)
@@ -41,6 +47,8 @@ class DataBase(object):
         # 读取表和sql，创建表数据对象
         self.cursor.execute('SELECT name, sql FROM "main".sqlite_master')
         self.Add_Tabel_DataObj(*self.cursor.fetchall())
+        for func in [self.update, self.insert, self.modify, self.exist, self.count, self.selectAll, self.select, self.delete]:
+            setattr(self, func.__name__.title(), _work(func))
 
     Table = {}
     def Add_Tabel_DataObj(self, *Class:list|tuple|DataObj):
@@ -131,6 +139,18 @@ class DataBase(object):
         )
         return bool(self.cursor.fetchall())
 
+    def count(self, tname:str, where:str=None, value:str=None, like:bool=False) -> int:
+        if not self.exist(tname):return []
+        if not where:
+            self.cursor.execute(f"SELECT COUNT(*) FROM '{tname}'")
+        elif not value:
+            self.cursor.execute(f"SELECT COUNT(*) FROM '{tname}' WHERE {where}")
+        elif not like:
+            self.cursor.execute(f"SELECT COUNT(*) FROM '{tname}' WHERE {where}={value}")
+        else:
+            self.cursor.execute(f"SELECT COUNT(*) FROM '{tname}' WHERE {where} like %{value}%")
+        return self.cursor.fetchall()[0][0]
+
     def selectAll(self, tname:str, limit=()) -> list[DataObj]:
         '整表查询'
         if not self.exist(tname):return []
@@ -144,7 +164,7 @@ class DataBase(object):
         limit = f' LIMIT {",".join([str(n) for n in limit])}' if limit else ''
         if not where:
             self.cursor.execute(f"SELECT * FROM '{tname}'{limit}")
-        elif not value: # 不建议对外公开，只有 where 的使用方法
+        elif not value:
             self.cursor.execute(f"SELECT * FROM '{tname}' WHERE {where}{limit}")
         elif not like:
             self.cursor.execute(f"SELECT * FROM '{tname}' WHERE {where}={value}{limit}")
@@ -184,38 +204,3 @@ class DataBase(object):
         except sqlite3.ProgrammingError:
             Put(self.cursor.executemany, sql, parameters)
             return PutBack(self.cursor.fetchall)
-
-    def Update(self, tname:str, *dataLS:list|dict) -> str:
-        '新增或更新所有'
-        try:return self.update(tname, *dataLS)
-        except sqlite3.ProgrammingError:return PutBack(self.update, tname, *dataLS)
-
-    def Insert(self, tname:str, *dataLS:list|dict) -> str:
-        '新增'
-        try:return self.insert(tname, *dataLS)
-        except sqlite3.ProgrammingError:return PutBack(self.insert, tname, *dataLS)
-
-    def Modify(self, tname:str, where:str, value:str=None, like:bool=False, **kw) -> list[DataObj]:
-        '修改'
-        try:return self.modify(tname, tname, where, value, like, **kw)
-        except sqlite3.ProgrammingError:return PutBack(self.modify, tname, where, value, like, **kw)
-
-    def Exist(self, tname:str) -> bool:
-        '检查表存在'
-        try:return self.exist(tname)
-        except sqlite3.ProgrammingError:return PutBack(self.exist, tname)
-
-    def SelectAll(self, tname:str, limit:list|tuple = ()) -> list[DataObj]:
-        '整表查询'
-        try:return self.selectAll(tname, limit)
-        except sqlite3.ProgrammingError:return PutBack(self.selectAll, tname, limit)
-
-    def Select(self, tname:str, where:str=None, value:str=None, like:bool=False, limit:list|tuple = ()) -> list[DataObj]:
-        '高级查询'
-        try:return self.select(tname, where, value, like, limit)
-        except sqlite3.ProgrammingError:return PutBack(self.select, tname, where, value, like, limit)
-
-    def Delete(self, tname:str, where:str) -> bool:
-        '删除'
-        try:return self.delete(tname, where)
-        except sqlite3.ProgrammingError:return PutBack(self.delete, tname, where)
