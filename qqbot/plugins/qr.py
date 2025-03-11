@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import cloudscraper, os, time
+import cloudscraper, os, PIL, time
 from amzqr import amzqr
 
 from qqbotcls import bot
@@ -81,7 +81,7 @@ def imageType2qr(message):
 
 def img2qr(
         word:str=None,
-        picture:str|JsonDict=None,
+        picture:str|dict=None,
         **kwargs
     ) -> soup.Image:
     '''
@@ -92,16 +92,16 @@ def img2qr(
     if not (word or picture):raise Exception('wrod or picture 不可同时为空')
     
     file_name, imgurl, byte = time.strftime('%y%m%d%H%M%S',time.localtime()), False, False
-    if isinstance(picture, JsonDict):
-        if 'url' in picture:imgurl = picture.url
+    if isinstance(picture, dict):
+        if 'url' in picture:imgurl = picture['url']
         elif 'file' in picture:
-            if picture.file.startswith(('http://','https://')):
-                imgurl = picture.file
+            if picture['file'].startswith(('http://','https://')):
+                imgurl = picture['file']
                 if imgurl.endswith(('.jpg','.png','.bmp','.gif')):file_name = imgurl
-            elif picture.file.startswith('base64://'):
-                try:byte = b64dec2b(picture.file[9:])
+            elif picture['file'].startswith('base64://'):
+                try:byte = b64dec2b(picture['file'][9:])
                 except:Exception('错误的base64')
-            else:Exception(f'不支持的格式 {picture.file[:6]}')
+            else:Exception(f'不支持的格式 {picture["file"][:6]}')
         else:Exception('没有包含 url 或 file')
 
     elif isinstance(picture,str) and picture.startswith('http'):
@@ -136,18 +136,20 @@ def img2qr(
             with open(picture, "wb") as f:f.write(byte)
         except:
             picture = None
-
-    version, level, qr_name = amzqr.run(
-        word,
-        version = 1,
-        level = 'L',
-        picture = picture,
-        colorized = True,
-        contrast = 1.0,
-        brightness = 1.0,
-        save_name = None,
-        save_dir = get_tempdir()
-    )
+    while True:
+        try:version, level, qr_name = amzqr.run(
+                word,
+                version = 1,
+                level = 'L',
+                picture = picture,
+                colorized = True,
+                contrast = 1.0,
+                brightness = 1.0,
+                save_name = None,
+                save_dir = get_tempdir()
+            )
+        except PIL.UnidentifiedImageError:picture = None
+        else:break
     DEBUG(qr_name)
     return soup.Image(qr_name)
 
