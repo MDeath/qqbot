@@ -138,7 +138,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         if msg.type == 'text':Text += msg.text
     if Text.strip() not in ['st', '搜图', '识图']:return
     for msg in Message:
-        if msg.type == 'image':Image.add(m.url)
+        if msg.type == 'image':Image.add(msg.url)
         if msg.type == 'reply':
             try:[Image.add(m.url) for m in bot.GetMsg(msg.id).message if m.type == 'image']
             except:pass
