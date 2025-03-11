@@ -47,7 +47,8 @@ class RCON(Client):
         port: int,
         passwd: str | None = None, 
         timeout: float | None = None,
-        frag_threshold: int = 8192):
+        frag_threshold: int = 8192
+    ):
         super().__init__(
             host, 
             port, 
@@ -68,13 +69,7 @@ class RCON(Client):
                 return Formatting2ANSI(response,False)
             except KeyboardInterrupt:
                 exit()
-            except ConnectionResetError:
-                self.__init__(self.host, self.port, passwd=self.passwd)
-                self.connect(True)
-            except ConnectionRefusedError:
-                self.__init__(self.host, self.port, passwd=self.passwd)
-                self.connect(True)
-            except ConnectionAbortedError:
+            except ConnectionResetError or ConnectionRefusedError or ConnectionAbortedError or OSError:
                 self.__init__(self.host, self.port, passwd=self.passwd)
                 self.connect(True)
 
@@ -97,7 +92,9 @@ if __name__ != '__main__':
         bot.MC = DotDict()
 
         rcon = RCON(opts.host, opts.port, passwd=opts.password)
-        rcon.connect(True)
+        try:rcon.connect(True)
+        except ConnectionRefusedError:bot.Unplug(__name__)
+            
         bot.MC.rcon = rcon
         bot.MC.Rcon = rcon.Rcon
         bot.MC.online = rcon.Rcon('list').strip().split(':')[1]
@@ -116,12 +113,12 @@ if __name__ != '__main__':
                 week=None, 
                 day_of_week=None, 
                 hour=None, 
-                minute=None, 
-                second='0,5,10,15,20,25,30,35,40,45,50,55', 
+                minute=None,
+                second=','.join(map(str,range(0,60,5))),
                 start_date=None, 
                 end_date=None, 
                 timezone=None)
-    def NewPlayer(bot):
+    def second(bot):
         players = bot.MC.Rcon('list').strip().split(':')[1]
         players = set(players.split(', ')) if players else set()
         new = players - bot.MC.players
@@ -130,18 +127,24 @@ if __name__ != '__main__':
         logout = bot.MC.online - players
         bot.MC.online = players
 
-        for player in new:
-            bot.MC.Rcon(f'give {player} notreepunching:knife/flint')
-            bot.MC.Rcon(f'give {player} notreepunching:axe/flint')
-            bot.MC.Rcon(f'give {player} notreepunching:pickaxe/flint')
+        if players:
+            gimetime = int(bot.MC.Rcon('time query gametime').split(' ')[-1])
+            bot.MC.Rcon(f'time set {gimetime*0.5}')
+
+        # for player in new:
+        #     bot.MC.Rcon(f'give {player} notreepunching:knife/flint')
+        #     bot.MC.Rcon(f'give {player} notreepunching:axe/flint')
+        #     bot.MC.Rcon(f'give {player} notreepunching:pickaxe/flint')
+
+        if new:
+            with open(bot.conf.Config('MC/players.txt'),'w') as f:f.write('\n'.join(bot.MC.players))
+
         if login:
             for TYPE, ID in target:
                 bot.SendMsg(TYPE, ID, soup.Text(f'{", ".join(login)} 加入了游戏'))
         if logout:
             for TYPE, ID in target:
                 bot.SendMsg(TYPE, ID, soup.Text(f'{", ".join(logout)} 退出了游戏'))
-        if new:
-            with open(bot.conf.Config('MC/players.txt'),'w') as f:f.write('\n'.join(bot.MC.players))
 
     def onQQMessage(bot, Type, Sender, Source, Message):
         Plain = ''
@@ -160,12 +163,12 @@ if __name__ != '__main__':
             bot.SendMsg(Type, Source.target, soup.Text(bot.MC.Rcon('list',True)), reply=Source.message_id)
 
         elif Plain == 'time':
-            GT = int(bot.MC.Rcon('time query gametime')[8:]) + 30000
+            GT = int(bot.MC.Rcon('time query gametime')[11:]) + 30000
             GD, GH = divmod(GT, 24000)
             GH, GM = divmod(GH, 1000)
             GM = GM * 60 // 1000
-            DT = int(bot.MC.Rcon('time query daytime')[8:]) + 6000
-            D = int(bot.MC.Rcon('time query day')[8:]) + 1
+            DT = int(bot.MC.Rcon('time query daytime')[11:]) + 6000
+            D = int(bot.MC.Rcon('time query day')[11:]) + 1
             H, M = divmod(DT, 1000)
             M = M * 60 // 1000
             strf = lambda H, M:time.strftime('%H:%M',(1,0,0,H,M,0,0,0,0))
