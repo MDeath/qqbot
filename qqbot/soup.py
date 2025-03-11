@@ -11,9 +11,12 @@ class Base64(str):
         return f'Base64://[size: {len(self[9:])}]'
 
 def Type_Func(message:list|tuple, Type:list=None, Func=None):
+    msg:dict = {}
     for msg in message:
-        if msg['type'] in Type or Type is None:
-            msg.update(Func(msg))
+        if Type is None or msg['type'] in Type:
+            new = Func(msg)
+            msg.clear()
+            msg.update(new)
         elif msg['type'] == 'node' and 'content' in msg:
             Type_Func(msg.content)
 
