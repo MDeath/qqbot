@@ -169,10 +169,10 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                             m.clear()
                             m.update(soup.Text('[被吞]'))
             if error_number == 4:
-                bot.SendMsg(Type, Source.target, soup.Text('🆘发送失败🆘'),reply=Source.message_id)
+                data = bot.SendMsg(Type, Source.target, soup.Text('🆘发送失败🆘'),reply=Source.message_id)
                 break
-        for f in [f for f in admin_ID() if 'res_id' in data and f.user_id != Source.target]:
-            data = bot.SendMsg(Type, Source.target, *message)
+        for f in [f for f in admin_ID() if data.res_id and f.user_id != Source.target]:
+            bot.SendMsg('friend', f.user_id, soup.Forward(data.res_id))
         if pid and hasattr(bot,'pixiv'):
             for i in pid[::-1]:
                 illust = bot.pixiv.illust_detail(i)
