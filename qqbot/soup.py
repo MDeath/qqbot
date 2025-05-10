@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from time import time
-import cloudscraper, os
+import cloudscraper, os, traceback
 from common import JsonDict, b64dec, b64enc, jsonloads, jsondumps
 
 class ParamError(BaseException):pass
@@ -10,15 +10,16 @@ class Base64(str):
     def __repr__(self) -> str:
         return f'Base64://[size: {len(self[9:])}]'
 
-def Type_Func(message:list|tuple, Type:list=None, Func=None):
+def Type_Func(Func, message:list|tuple, Type:list|str=None):
     msg:dict = {}
     for msg in message:
         if Type is None or msg['type'] in Type:
-            new = Func(msg)
+            try:new = Func(msg)
+            except:traceback.print_exc()
             msg.clear()
             msg.update(new)
         elif msg['type'] == 'node' and 'content' in msg:
-            Type_Func(msg.content)
+            Type_Func(Func, msg.content, Type=Type)
 
 def Source(
         id,
