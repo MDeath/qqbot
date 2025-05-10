@@ -57,6 +57,7 @@ class QQBot(TermBot):
         self.SendMsg = self.OneBot.SendMsg
         self.GetMsg = self.OneBot.GetMsg
         self.Recall = self.OneBot.Recall
+        self.Reaction = self.OneBot.Reaction
         self.HistoryMsg = self.OneBot.HistoryMsg
         self.GetForward = self.OneBot.GetForward
         self.GetImage = self.OneBot.GetImage
@@ -70,9 +71,6 @@ class QQBot(TermBot):
         self.Member = self.OneBot.Member
 
     def Run(self):
-
-        self.onPlug()
-
         # 子线程 1 上报处理
         StartDaemonThread(self.OneBot.pollForever, self.eventAnalyst)
         # 子线程 2 五分钟定时任务
