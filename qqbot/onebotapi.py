@@ -28,17 +28,17 @@ class OneBotApi():
                 response = getattr(requests, mode)(f'http://{self.host}:{self.hp}/{url}',headers=self.headers , **kw)
                 r = DotDict(response.text)
                 if response.status_code != 200:raise RequestError(f'status_code: {response.status_code}')
-                break
+                if r.get('status') != 'ok':
+                    if r.get('retcode') == 9057:continue
+                    ERROR(f'mode: {mode}, url: {url}, kwargs: {kwargs}, {", ".join([f"{k}: {v}" for k,v in r.items()])}')
+                    return r
+                return r.data
             except requests.exceptions.ConnectionError:
                 ERROR('无法连接倒OneBot，请检查服务、地址、端口。')
             except RequestError as e:
                 ERROR(e)
             except Exception as e:
                 raise RequestError(e)
-        if (hasattr(r, 'status') and r.status != 'ok') or (hasattr(r,'retcode') and r.retcode != 0):
-            ERROR(f'mode: {mode}, url: {url}, kwargs: {kwargs}, {", ".join([f"{k}: {v}" for k,v in r.items()])}')
-            return r
-        return r.data
 
 ### 消息与事件上报 ###
     def pollForever(self, Analyst): # WS Adapter
@@ -100,7 +100,9 @@ class OneBotApi():
         payload = JsonDict()
         if mode == 'unfriend':url = 'get_unidirectional_friend_list'
         elif mode == 'friend':url = 'get_friend_list'
-        elif mode == 'group':url = 'get_group_list'
+        elif mode == 'group':
+            url = 'get_group_list'
+            payload.no_cache = True
         elif mode == 'member':
             url = 'get_group_member_list'
             payload.group_id = int(gid)
@@ -194,6 +196,9 @@ class OneBotApi():
         '''该接口用于撤回消息。
     id	int	是	消息ID'''
         return self.basicsession('post','delete_msg',json={'message_id':id})
+
+    def Reaction(self, gid, message_id, face_id, is_add=True):
+        return self.basicsession('post','set_group_reaction',json={"group_id": gid,"message_id": message_id,"code": str(face_id),"is_add": is_add})
 
     def GetImage(self, file:str):
         return self.basicsession('post','get_image',json={'file':file})
