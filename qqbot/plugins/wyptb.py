@@ -40,7 +40,7 @@ def onInterval(bot):
         og['count'] += 1
         if og['count'] < 2:continue
         Pressed, Didntpress = wyptb_stats(og['ogid'])
-        bot.SendMsg(og['type'],og['target'],soup.Text('\n'.join([og['war_cond'], og['cond'], 'or', '但是', og['war_res'], og['res'] if og['type'] == 'group' else f'{og["res"]}\n按(yes) 或 不按(no)', '全球', f'{Pressed}人选择按下', f'{Didntpress}人选择不按'])))
+        bot.SendMsg(og['type'],og['target'],soup.Text('\n'.join([og['war_cond'], og['cond'], 'But', '但是', og['war_res'], og['res'] if og['type'] == 'group' else f'{og["res"]}\n按(yes) 或 不按(no)', f'{Pressed}人选择按下', f'{Didntpress}人选择不按'])))
         if og['type'] == 'group':
             yes = [m.nickname for m in bot.Member(group_id=og['target']) if m.user_id in og['yes'] and m.user_id != bot.qq]
             no = [m.nickname for m in bot.Member(group_id=og['target']) if m.user_id in og['no'] and m.user_id != bot.qq and m.user_id not in og['yes']]
@@ -63,7 +63,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
     if Text.strip().lower() in ['按不按', '按或不按', 'yes or no']:
         ogid, war_cond, war_res = wyptb()
         cond, res = translate(war_cond, war_res)
-        message_id = bot.SendMsg(Type,Source.target, soup.Text('\n'.join([war_cond, cond, 'or', '但是', war_res, res if Type == 'group' else f'{res}\n按(yes) 或 不按(no)']))).message_id
+        message_id = bot.SendMsg(Type,Source.target, soup.Text('\n'.join([war_cond, cond, 'But', '但是', war_res, res if Type == 'group' else f'{res}\n按(yes) 或 不按(no)']))).message_id
         if Type == 'group':
             while True:
                 if bot.Reaction(Source.target, message_id, 424) is not None:continue
@@ -76,7 +76,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             if Reply == TABLE[og]['message_id']:break
         og = TABLE.pop(og)
         Pressed, Didntpress = wyptb_stats(og['ogid'], 'yes' if Text.strip().lower() in ['按','yes'] else 'no')
-        bot.SendMsg(Type,Source.target, soup.Text('\n'.join(['以按下按钮' if Text.strip().lower() in ['按','yes'] else '没按下按钮', og['war_cond'], og['cond'], 'or', '但是', og['war_res'], og['res'] if Type == 'group' else f'{og["res"]}\n按(yes) 或 不按(no)', f'{Pressed}人选择按下', f'{Didntpress}人选择不按'])))
+        bot.SendMsg(Type,Source.target, soup.Text('\n'.join(['以按下按钮' if Text.strip().lower() in ['按','yes'] else '没按下按钮', og['war_cond'], og['cond'], 'But', '但是', og['war_res'], og['res'] if Type == 'group' else f'{og["res"]}\n按(yes) 或 不按(no)', f'{Pressed}人选择按下', f'{Didntpress}人选择不按'])))
 
 def onQQNotice(bot, Notice):
     if Notice.notice_type == 'reaction': # 群消息反应
@@ -106,5 +106,5 @@ if __name__ == '__main__':
     response = requests.get(WYPTB)
     ogid = int(re.findall(r'com/(\d+)"', response.text)[0])
     ogid, cond, res, Pressed, Didntpress = wyptb()
-    print(ogid, cond, 'but', res, '\n', *translate(cond, 'but', res))
+    print(ogid, cond, 'But', res, '\n', *translate(cond, 'But', res))
     print(f'{Pressed}人选择按下\n{Didntpress}人选择不按')
