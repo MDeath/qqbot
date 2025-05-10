@@ -15,6 +15,7 @@ def workAt(taskQueue):
         try:
             func, args, kwargs = taskQueue.get(timeout=0.5)
         except queue.Empty:pass
+        except KeyboardInterrupt:exit()
         except:traceback.print_exc()
         else:
             # func(*args, **kwargs)
