@@ -15,7 +15,9 @@ def Type_Func(Func, message:list|tuple, Type:list|str=None):
     for msg in message:
         if Type is None or msg['type'] in Type:
             try:new = Func(msg)
-            except:traceback.print_exc()
+            except:
+                traceback.print_exc()
+                continue
             msg.clear()
             msg.update(new)
         elif msg['type'] == 'node' and 'content' in msg:
