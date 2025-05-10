@@ -1,19 +1,20 @@
-import traceback,os,time
+import os,re,time
 
 from rcon.source import Client
 
-config = {
+SERVER_NAME = '.'.join(os.path.basename(__file__).split('.')[0:-1]) # 修改插件文件名对应多个服务器
+
+CONFIG = {
     "host":"",
     "port":25575,
-    "password":""
+    "password":"",
+    "target":[
+        ['friend', 1064393873],
+        # ['group', 931021429], 
+    ]
 }
 
-target = [
-    ['friend', 1064393873],
-    ['group', 931021429], 
-]
-
-worklist = []
+DELAY = ['true']*1 + ['false']*9 # 延长游戏时间设置
 
 def Formatting2ANSI(text:str, ansi=True):
     text = text.replace('§0','\033[0;30m' if ansi else '')
@@ -40,7 +41,7 @@ def Formatting2ANSI(text:str, ansi=True):
     text = text.replace('§r','\033[0m' if ansi else '')
     return text+'\n'
 
-class RCON(Client):
+class RCONClient(Client):
     def __init__(
         self,
         host: str,
@@ -49,6 +50,7 @@ class RCON(Client):
         timeout: float | None = None,
         frag_threshold: int = 8192
     ):
+        self.status = False
         super().__init__(
             host, 
             port, 
@@ -56,6 +58,9 @@ class RCON(Client):
             passwd=passwd, 
             frag_threshold=frag_threshold
         )
+        try:self.connect(True if passwd else False)
+        except (ConnectionResetError, ConnectionRefusedError, ConnectionAbortedError):pass
+        else:self.status = True
 
     def Rcon(self,text,p=False):
         while True:
@@ -69,9 +74,9 @@ class RCON(Client):
                 return Formatting2ANSI(response,False)
             except KeyboardInterrupt:
                 exit()
-            except ConnectionResetError or ConnectionRefusedError or ConnectionAbortedError or OSError:
+            except (ConnectionResetError, ConnectionRefusedError, ConnectionAbortedError, OSError):
                 self.__init__(self.host, self.port, passwd=self.passwd)
-                self.connect(True)
+                if not self.status:return False
 
 if __name__ != '__main__':
     import soup
@@ -80,32 +85,32 @@ if __name__ != '__main__':
     from qqbotcls import QQBotSched
 
     def onPlug(bot):
-        opts = DotDict(config)
-        if not os.path.exists(bot.conf.Config('MC')):
-            os.mkdir(bot.conf.Config('MC'))
-        if not os.path.exists(bot.conf.Config('MC/config.json')):
-            with open(bot.conf.Config('MC/config.json'),'w') as f:
-                jsondump(config, f)
-        with open(bot.conf.Config('MC/config.json'),'r') as f:
+        opts = DotDict(CONFIG)
+        if not os.path.exists(bot.conf.Config(SERVER_NAME)):
+            os.mkdir(bot.conf.Config(SERVER_NAME))
+        if not os.path.exists(bot.conf.Config(f'{SERVER_NAME}/config.json')):
+            with open(bot.conf.Config(f'{SERVER_NAME}/config.json'),'w') as f:
+                jsondump(CONFIG, f)
+        with open(bot.conf.Config(f'{SERVER_NAME}/config.json'),'r') as f:
             for k,v in jsonload(f).items():
                 if isinstance(v, str) and v:opts[k] = v
-        bot.MC = DotDict()
+        MC = DotDict()
+        setattr(bot,SERVER_NAME,MC)
 
-        rcon = RCON(opts.host, opts.port, passwd=opts.password)
-        try:rcon.connect(True)
-        except ConnectionRefusedError:bot.Unplug(__name__)
+        rcon = RCONClient(opts.host, opts.port, passwd=opts.password)
             
-        bot.MC.rcon = rcon
-        bot.MC.Rcon = rcon.Rcon
-        bot.MC.online = rcon.Rcon('list').strip().split(':')[1]
-        bot.MC.online = set(bot.MC.online.split(', ')) if bot.MC.online else set()
-        if not os.path.exists(bot.conf.Config('MC/players.txt')):
-            with open(bot.conf.Config('MC/players.txt'),'w') as f:pass
-        with open(bot.conf.Config('MC/players.txt'),'r') as f:bot.MC.players = set(f.read().split())
+        MC.rcon = rcon
+        MC.Rcon = rcon.Rcon
+        if MC.rcon.status:
+            MC.online = rcon.Rcon('list').replace(' ','').strip().split(':')[1]
+            MC.online = set(MC.online.split(',')) if MC.online else set()
+        if not os.path.exists(bot.conf.Config(f'{SERVER_NAME}/players.txt')):
+            with open(bot.conf.Config(f'{SERVER_NAME}/players.txt'),'w') as f:pass
+        with open(bot.conf.Config(f'{SERVER_NAME}/players.txt'),'r') as f:MC.players = set(f.read().split())
 
     def onUnplug(bot):
-        bot.MC.rcon.close()
-        delattr(bot, 'MC')
+        getattr(bot, SERVER_NAME).rcon.close()
+        delattr(bot, SERVER_NAME)
 
     @QQBotSched(year=None, 
                 month=None, 
@@ -114,39 +119,57 @@ if __name__ != '__main__':
                 day_of_week=None, 
                 hour=None, 
                 minute=None,
-                second=','.join(map(str,range(0,60,5))),
+                second=','.join(map(str,range(0,60,1))),
                 start_date=None, 
                 end_date=None, 
                 timezone=None)
     def second(bot):
-        players = bot.MC.Rcon('list').strip().split(':')[1]
-        players = set(players.split(', ')) if players else set()
-        new = players - bot.MC.players
-        bot.MC.players.update(players)
-        login = players - bot.MC.online
-        logout = bot.MC.online - players
-        bot.MC.online = players
+        MC = getattr(bot,SERVER_NAME)
+        old_status = MC.rcon.status
+        online = MC.Rcon('list')
+        if not old_status and MC.rcon.status:
+            for TYPE, ID in CONFIG['target']:
+                bot.SendMsg(TYPE, ID, soup.Text(f'{SERVER_NAME} 服务器上线'))
+        if old_status and not MC.rcon.status:
+            for TYPE, ID in CONFIG['target']:
+                bot.SendMsg(TYPE, ID, soup.Text(f'{SERVER_NAME} 服务器离线'))
+        if not MC.rcon.status:return
+        online = online.replace(' ','').strip().split(':')[1]
+        online = set(online.split(',')) if online else set()
+        new_players = online - MC.players
+        MC.players.update(online)
+        login, logout = [], []
+        login = online - MC.online
+        logout = MC.online - online
+        MC.online = online
 
-        if players:
-            gimetime = int(bot.MC.Rcon('time query gametime').split(' ')[-1])
-            bot.MC.Rcon(f'time set {gimetime*0.5}')
+        # if players:
+        #     gimetime = int(MC.Rcon('time query gametime').split(' ')[-1])
+        #     MC.Rcon(f'time set {gimetime*0.5}')
 
-        # for player in new:
-        #     bot.MC.Rcon(f'give {player} notreepunching:knife/flint')
-        #     bot.MC.Rcon(f'give {player} notreepunching:axe/flint')
-        #     bot.MC.Rcon(f'give {player} notreepunching:pickaxe/flint')
+        # for player in new_players: # 新玩家
+        #     MC.Rcon(f'give {player} notreepunching:knife/flint')
+        #     MC.Rcon(f'give {player} notreepunching:axe/flint')
+        #     MC.Rcon(f'give {player} notreepunching:pickaxe/flint')
 
-        if new:
-            with open(bot.conf.Config('MC/players.txt'),'w') as f:f.write('\n'.join(bot.MC.players))
+        if new_players:
+            with open(bot.conf.Config(f'{SERVER_NAME}/players.txt'),'w') as f:f.write('\n'.join(MC.players))
 
         if login:
-            for TYPE, ID in target:
+            for TYPE, ID in CONFIG['target']:
                 bot.SendMsg(TYPE, ID, soup.Text(f'{", ".join(login)} 加入了游戏'))
         if logout:
-            for TYPE, ID in target:
+            for TYPE, ID in CONFIG['target']:
                 bot.SendMsg(TYPE, ID, soup.Text(f'{", ".join(logout)} 退出了游戏'))
 
+        if online: # 有在线玩家延长时间
+            if DELAY[0] != DELAY[-1]:
+                MC.Rcon(f'gamerule doDaylightCycle {DELAY[0]}')
+            DELAY.append(DELAY.pop(0))
+        else:MC.Rcon('gamerule doDaylightCycle false') # 没有在线玩家暂停时间
+
     def onQQMessage(bot, Type, Sender, Source, Message):
+        MC = getattr(bot,SERVER_NAME)
         Plain = ''
 
         for msg in Message:
@@ -155,20 +178,20 @@ if __name__ != '__main__':
         if Plain != '/' and Plain.startswith('/') and (Sender.user_id in [f.user_id for f in admin_ID(me=True)] or ('group' == Type and Sender.role=='admin')):
             Plain = Plain[1:].strip()
 
-            r = bot.MC.Rcon(Plain,True)
+            r = MC.Rcon(Plain,True)
             if not r:return
             bot.SendMsg(Type, Source.target, soup.Text(r), reply=Source.message_id)
         
         elif Plain == 'list':
-            bot.SendMsg(Type, Source.target, soup.Text(bot.MC.Rcon('list',True)), reply=Source.message_id)
+            bot.SendMsg(Type, Source.target, soup.Text(MC.Rcon('list',True)), reply=Source.message_id)
 
         elif Plain == 'time':
-            GT = int(bot.MC.Rcon('time query gametime')[11:]) + 30000
+            GT = int(re.findall(r'\d+',MC.Rcon('time query gametime'))[0]) + 30000
             GD, GH = divmod(GT, 24000)
             GH, GM = divmod(GH, 1000)
             GM = GM * 60 // 1000
-            DT = int(bot.MC.Rcon('time query daytime')[11:]) + 6000
-            D = int(bot.MC.Rcon('time query day')[11:]) + 1
+            DT = int(re.findall(r'\d+',MC.Rcon('time query daytime'))[0]) + 6000
+            D = int(re.findall(r'\d+',MC.Rcon('time query day'))[0]) + 1
             H, M = divmod(DT, 1000)
             M = M * 60 // 1000
             strf = lambda H, M:time.strftime('%H:%M',(1,0,0,H,M,0,0,0,0))
@@ -183,8 +206,7 @@ if __name__ == '__main__':
     host = input('HOST: ')
     port = int(input('PORT: '))
     passwd = input('PASSWD: ')
-    client = RCON(host, port, passwd)
-    client.connect(True if passwd else False)
+    client = RCONClient(host, port, passwd)
     while True:
         try:
             command = input('>')
