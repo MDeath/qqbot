@@ -158,6 +158,17 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             bot.SendMsg(Type, Source.target, soup.Text('🆘暂时无法连到服务器🆘'), reply=Source.message_id)
             continue
 
+        if pid and hasattr(bot,'pixiv'):
+            for i in pid[::-1]:
+                illust = bot.pixiv.illust_detail(i)
+                if 'error' in illust or not (illust.illust.title or illust.illust.user.name):continue
+                if illust.illust.type == 'ugoira':
+                    bot.SendMsg(Type, Source.target, soup.Text(f'♾️PixivID:{pid},Title:{illust.illust.title} 动图生成中♾️'), reply=Source.message_id)
+                else:
+                    bot.SendMsg(Type, Source.target, soup.Text(f'♾️PixivID:{pid},Title:{illust.illust.title} 获取中♾️'), reply=Source.message_id)
+                bot.plugins.pixiv.send_illust(illust.illust, 'friend', Sender.user_id)
+                break
+
         error_number = 0
         while True:
             data = bot.SendMsg(Type, Source.target, *message)
@@ -174,17 +185,8 @@ def onQQMessage(bot, Type, Sender, Source, Message):
             if error_number == 4:
                 data = bot.SendMsg(Type, Source.target, soup.Text('🆘发送失败🆘'),reply=Source.message_id)
                 break
+    
         for f in [f for f in admin_ID() if data.res_id and f.user_id != Source.target]:
             bot.SendMsg('friend', f.user_id, soup.Forward(data.res_id))
-        if pid and hasattr(bot,'pixiv'):
-            for i in pid[::-1]:
-                illust = bot.pixiv.illust_detail(i)
-                if 'error' in illust or not (illust.illust.title or illust.illust.user.name):continue
-                if illust.illust.type == 'ugoira':
-                    bot.SendMsg(Type, Source.target, soup.Text(f'♾️PixivID:{pid},Title:{illust.illust.title} 动图生成中♾️'), reply=Source.message_id)
-                else:
-                    bot.SendMsg(Type, Source.target, soup.Text(f'♾️PixivID:{pid},Title:{illust.illust.title} 获取中♾️'), reply=Source.message_id)
-                bot.plugins.pixiv.send_illust(illust.illust, 'friend', Sender.user_id)
-                break
 
         time.sleep(20)
