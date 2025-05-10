@@ -87,7 +87,7 @@ class Pixiv(AppPixivAPI):
 pixiv = Pixiv(proxies=config['PROXIES'])
 
 def get_tags(number=40):
-    return "\n".join([f"{tag.tag}:{tag.translated_name}" for tag in pixiv.trending_tags_illust().trend_tags][:number])
+    return "\n".join([f"{tag.tag}:{tag.translated_name}" for tag in pixiv.trending_tags_illust().trend_tags][:number]+['noai:禁用AI','r18:r-18'])
 
 def content(url: str) -> bytes:
     with pixiv.requests.get(change_host(url), headers={"Referer": "https://app-api.pixiv.net/"}, stream=True) as response:return response.content
@@ -200,6 +200,38 @@ def ranking(
         for num in range(0,len(illusts),step):
             send_illusts(illusts[num:num+step], 'group' if 'group_id' in target else 'friend', target.group_id if 'group_id' in target else target.user_id, None, title)
 
+def illust_ranking(mode = "day", filter = "for_ios", date: str | None = None, total=100):
+    next_url = {'mode':mode, 'date':date}
+    illusts = []
+    while next_url:
+        illust_ranking = pixiv.illust_ranking(**next_url)
+        next_url = pixiv.parse_qs(illust_ranking.next_url)
+        illusts += illust_ranking.illusts
+        if len(illusts) >= total:return illusts
+    return illusts
+
+def ranking(
+        bot,
+        mode = 'day', # day, week, month, day_male, day_female, week_original, week_rookie, day_r18, day_male_r18, day_female_r18, week_r18, week_r18g
+        date:str=None, # 'YYYY-mm-dd'
+    ):
+    if date is None:date = time.strftime("%Y-%m-%d", time.localtime())
+    illusts = illust_ranking(mode,date=date)
+    if hasattr(bot,'illusts') and isinstance(illusts,list):
+        for illust in illusts:
+            if [True for i in bot.illusts if i['pid']==illust.id]:continue
+            bot.illusts.append({'uid':illust.user.id,'pid':illust.id,'type':illust.type,'count':illust.page_count,'medium':illust.image_urls.medium,'original':illust.meta_single_page.original_image_url if illust.page_count == 1 else illust.meta_pages[0].image_urls.original})
+    text = 'x'+'x'.join([f'{hex(i.id)[2:]}' for i in illusts])
+    imgqr = img2qr(fileserver+'/'+b64enc(password+text),change_host(illusts[0].image_urls.medium))
+    for f in admin_ID():
+        bot.SendMsg('friend', f.user_id, soup.Text(password+text))
+        bot.SendMsg('friend', f.user_id, soup.Text(f'{date} 更新共 {len(illusts)} 个作品'))
+        bot.SendMsg('friend', f.user_id, imgqr)
+    imgqr = img2qr(fileserver+'/'+b64enc(f'{time.time()-1672520400}{text}'),change_host(illust.image_urls.medium))
+    for g in bot.Group():
+        bot.SendMsg('group', g.group_id, soup.Text(f'{date} 更新共 {len(illusts)} 个作品'))
+        bot.SendMsg('group', g.group_id, imgqr)
+
 def onPlug(bot):
     bot.pixiv = pixiv
     try:
@@ -237,14 +269,14 @@ def week_clear_pid(bot):
     pixiv.PID = pixiv.PID[-10000:]
 
 # Pixiv日榜
-@QQBotSched(hour=8)
+# @QQBotSched(hour=8)
 def day_ranking(bot):
-    ranking(bot, title=f'Pixiv {time.strftime("%Y-%m-%d", time.localtime(time.time()-86400))} 日榜单')
+    ranking(bot)
 
 # Pixiv R-18日榜
-@QQBotSched(hour=23, minute=30)
+# @QQBotSched(hour=23, minute=30)
 def day_r18_ranking(bot):
-    ranking(bot, mode='day_r18',title=f'Pixiv {time.strftime("%Y-%m-%d", time.localtime(time.time()-86400))} R-18榜单')
+    ranking(bot, mode='day_r18')
 
 # Pixiv每日动态
 @QQBotSched(hour=23)
@@ -260,13 +292,14 @@ def illust_follow(bot, Type=None, target=None, date=None):
             elif illust.create_date[:10] == date:
                 illust_list.append(illust)
             else:
-                illusts = illust_list.copy()
-                illusts.reverse()
-                illust_list.sort(key=lambda i:i.total_bookmarks/i.total_view)
-                illust,next_url = illust_list[-1],None
+                next_url = None
                 break
         if next_url:
             next_url = pixiv.parse_qs(illusts.next_url)
+    illusts = illust_list.copy()
+    illusts.reverse()
+    illust_list.sort(key=lambda i:i.total_bookmarks/i.total_view)
+    illust = illust_list[-1]
     for illust in illusts:
         bot.illusts.append({'uid':illust.user.id,'pid':illust.id,'type':illust.type,'count':illust.page_count,'medium':illust.image_urls.medium,'original':illust.meta_single_page.original_image_url if illust.page_count == 1 else illust.meta_pages[0].image_urls.original})
     text = 'x'+'x'.join([f'{hex(i.id)[2:]}' for i in illusts])
@@ -309,30 +342,29 @@ def onQQMessage(bot, Type, Sender, Source, Message):
 
     node = []
     admin_node = []
-    keyward = ('st', 'setu', '色图', '涩图', '瑟图', '来点色图', '来点瑟图', '来点涩图')
+    keyword = ('st', 'setu', '色图', '涩图', '瑟图', '来点色图', '来点瑟图', '来点涩图')
 
     if Plain == '推荐关键字' or Plain == '关键字推荐':
         bot.SendMsg(Type, Source.target, soup.Text(get_tags()), reply=Source.message_id)
         return
 
-    if Plain.lower().strip().startswith('pid') or 'illust_id=' in Plain or 'artworks/' in Plain: # 通过PID获取插图
-        try:
-            if Plain.strip().lower().startswith('pid'):
-                pid = re.search(r'\d+', Plain)[0]
-            elif 'illust_id=' in Plain:
-                pid = re.search(r'illust_id=\d+', Plain)[0].replace('illust_id=', '')
-            elif 'artworks/' in Plain:
-                pid = re.search(r'artworks/\d+', Plain)[0].replace('artworks/', '')
-        except:
+    if Plain.lower().strip().startswith('pid') or 'illust_id=' in Plain or 'artworks/' in Plain or len(re.findall(r'/(\d+){1,7}',Plain)) == 7: # 通过PID获取插图
+        if Type == 'group':bot.Reaction(Source.target,Source.message_id,424)
+        for format in [r'illust_id=(\d+)',r'/(\d+)',r'\d+']:
+            try:pid = re.findall(format,Plain)[-1]
+            except:pass
+            else:break
+        else:
             bot.SendMsg(Type, Source.target, soup.Text('⚠️例:PID12345678'), reply=Source.message_id)
             return
         illust = pixiv.illust_detail(pid)
         if 'error' in illust:
-            [bot.SendMsg(Type, Source.target, soup.Text(f'⚠️{k}:{v}'+'\n'), reply=Source.message_id) for k, v in illust.error.items() if v]
+            [bot.SendMsg(Type, Source.target, soup.Text(f'Pid:{pid}\n⚠️{k}:{v}'), reply=Source.message_id) for k, v in illust.error.items() if v]
             return
         if not (illust.illust.title or illust.illust.user.name):
             bot.SendMsg(Type, Source.target, soup.Text(f'⚠️{Plain}已删除或非公开'), reply=Source.message_id)
             return
+        
         if illust.illust.type == 'ugoira':
             bot.SendMsg(Type, Source.target, soup.Text(f'♾️PixivID:{pid},Title:{illust.illust.title} 动图生成中♾️'), reply=Source.message_id)
         else:
@@ -340,6 +372,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         illusts = [illust.illust]
 
     elif Plain.lower().strip().startswith('uid') or 'member.php?' in Plain or 'users/' in Plain: # 通过UID获取用户作品
+        if Type == 'group':bot.Reaction(Source.target,Source.message_id,424)
         try:
             if Plain.lower().strip().startswith('uid'):
                 uid = re.search(r'\d+', Plain)[0]
@@ -364,13 +397,14 @@ def onQQMessage(bot, Type, Sender, Source, Message):
         illusts.sort(key=lambda i:i.create_date, reverse=True)
         illusts = illusts[:20] if Type=='group' else illusts[:10]
 
-    elif Plain.lower().strip().startswith(keyward) and not Images: # 随机色图和搜索
-        for kw in keyward:
+    elif Plain.lower().strip().startswith(keyword) and not Images: # 随机色图和搜索
+        if Type == 'group':bot.Reaction(Source.target,Source.message_id,424)
+        for kw in keyword:
             if kw in Plain.lower():
                 tags = Plain.lower().replace(kw, '').strip()
                 break
-        noai, no18 = 'noai' in tags, 'no18' in tags
-        tags = tags.replace('noai','').replace('no18','').strip()
+        noai, r18 = any([keyword in tags.lower() for keyword in ['noai','禁用AI']]), any([keyword in tags.lower() for keyword in ['r18','r-18']])
+        for kw in ('noai','禁用AI'):tags = tags.lower().replace(kw,'')
         number = 1
         avgs = tags.split()
         if avgs and avgs[-1].isdigit():
@@ -388,7 +422,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                     if next_url:p.illusts.sort(key=lambda i:i.total_bookmarks, reverse=True)
                     else:break
                     for i in p.illusts:
-                        if (noai and i.illust_ai_type == 2) or (no18 and i.x_restrict):continue
+                        if (noai and i.illust_ai_type == 2) or (not r18 and i.x_restrict):continue
                         if (i.total_bookmarks >= bookmark/2 >=50 or (250 >= bookmark and i.total_bookmarks >= 50)) and \
                             i.id not in pixiv.PID and \
                             i.page_count<=50:
@@ -408,7 +442,7 @@ def onQQMessage(bot, Type, Sender, Source, Message):
                 next_url = pixiv.parse_qs(p.next_url)
                 p.illusts.sort(key=lambda i:i.total_bookmarks, reverse=True)
                 for i in p.illusts:
-                    if (noai and i.illust_ai_type == 2) or (no18 and i.x_restrict):continue
+                    if (noai and i.illust_ai_type == 2) or (not r18 and i.x_restrict):continue
                     if i.id not in pixiv.PID:
                         illusts.append(i)
                         pixiv.PID.append(i.id)
