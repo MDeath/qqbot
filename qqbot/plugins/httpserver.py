@@ -154,23 +154,21 @@ def Head(title):
 </script>
 '''
 
-def Image_box(num, original, medium=None):
-    return f'''\
-    <div id="img{num}" class="image-container">
-        <div id="btn1" class="btn" onclick="loadImage('img{num}', '{original}')">
-            <img class="image" src="{medium or original}" alt="点击加载">
-        </div>
-    </div>'''
-
-def onPath(path, t, imgurl):
-    return f'''\
-{Head(os.path.basename(path))}
-<div class="image-container"><img class="image" src="{imgurl}" alt="{imgurl}"/></div>
-<h1 style="text-align:center;">
+def Next_url(path,t):
+    return f'''<h1 style="text-align:center;">
     <a href="{fileserver}/{b64enc('%d%s'%(int(t)+life/2, path))}" id="noneline">
         过期时间：{time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(int(t)+starttime))}
     </a>
 </h1>'''
+
+def Image_click_box(num, original, medium=None):
+    return f'''<div id="img{num}" class="image-container">
+    <div id="btn1" class="btn" onclick="loadImage('img{num}', '{original}')">
+        <img class="image" src="{medium or original}" alt="点击加载">
+    </div>
+</div>'''
+
+def Image_box(imgurl):return f'<div class="image-container"><img class="image" src="{imgurl}" alt="{imgurl}"/></div>'
 
 def onIllustPath(path, t):
     img_path = list(zip(
@@ -186,18 +184,9 @@ def onIllustPath(path, t):
             )
     img = '\n'.join([f'<div class="image-container"><a href="{img}"><img class="image" src="{img}" alt="重新加载"/></a></div>' for img in imgs])
     return f'''\
-<!doctype html>
-<html>
 {Head(f'共计:{len(imgs)}张')}
-<body>
-    {img}
-    <h1 style="text-align:center;">
-        <a href="{fileserver}/{b64enc('%d%s'%(int(t)+life/2, path))}" id="noneline">
-            过期时间：{time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(int(t)+starttime))}
-        </a>
-    </h1>
-</body>
-</html>'''
+{img}
+{Next_url(path,t)}'''
 
 def onIllusts(img_path, t, path, medium=False):
     imgs = []
@@ -235,7 +224,7 @@ def onIllusts(img_path, t, path, medium=False):
                     illust['original'].replace('_p0',f"_p{n}").replace('https://i.pximg.net',get_host()),
                     illust['medium'].replace('_p0',f"_p{n}").replace('https://i.pximg.net',get_host())
                 ])
-    img = '\n'.join([Image_box(num, imgs[num][0], imgs[num][1] if medium else None) for num in range(len(imgs))])
+    img = '\n'.join([Image_click_box(num, imgs[num][0], imgs[num][1] if medium else None) for num in range(len(imgs))])
     illusts = illusts[-10000:]
     return f'''\
 <!doctype html>
@@ -251,7 +240,7 @@ def onIllusts(img_path, t, path, medium=False):
 </body>
 </html>'''
 
-class PixivFileHandler(tornado.web.RequestHandler):
+class ImgFileHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     def get(self, path:str): # pixiv 图片反代
         if any([key in path for key in ["user-profile/img","img-original/img","img-master/img"]]):
@@ -280,8 +269,9 @@ class PixivFileHandler(tornado.web.RequestHandler):
         
         elif path.startswith('/lolicon'): # lolicon API
             response = yield tornado.httpclient.AsyncHTTPClient().fetch(f'https://api.lolicon.app/setu/v2?{self.request.query}' if self.request.query else 'https://api.lolicon.app/setu/v2')
-            imgs = '\n'.join([f'<div class="image-container"><img class="image" src="{url["urls"]["original"]}" alt="{url["urls"]["original"]}"/></div>' for url in jsonloads(response.body.decode())['data']])
-            self.write(f"{Head('')}{imgs}")
+            data = jsonloads(response.body.decode())['data']
+            imgs = '\n'.join([f'<div class="image-container"><img class="image" src="{url["urls"]["original"]}" alt="{url["urls"]["original"]}"/></div>' for url in data])
+            self.write(f"{Head(data['pid']+' '+data['titel'])}{imgs}")
             return
         
         elif path.startswith(user_illusts_path): # pixiv 静态文件
@@ -331,8 +321,16 @@ Encode:{enc}\ttimeout:{timeout}\tnormal:{enc and not timeout}''')
                 self.write(Error_Msg())
                 return
             if os.path.isfile(true_path):
-                imgurl = self.static_url(os.path.abspath(true_path).replace(os.getcwd(),'.').replace('\\','/'))
-                self.write(onPath(true_path, t, imgurl))
+                imgs = Image_box(self.static_url(os.path.abspath(true_path).replace(os.getcwd(),'.').replace('\\','/')))
+                self.write(f'''{Head(os.path.basename(path))}
+{imgs}
+{Next_url(path,t)}''')
+            elif os.path.isdir(true_path):
+                for root, dirs, files in os.walk(true_path):break
+                imgs = '\n'.join([Image_box(self.static_url(os.path.abspath(os.path.join(root,file)).replace(os.getcwd(),'.').replace('\\','/'))) for file in files])
+                self.write(f'''{Head(f'共计:{len(files)}')}
+{imgs}
+{Next_url(true_path,t)}''')
             elif re.search(r'\d+/\d+/\d+/\d+/\d+/\d+/\d+_\d+...', true_path):
                 self.write(onIllustPath(true_path, t))
             elif re.search(r'x[0-9a-fA-F]+', true_path):
@@ -344,7 +342,7 @@ Encode:{enc}\ttimeout:{timeout}\tnormal:{enc and not timeout}''')
 
 app = tornado.web.Application(
     [
-        (r"(.*)", PixivFileHandler),
+        (r"(.*)", ImgFileHandler),
     ],
     static_path='.' # 配置静态文件目录
 )
