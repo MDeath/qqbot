@@ -16,7 +16,7 @@ WIDTH: int = 2048
 HEIGHT: int = 2048
 
 # 词云图像边缘的空白宽度（以像素为单位）。较大的值会在词云周围留下更多的空白。
-MARGIN: int = 2
+MARGIN: int = 1
 
 # 如果设置为True或某个整数n，则只考虑最常见的n个单词（或所有单词，如果True），忽略其他单词的频率。
 RANKS_ONLY: int | bool | None = None
@@ -80,7 +80,7 @@ CONTOUR_WIDTH: int = 0
 CONTOUR_COLOR: str = 'BLACK'
 
 # 是否重复整个生成过程，以尝试获得更好的布局。这可能会增加生成词云所需的时间。
-REPEAT: bool = False
+REPEAT: bool = True
 
 # 是否在词云中包含数字。
 INCLUDE_NUMBERS: bool = False
@@ -175,8 +175,8 @@ def Week(bot,date:str=None):
             for f in bot.Friend(remark='Admin'):
                 bot.SendMsg('friend',f.user_id,soup.Text(f'{Type}:{name}({target})'),wc)
 
-@QQBotSched(day_of_week=0)
-def Week(bot,date:str=None):
+@QQBotSched(day=1)
+def Month(bot,date:str=None):
     '每月任务'
     if date:
         struct_time = time.strptime(date,'%Y%m%d')
