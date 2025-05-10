@@ -23,22 +23,21 @@ def system_status():
 
 CallBackList = []
 
-# @QQBotSched(year=None, 
-#             month=None, 
-#             day=None, 
-#             week=None, 
-#             day_of_week=None, 
-#             hour=None, 
-#             minute=','.join([str(n) for n in range(0,60,10)]),
-#             second=30, 
-#             start_date=None, 
-#             end_date=None, 
-#             timezone=None)
+@QQBotSched(year=None,
+            month=None,
+            day=None,
+            week=None,
+            day_of_week=None,
+            hour=None,
+            minute=','.join(map(str,range(0,60,5))),
+            second=30,
+            start_date=None,
+            end_date=None,
+            timezone=None)
 def Chime(bot):
     '定时任务'
-    for f in admin_ID():
-        if random.randint(0,1):bot.SendMsg('friend',f.user_id,soup.Text(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())),recall=90000)
-        else:bot.SendMsg('friend',f.user_id,soup.Text(time.strftime('%Y%m%d %H%M%S',time.localtime())),recall=90000)
+    if random.randint(0,1):DEBUG(soup.Text(time.strftime('%Y-%m-%d %H:%M:%S',time.localtime())))
+    else:DEBUG(soup.Text(time.strftime('%Y%m%d %H%M%S',time.localtime())))
 
 def onPlug(bot):
     bot.battery = psutil.sensors_battery()
@@ -48,6 +47,8 @@ def onUnplug(bot):
     '''\
     此插件不可卸载'''
     bot.Plug(__name__)
+
+def onInterval(bot):pass
 
 def onQQMessage(bot, Type, Sender, Source, Message):
     '''\
@@ -236,6 +237,7 @@ def onQQNotice(bot, Notice):
         group = bot.Group(group_id=Notice.group_id)[0]
         for f in admin_ID():
             bot.SendMsg('friend',f.user_id,soup.Text(f'{Notice.user_id} 退出了 {group.group_name}({group.group_id})'))
+        return
 
     if Notice.notice_type == 'group_increase': # 群成员增加
         {'time': 1737431992, 'self_id': 2907237958, 'post_type': 'notice', 'notice_type': 'group_increase', 'sub_type': 'approve', 'group_id': 683327278, 'operator_id': 183744529, 'operator_uid': 'u_mEg0pkdNJZBsh5PmiJtZBw', 'user_id': 2117636781, 'user_uid': 'u_Hd9dRGd0SK2L0lS-5rUX_Q', 'sender_id': 183744529, 'target_id': 2117636781, 'target_uid': 'u_Hd9dRGd0SK2L0lS-5rUX_Q', 'source': 'group'}
@@ -244,6 +246,7 @@ def onQQNotice(bot, Notice):
         group = bot.Group(group_id=Notice.group_id)[0]
         for f in admin_ID():
             bot.SendMsg('friend',f.user_id,soup.Text(f'{member.nickname}({member.user_id}) 加入了 {group.group_name}({group.group_id})'))
+        return
 
     if Notice.notice_type == 'group_ban': # 群禁言
         group = bot.Group(group_id=Notice.group_id)[0]
@@ -272,19 +275,7 @@ def onQQNotice(bot, Notice):
     
     if Notice.notice_type == 'group_card': # 群成员名片变动
         pass
-    if Notice.notice_type == 'friend_add': # 好友添加
-        pass
-    if Notice.notice_type == 'friend_recall': # 好友消息撤回
-        friend = bot.Friend(user_id=Notice.user_id)[0]
-        for f in admin_ID():
-            message = bot.GetMsg(Notice.message_id)
-            bot.SendMsg('friend', f.user_id, soup.Node(*message.message,uid=friend.user_id,nickname=friend.nickname))
-            bot.SendMsg('friend', f.user_id, soup.Text(f'好友{friend.nickname}[{friend.remark}({friend.user_id})]撤回了消息 {Notice.message_id}'))
-        return
-    if Notice.notice_type == 'offline_file': # 接收到离线文件包
-        pass
-    if Notice.notice_type == 'client_status': # 客户端状态
-        pass
+
     if Notice.notice_type == 'essence': # 精华消息
         {'time': 1733382566, 'self_id': 2907237958, 'post_type': 'notice', 'notice_type': 'essence', 'sub_type': 'add', 'group_id': 683327278, 'operator_id': 183744529, 'sender_id': 592066232, 'message_id': 971594782, 'source': 'group'}
         group = bot.Group(group=Notice.group_id)
@@ -308,105 +299,36 @@ def onQQNotice(bot, Notice):
             pass
         if Notice.sub_type == 'title': # 群头衔变更
             pass
+
+    if Notice.notice_type == 'reaction': # 群消息反应
+        # time          | int | -               | 事件发生的时间戳
+        # self_id       | int | -               | 收到事件的机器人 QQ 号
+        # post_type     | str | `notice`        | 上报类型
+        # notice_type   | str | `reaction`      | 消息类型
+        # sub_type      | str | `add`、`remove` | 提示类型
+        # group_id      | int | -               | 群号
+        # message_id    | int | -               | 反应的消息 ID
+        # operator_id   | int | -               | 操作者 QQ 号
+        # code          | str | -               | 表情 ID
+        # count         | int | -               | 当前反应数量
+        return
+
+    if Notice.notice_type == 'friend_add': # 好友添加
+        pass
+    if Notice.notice_type == 'friend_recall': # 好友消息撤回
+        friend = bot.Friend(user_id=Notice.user_id)[0]
+        for f in admin_ID():
+            message = bot.GetMsg(Notice.message_id)
+            bot.SendMsg('friend', f.user_id, soup.Node(*message.message,uid=friend.user_id,nickname=friend.nickname))
+            bot.SendMsg('friend', f.user_id, soup.Text(f'好友{friend.nickname}[{friend.remark}({friend.user_id})]撤回了消息 {Notice.message_id}'))
+        return
+    if Notice.notice_type == 'offline_file': # 接收到离线文件包
+        pass
+    if Notice.notice_type == 'client_status': # 客户端状态
+        pass
     for f in admin_ID():bot.SendMsg('friend', f.user_id,soup.Text(Notice))
     return
-    first = True
-    t = time.strftime("%Y-%m-%d %H:%M:%S",time.localtime())
-    for f in admin_ID():
-        try:
-            if Event.type == 'BotOnlineEvent': # Bot登录成功
-                bot.SendMsg('Friend',f,soup.Text(f'{t} {Event.qq} 登陆成功'))
-            elif Event.type == 'BotOfflineEventActive': # Bot主动离线
-                bot.Mirai.bind()
-                bot.SendMsg('Friend',f,soup.Text(f'{t} {Event.qq} 主动离线'))
-            elif Event.type == 'BotOfflineEventForce': # Bot被挤下线
-                bot.Mirai.bind()
-                bot.SendMsg('Friend',f,soup.Text(f'{t} {Event.qq} 被挤下线'))
-            elif Event.type == 'BotOfflineEventDropped': # Bot被服务器断开或因网络问题而掉线
-                os.popen('taskkill /f /im java.exe').read() # 干掉Mirai进程，需要MCL启动脚循环自启，本配合自动登录
-                bot.Mirai.bind()
-                bot.SendMsg('Friend',f,soup.Text(f'{t} {Event.qq} 被服务器断开或因网络问题而掉线'))
-            elif Event.type == 'BotReloginEvent': # Bot主动重新登录
-                bot.Mirai.bind()
-                bot.SendMsg('Friend',f,soup.Text(f'{t} {Event.qq} 主动重新登录'))
-            elif Event.type == 'FriendInputStatusChangedEvent': # 好友输入状态改变
-                pass # bot.SendMsg('Friend',f,soup.Text(f'好友 {Event.friend.nickname}[{Event.friend.remark}({Event.friend.id})] {((Event.inputting and "正在输入") or "取消输入")}'))
-            elif Event.type == 'FriendNickChangedEvent': # 好友昵称改变
-                bot.SendMsg('Friend',f,soup.Text(f'好友 {Event.friend.nickname}[{Event.friend.remark}({Event.friend.id})] 昵称改为 {Event.to}'))
-            elif Event.type == 'BotGroupPermissionChangeEvent': # Bot在群里的权限被改变. 操作人一定是群主
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.group.name}({Event.group.id}) 权限由 {Event.origin} 改为 {Event.current}'))
-            elif Event.type == 'BotMuteEvent': # Bot被禁言
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.operator.group.name}({Event.operator.group.id}) 被 {Event.operator.memberName}[{Event.operator.permission}({Event.operator.id})] 禁言 {secs2hours(Event.durationSeconds)}'))
-            elif Event.type == 'BotUnmuteEvent': # Bot被取消禁言
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.operator.group.name}({Event.operator.group.id}) 被 {Event.operator.memberName}[{Event.operator.permission}({Event.operator.id})] 解禁'))
-            elif Event.type == 'BotJoinGroupEvent': # Bot加入了一个新群
-                bot.SendMsg('Friend',f,soup.Text(f'加入 {Event.group.name}({Event.group.id}) 群'))
-            elif Event.type == 'BotLeaveEventActive': # Bot主动退出一个群
-                bot.SendMsg('Friend',f,soup.Text(f'退出 {Event.group.name}({Event.group.id}) 群'))
-            elif Event.type == 'BotLeaveEventKick': # Bot被踢出一个群
-                bot.SendMsg('Friend',f,soup.Text(f'被踢出 {Event.group.name}({Event.group.id}) 群'))
-            elif Event.type == 'BotLeaveEventDisband': # Bot因群主解散群而退出群, 操作人一定是群主
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.group.name}({Event.group.id}) 被解散'))
-            elif Event.type == 'GroupRecallEvent': # 群消息撤回
-                bot.SendMsg('Friend',f,soup.Forward(soup.Node(ref=[Event.group.id,Event.messageId])))
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.group.name}({Event.group.id}) {Event.operator.memberName}[{Event.operator.permission}({Event.operator.id})] 撤回了 {Event.authorId} 的消息ID {Event.messageId}'))
-            elif Event.type == 'FriendRecallEvent': # 好友消息撤回
-                bot.SendMsg('Friend',f,soup.Forward(soup.Node(ref=[Event.authorId,Event.messageId])))
-                bot.SendMsg('Friend',f,soup.Text(f'好友 {Event.authorId} 撤回了消息ID {Event.messageId}'))
-            elif Event.type == 'NudgeEvent': # 戳一戳事件
-                if Event.target==bot.conf.qq:bot.SendMsg('Friend',f,soup.Text(f'{(Event.subject.kind=="Group" and "群") or "好友"}({Event.fromId}) 戳了戳 {Event.target} 的脸'))
-            elif Event.type == 'GroupNameChangeEvent': # 某个群名改变
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.origin}({Event.group.id}) 被 {Event.operator.memberName}[{Event.operator.permission}({Event.operator.id})] 改成 {Event.current}'))
-            elif Event.type == 'GroupEntranceAnnouncementChangeEvent': # 某群入群公告改变
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.group.name}({Event.group.id}) 公告:\n{Event.origin}\n被 {Event.operator.memberName}[{Event.operator.permission}({Event.operator.id})] 改为:\n{Event.current}'))
-            elif Event.type == 'GroupMuteAllEvent': # 全员禁言
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.group.name}({Event.group.id}) {Event.operator.memberName}[{Event.operator.permission}({Event.operator.id})] {(Event.current and "开启了全员禁言")or "关闭了全员禁言"}'))
-            elif Event.type == 'GroupAllowAnonymousChatEvent': # 匿名聊天
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.group.name}({Event.group.id}) {Event.operator.memberName}[{Event.operator.permission}({Event.operator.id})] {(Event.current and "开启了匿名聊天")or "关闭了匿名聊天"}'))
-            elif Event.type == 'GroupAllowConfessTalkEvent': # 坦白说
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.group.name}({Event.group.id}) {Event.operator.memberName}[{Event.operator.permission}({Event.operator.id})] {(Event.current and "开启了坦白说")or "关闭了坦白说"}'))
-            elif Event.type == 'GroupAllowMemberInviteEvent': # 允许群员邀请好友加群
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.group.name}({Event.group.id}) {Event.operator.memberName}[{Event.operator.permission}({Event.operator.id})] {(Event.current and "开启了邀请入群")or "关闭了邀请入群"}'))
-            elif Event.type == 'MemberJoinEvent': # 新人入群的事件
-                bot.SendMsg('Friend',f,soup.Text(f'新人 {Event.member.memberName}({Event.member.id}) 加入了 {Event.member.group.name}({Event.member.group.id}) 群'))
-                words = [
-                    [soup.Text('欢迎新人'),soup.Face(13)],
-                ]
-                if first:bot.SendMsg('Group',Event.member.group.id,*words[random.randint(0,len(words)-1)])
-            elif Event.type == 'MemberLeaveEventKick': # 成员被踢出群（该成员不是Bot）
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.operator.group.name}({Event.operator.group.id}) 成员 {Event.member.memberName}({Event.member.id}) 被 {Event.operator.memberName}[{Event.operator.permission}({Event.operator.id})] 踢了'))
-                if first:bot.SendMsg('Group',Event.member.group.id,soup.Face(13))
-            elif Event.type == 'MemberLeaveEventQuit': # 成员主动离群（该成员不是Bot）
-                bot.SendMsg('Friend',f,soup.Text(f'{Event.member.memberName}({Event.member.id}) 退出了 {Event.member.group.name}({Event.member.group.id})'))
-            elif Event.type == 'MemberCardChangeEvent': # 群名片改动
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.member.group.name}({Event.member.group.id}) 成员 {Event.origin}({Event.member.id}) 改名为 {Event.current}'))
-            elif Event.type == 'MemberSpecialTitleChangeEvent': # 群头衔改动（只有群主有操作限权）
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.member.group.name}({Event.member.group.id}) 成员 {Event.member.memberName}({Event.member.id}) 头衔 {Event.origin} 改为 {Event.current}'))
-            elif Event.type == 'MemberPermissionChangeEvent': # 成员权限改变的事件（该成员不是Bot）
-                bot.SendMsg('Friend',f,soup.Text(f'群 {Event.member.group.name}({Event.member.group.id}) 成员 {Event.member.memberName}({Event.member.id}) 权限 {Event.origin} 改为 {Event.current}'))
-            elif Event.type == 'MemberMuteEvent': # 群成员被禁言事件（该成员不是Bot）
-                if Event.operator:bot.SendMsg('Friend',f,soup.Text(f'群 {Event.member.group.name}({Event.member.group.id}) 成员 {Event.member.memberName}({Event.member.id}) 被 {Event.operator.memberName}[{Event.operator.permission}({Event.operator.id})] 禁言 {time.strftime(f"{time.gmtime(Event.durationSeconds)[2]-1} %H:%M",time.gmtime(Event.durationSeconds))}'))
-                else:bot.SendMsg('Friend',f,soup.Text(f'群 {Event.member.group.name}({Event.member.group.id}) 成员 {Event.member.memberName}({Event.member.id}) 被禁言 {time.strftime(f"{time.gmtime(Event.durationSeconds)[2]-1} %H:%M",time.gmtime(Event.durationSeconds))}'))
-                if first:bot.SendMsg('Group',Event.member.group.id,soup.At(Event.member.id),soup.Text('你倒是说句话呀'),soup.Face(13))
-            elif Event.type == 'MemberUnmuteEvent': # 群成员被取消禁言事件（该成员不是Bot）
-                if Event.operator:bot.SendMsg('Friend',f,soup.Text(f'群 {Event.member.group.name}({Event.member.group.id}) 成员 {Event.member.memberName}({Event.member.id}) 被 {Event.operator.memberName}[{Event.operator.permission}({Event.operator.id})] 解禁'))
-                else:bot.SendMsg('Friend',f,soup.Text(f'群 {Event.member.group.name}({Event.member.group.id}) 成员 {Event.member.memberName}({Event.member.id}) 被解除禁言'))
-                if first:bot.SendMsg('Group',Event.member.group.id,soup.Text('啧'))
-            elif Event.type == 'MemberHonorChangeEvent': # 群员称号改变
-                bot.SendMsg('Friend',f,soup.Text(f'成员 {Event.member.memberName}({Event.member.id}) 在群 {Event.member.group.name}({Event.member.group.id}) {(Event.action=="achieve"and"获得")or "失去"} {Event.honor} 称号'))
-                if first and Event.action=='achieve' and Event.honor=='龙王' and Event.member.id!=bot.conf.qq:bot.SendMsg('Group',Event.member.group.id,soup.At(Event.member.id),soup.Text('龙王给爷喷水'))
-            elif Event.type == 'OtherClientOnlineEvent': # 其他客户端上线
-                bot.SendMsg('Friend',f,soup.Text(f'{Event.client.platform} 客户端{(hasattr(Event,"kind") and Event.kind)or""}上线'))
-            elif Event.type == 'OtherClientOfflineEvent': # 其他客户端下线
-                bot.SendMsg('Friend',f,soup.Text(f'{Event.client.platform} 客户端下线'))
-            elif Event.type == 'CommandExecutedEvent': # 命令被执行
-                pass
-            else:raise
-        except:
-            bot.SendMsg('Friend',f,soup.Text(trans(Event)))
-            bot.SendMsg('Friend',f,soup.Text(traceback.format_exc()))
-        first = False
-
+    
 def onQQRequestEvent(bot, Request):
     '''\
     申请事件'''
