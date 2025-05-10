@@ -77,7 +77,7 @@ def basename(s:str):
 
 def imageType2qr(message):
     def temp(msg):img2qr(picture=msg)
-    soup.Type_Func(message, 'image', temp)
+    soup.Type_Func(temp, message, 'image')
 
 def img2qr(
         word:str=None,
@@ -100,9 +100,9 @@ def img2qr(
                 if imgurl.endswith(('.jpg','.png','.bmp','.gif')):file_name = imgurl
             elif picture['file'].startswith('base64://'):
                 try:byte = b64dec2b(picture['file'][9:])
-                except:Exception('错误的base64')
-            else:Exception(f'不支持的格式 {picture["file"][:6]}')
-        else:Exception('没有包含 url 或 file')
+                except:raise Exception('错误的base64')
+            else:raise Exception(f'不支持的格式 {picture["file"][:6]}')
+        else:raise Exception('没有包含 url 或 file')
 
     elif isinstance(picture,str) and picture.startswith('http'):
         imgurl = picture
@@ -115,8 +115,9 @@ def img2qr(
     elif picture:byte = b64dec2b(picture)
 
     if imgurl and not word:word = imgurl
-    elif byte and not word:Exception('字节和Base64图片 word 不得为空')
-    
+    elif byte and not word:raise Exception('字节和Base64图片 word 不得为空')
+    if not word:raise Exception('word 必须包含文本或 picture 包含图片连接')
+
     if imgurl:
         DEBUG(imgurl)
         for n in range(5):
@@ -132,7 +133,7 @@ def img2qr(
                 elif byte[:6] in (b'GIF87a', b'GIF89a'):file_name+='.gif'
                 elif byte.startswith(b'BM'):file_name+='.bmp'
                 else:file_name+='.png'
-            picture = os.path.join(get_tempdir(), basename(file_name[-250:]))
+            picture = os.path.join(get_tempdir(), basename(file_name[-10:]))
             with open(picture, "wb") as f:f.write(byte)
         except:
             picture = None
