@@ -117,12 +117,13 @@ class QQBot(TermBot):
             if 'type' in msg.data:msg.data.data_type = msg.data.pop('type') # data内有type转成data_type
             msg.update(msg.pop('data')) # 把data往上提取一层
         Quote = event.message[0].id if event.message and event.message[0].type == 'reply' else None # 提取回复的信息ID
+
         if event.message_type == 'private': # 好友消息处理
             Type = 'friend' # 上报
             Sender = self.Friend(user_id=event.sender.user_id)[0]
             Source = JsonDict(time=event.time, message_id=event.message_id, target=event.target_id if event.user_id==event.self_id else event.user_id)
             Source.update(self.Friend(user_id=event.target_id if event.user_id==event.self_id else event.user_id)[0])
-            if 'post_type' in event and event.post_type.endswith('sent'):INFO(f'{SGR("同步", B4=1)}好友{SGR(Source.nickname,b4=11)}[{SGR(Source.remark,b4=11)}({SGR(Source.user_id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
+            if event.user_id==event.self_id:INFO(f'{SGR("同步", B4=1)}好友{SGR(Source.nickname,b4=11)}[{SGR(Source.remark,b4=11)}({SGR(Source.user_id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
             else:INFO(f'来自好友{SGR(Sender.nickname,b4=11)}[{SGR(Sender.remark,b4=11)}({SGR(Sender.user_id,b4=1)})]{(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
                 
         elif event.message_type == 'group' and event.sub_type == 'normal': # 群消息处理
@@ -131,7 +132,7 @@ class QQBot(TermBot):
             Source = JsonDict(time=event.time, message_id=event.message_id, target=event.group_id)
             Source.update(self.Group(group_id=event.group_id)[0])
             Sender = self.Member(group_id=event.group_id,user_id=event.user_id)[0]
-            if 'post_type' in event and event.post_type.endswith('sent'):INFO(f'{SGR("同步", B4=4)}群{SGR(Source.group_name,b4=14)}({SGR(Source.group_id,b4=4)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
+            if event.user_id==event.self_id:INFO(f'{SGR("同步", B4=4)}群{SGR(Source.group_name,b4=14)}({SGR(Source.group_id,b4=4)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
             else:INFO(f'来自群{SGR(Source.group_name,b4=14)}({SGR(Source.group_id,b4=4)})成员{SGR(Sender.nickname,b4=13)}({SGR(Sender.user_id,b4=3)}){(Quote and "回复("+SGR(Quote,b4=2)+")") or ""}的消息({SGR(Source.message_id,b4=12)}):\n{event.message}')
         else: # 其他类型
             WARNING(f'MessageSubType omission: {event.sub_type}\n{event}')
