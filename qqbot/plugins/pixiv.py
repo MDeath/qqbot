@@ -114,7 +114,7 @@ def ugoira_download(illust):
         break
     RemoveWorkerTo('pixiv', 10)
 
-def illust_msg(illust, Group=True, limit=100): # 插画生成消息连
+def illust_msg(illust, Group=True, limit=100): # 插画消息链生成
     Plain = f'标题:{illust.title} Pid:{illust.id}\n作者:{illust.user.name} Uid:{illust.user.id} {"T"if illust.user.is_followed else "F"}\n时间:{illust.create_date[:-6]}\n类型:{illust.type} 收藏比:{illust.total_bookmarks}/{illust.total_view},{"%.2f"%(illust.total_bookmarks/illust.total_view*100)}% 标签:\n'
     if illust.illust_ai_type == 2:Plain += 'AI作图\n'
     for tag in illust.tags:Plain += f'{tag.name}:{tag.translated_name}\n'
@@ -160,7 +160,7 @@ def send_illust(illust, Type, target:int, reply:int=None): # 单插画聊天记�
             bot.SendMsg(Type, target, soup.Text(f'🆘Pid:{illust.id} 发送失败🆘'), reply=reply)
             break
 
-def send_illusts(node, Type, target:int, reply:int=None, title=None):
+def send_illusts(node, Type, target:int, reply:int=None, title=None): # 多插画聊天记录发送
     error_number = 0
     while node:
         data = bot.SendMsg(Type, target, *node)
